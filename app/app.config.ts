@@ -7,8 +7,14 @@ export default defineAppConfig({
     },
     button: {
       defaultVariants: {
+        size: "xl",
         // Set default button color to neutral
         // color: 'neutral'
+      },
+    },
+    input: {
+      defaultVariants: {
+        size: "xl",
       },
     },
   },

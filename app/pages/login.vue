@@ -33,7 +33,7 @@ const handleLogin = async () => {
   const { success } = await login(credentials)
 
   if (success) {
-    await router.push('/dashboard')
+    await router.push('/')
   }
 }
 </script>
@@ -49,12 +49,12 @@ const handleLogin = async () => {
       <UForm :schema="loginSchema" :state="credentials" class="space-y-6" @submit="handleLogin">
         <UFormField label="Email" name="email" class="w-full">
           <UInput v-model="credentials.email" type="email" placeholder="you@example.com" autocomplete="email"
-            trailing-icon="lucide:mail" class="w-full" />
+            leading-icon="lucide:mail" class="w-full" />
         </UFormField>
 
         <UFormField label="Password" name="password" class="w-full">
           <UInput v-model="credentials.password" type="password" placeholder="••••••••" autocomplete="current-password"
-            trailing-icon="lucide:lock" class="w-full" />
+            leading-icon="lucide:lock" class="w-full" />
         </UFormField>
 
         <div class="flex justify-between items-center">

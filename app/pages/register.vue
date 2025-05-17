@@ -40,7 +40,7 @@ const handleRegister = async () => {
         if (needsEmailConfirmation) {
             emailConfirmationRequired.value = true
         } else {
-            await router.push('/dashboard')
+            await router.push('/')
         }
     }
 }
@@ -69,17 +69,17 @@ const handleRegister = async () => {
             <UForm v-else :schema="registrationSchema" :state="formData" class="space-y-6" @submit="handleRegister">
                 <UFormField label="Full name" name="name" class="w-full">
                     <UInput v-model="formData.name" placeholder="John Doe" autocomplete="name"
-                        trailing-icon="lucide:user" class="w-full" />
+                        leading-icon="lucide:user" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Email" name="email" class="w-full">
                     <UInput v-model="formData.email" type="email" placeholder="you@example.com" autocomplete="email"
-                        trailing-icon="lucide:mail" class="w-full" />
+                        leading-icon="lucide:mail" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Password" name="password" class="w-full">
                     <UInput v-model="formData.password" type="password" placeholder="••••••••"
-                        autocomplete="new-password" trailing-icon="lucide:lock" class="w-full" />
+                        autocomplete="new-password" leading-icon="lucide:lock" class="w-full" />
                     <template #hint>
                         <span class="text-xs text-gray-500">Password must be at least 6 characters</span>
                     </template>
