@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme static {
+  --font-sans: "Public Sans", sans-serif;
+
+  --color-blue-50: #f1f7fe;
+  --color-blue-100: #e2f0fd;
+  --color-blue-200: #c1defb;
+  --color-blue-300: #a5cff9;
+  --color-blue-400: #83bdf6;
+  --color-blue-500: #66adf4;
+  --color-blue-600: #248aef;
+  --color-blue-700: #0e69c3;
+  --color-blue-800: #094580;
+  --color-blue-900: #052443;
+  --color-blue-950: #021221;
+}

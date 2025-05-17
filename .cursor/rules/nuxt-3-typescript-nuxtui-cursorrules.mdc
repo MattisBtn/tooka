@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You have extensive expertise in Vue 3, Nuxt 3, TypeScript, Node.js, Vite, Vue Router, Pinia, VueUse, Nuxt UI, Supabase and Tailwind CSS. You possess a deep knowledge of best practices and performance optimization techniques across these technologies.
+
+Architecture & “God Tier” Nuxt 3 Structure
+
+1.1 Overview
+
+Feature-Based Modules: organize by feature, placing pages, components, composables, and stores within each feature folder.
+
+Nuxt 3 Layered Structure:
+• ~/layers/ for reusable Nitro/Runtime layers
+• ~/modules/ for custom Nuxt modules (e.g., auth, payments)
+• ~/plugins/ for initialization of VueUse, Supabase, axios, etc.
+• ~/composables/ for reusable client‑side logic (useXxx)
+• ~/stores/ for Pinia stores, one per domain
+• ~/pages/, ~/layouts/, ~/components/
+• ~/server/ for server API routes and middleware
+• ~/types/ for shared TypeScript interfaces
+
+1.2 Core Patterns
+
+Module Pattern: encapsulate domain features with a clear API surface.
+
+Repository Pattern: abstract Supabase or other data sources behind interfaces.
+
+Service Layer: plain functions handling business logic, used by composables and server routes.
+
+Event Bus: use Pinia or a lightweight library like mitt for decoupled communication.
+
+Code Style & Structure
+
+2.1 TypeScript & Typing
+
+Always use TypeScript; prefer interfaces over types for extendability.
+
+Avoid enum; use as const or mapped types for flexibility.
+
+Place types in ~/types with clear naming (IUser, IFeatureFlag).
+
+2.2 Composition API
+
+Use in all components.
+
+Prioritize composable functions: create in ~/composables, named useXxx.
+
+Avoid classes; favor pure functions and closures.
+
+2.3 Declarative & Functional
+
+Embrace immutability: treat props as readonly.
+
+Use array methods (map, filter, reduce) over loops.
+
+Extract reusable logic into composables or helpers to enforce DRY.
+
+Nuxt 3 Specifics & SEO
+
+3.1 Auto-Imports & APIs
+
+Leverage Nuxt’s auto-imports: no manual imports for ref, computed, useState, useRouter.
+
+Use server API routes (~/server/api/*.ts) for secure operations.
+
+Access environment variables via useRuntimeConfig().
+
+3.2 Color Mode & Theming
+
+Use @nuxtjs/color-mode with useColorMode().
+
+Define theme settings in app.config.ts (colors, typography, spacing).
+
+3.3 SEO & Meta
+
+Manage page metadata with useHead and useSeoMeta.
+
+Generate sitemap via @nuxtjs/sitemap.
+
+Data Fetching Strategies
+
+SSR with caching: useFetch with server: true, lazy: false.
+
+Client-side event handlers: $fetch.
+
+Complex logic / aggregated data: useAsyncData with server: false, lazy: true.
+
+Handle cancellations with AbortController.
+
+Always implement onError for user-friendly fallbacks.
+
+State Management
+
+Use Pinia: one store per domain (~/stores/useUserStore.ts).
+
+Strongly type state and actions; avoid any.
+
+Prefer setup stores and pure getters.
+
+UI, Styling & Responsive Design
+
+6.1 Components & Utilities
+
+Use Nuxt UI + Tailwind CSS.
+
+Mobile-first approach: breakpoints sm → md → lg → xl.
+
+Standardize UI tokens: rounded-2xl, shadow-soft, consistent spacing scales.
+
+6.2 Images & Icons
+
+Optimize images with  / .
+
+Use Nuxt Icons for adaptive SVGs.
+
+Security & Performance
+
+7.1 Security Practices
+
+Validate all inputs with Zod or io-ts.
+
+Regularly scan dependencies (npm audit, Dependabot).
+
+Enforce CSP, HSTS, and XSS protections via headers.
+
+7.2 Performance Optimization
+
+Lazy-load components with defineAsyncComponent.
+
+Implement code-splitting and use  / .
+
+Analyze bundles with nuxt-bundle-analyzer or rollup-plugin-visualizer.
+
+Leverage CDN caching and enable Supabase RLS and IndexedDB caching on the client.
+
+These rules form the baseline for consistent, maintainable, and scalable code across our Nuxt 3 SaaS projects. Adapt as necessary, but always align with the core principles.
+
