@@ -9,7 +9,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "lint:fix": "eslint --fix ."
+    "lint:fix": "eslint --fix .",
+    "supabase:generate": "npx supabase gen types typescript --project-id vohfnhlkmoajrxkeaooz > app/types/database.types.ts"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.42",

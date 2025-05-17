@@ -39,7 +39,7 @@ Always use TypeScript; prefer interfaces over types for extendability.
 
 Avoid enum; use as const or mapped types for flexibility.
 
-Place types in ~/types with clear naming (IUser, IFeatureFlag).
+Place types in ~/types with clear naming (IUser, IFeatureFlag) and always check (but never edit) database.types.ts in ~/types.
 
 2.2 Composition API
 
