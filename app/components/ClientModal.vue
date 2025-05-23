@@ -15,9 +15,7 @@
         </template>
 
         <template #body>
-            <div class="max-h-[70vh] overflow-y-auto">
-                <ClientForm :client="client" @client-saved="handleClientSaved" @cancel="closeModal" />
-            </div>
+            <ClientForm :client="client" @client-saved="handleClientSaved" @cancel="closeModal" />
         </template>
     </UModal>
 </template>

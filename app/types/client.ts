@@ -209,3 +209,11 @@ export const clientFormSchema = z.discriminatedUnion("type", [
 ]);
 
 export type ClientFormData = z.infer<typeof clientFormSchema>;
+
+// Client type item interface for form UI
+export interface ClientTypeItem {
+  value: "individual" | "company";
+  label: string;
+  description: string;
+  icon: string;
+}
