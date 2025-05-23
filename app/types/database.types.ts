@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          bic: string | null
           billing_address: string
           billing_city: string
           billing_country: string
@@ -20,14 +21,17 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           first_name: string | null
+          iban: string | null
           id: string
           last_name: string | null
+          notes: string | null
           siret: string | null
           tax_id: string | null
           type: Database["public"]["Enums"]["client_type"]
           user_id: string
         }
         Insert: {
+          bic?: string | null
           billing_address: string
           billing_city: string
           billing_country: string
@@ -37,14 +41,17 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           first_name?: string | null
+          iban?: string | null
           id?: string
           last_name?: string | null
+          notes?: string | null
           siret?: string | null
           tax_id?: string | null
           type?: Database["public"]["Enums"]["client_type"]
           user_id: string
         }
         Update: {
+          bic?: string | null
           billing_address?: string
           billing_city?: string
           billing_country?: string
@@ -54,8 +61,10 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           first_name?: string | null
+          iban?: string | null
           id?: string
           last_name?: string | null
+          notes?: string | null
           siret?: string | null
           tax_id?: string | null
           type?: Database["public"]["Enums"]["client_type"]

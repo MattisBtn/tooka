@@ -3,7 +3,6 @@
         <header class="w-full p-4 border-b border-gray-200 dark:border-gray-800">
             <div class="container mx-auto flex justify-center">
                 <NuxtLink to="/" class="flex items-center gap-2">
-                    <UIcon name="lucide:flow" class="text-primary-500 h-8 w-8" />
                     <span class="text-xl font-bold text-gray-900 dark:text-white">Flow</span>
                 </NuxtLink>
             </div>
