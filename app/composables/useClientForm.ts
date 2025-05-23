@@ -5,7 +5,7 @@ import { clientFormSchema } from "~/types/client";
 export const useClientForm = (initialClient?: Client) => {
   const toast = useToast();
 
-  // Reactive state for UForm
+  // Reactive state for UForm - no longer readonly
   const state = reactive<Partial<ClientFormData>>({
     type: initialClient?.type || "individual",
     first_name: initialClient?.first_name || "",
@@ -70,7 +70,6 @@ export const useClientForm = (initialClient?: Client) => {
   // Submit handler for UForm
   const onSubmit = async (data: ClientFormData): Promise<Client | null> => {
     try {
-      // Transform data to match Client type expectations
       const clientData = {
         ...data,
         billing_phone: data.billing_phone || null,
@@ -117,7 +116,7 @@ export const useClientForm = (initialClient?: Client) => {
   };
 
   return {
-    state: readonly(state),
+    state,
     schema: clientFormSchema,
     isIndividual,
     isCompany,
