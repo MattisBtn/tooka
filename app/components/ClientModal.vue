@@ -16,21 +16,7 @@
 
         <template #body>
             <div class="max-h-[70vh] overflow-y-auto">
-                <ClientForm :client="client" @client-saved="handleClientSaved" />
-            </div>
-        </template>
-
-        <template #footer>
-            <div class="flex items-center justify-between w-full">
-                <div class="flex items-center gap-2 text-sm text-muted">
-                    <UIcon name="i-lucide-info" class="w-4 h-4" />
-                    <span>Les champs marqués d'un * sont obligatoires</span>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <UButton color="neutral" variant="ghost" label="Annuler" @click="closeModal" />
-                    <UButton type="submit" form="client-form" color="primary" :label="submitButtonLabel" />
-                </div>
+                <ClientForm :client="client" @client-saved="handleClientSaved" @cancel="closeModal" />
             </div>
         </template>
     </UModal>
@@ -60,10 +46,6 @@ const isOpen = computed({
 
 const modalTitle = computed(() =>
     props.client ? "Modifier le client" : "Nouveau client"
-);
-
-const submitButtonLabel = computed(() =>
-    props.client ? "Enregistrer" : "Créer le client"
 );
 
 // Handle client saved from form
