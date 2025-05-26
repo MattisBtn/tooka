@@ -7,34 +7,40 @@ export const useClients = () => {
 
   const clients = ref<Client[]>([]);
   const hasMore = ref(true);
-  const page = ref(1);
+  const skip = ref(0);
   const pageSize = 20;
 
   // Reset all states
   const reset = () => {
     clients.value = [];
     hasMore.value = true;
-    page.value = 1;
+    skip.value = 0;
     error.value = null;
   };
 
   // Fetch clients with pagination and optional filters
-  const fetchClients = async (filters: IClientFilters = {}) => {
+  const fetchClients = async (
+    filters: IClientFilters = {},
+    isInitialLoad = false
+  ) => {
     if (!hasMore.value || loading.value) return;
 
     loading.value = true;
     error.value = null;
 
     try {
-      const pagination = { page: page.value, pageSize };
+      const pagination = {
+        page: Math.floor(skip.value / pageSize) + 1,
+        pageSize,
+      };
       const data = await clientService.getClients(filters, pagination);
 
       if (data.length < pageSize) {
         hasMore.value = false;
       }
 
-      clients.value = page.value === 1 ? data : [...clients.value, ...data];
-      page.value++;
+      clients.value = isInitialLoad ? data : [...clients.value, ...data];
+      skip.value += pageSize;
 
       return data;
     } catch (err) {
@@ -49,7 +55,13 @@ export const useClients = () => {
 
   // Load more data (for infinite scrolling)
   const loadMore = async (filters: IClientFilters = {}) => {
-    return await fetchClients(filters);
+    return await fetchClients(filters, false);
+  };
+
+  // Initial load with smaller page size
+  const initialLoad = async (filters: IClientFilters = {}) => {
+    skip.value = 0;
+    return await fetchClients(filters, true);
   };
 
   // Create a new client
@@ -129,10 +141,12 @@ export const useClients = () => {
     loading: readonly(loading),
     error: readonly(error),
     hasMore: readonly(hasMore),
+    skip: readonly(skip),
 
     // Actions
     fetchClients,
     loadMore,
+    initialLoad,
     createClient,
     updateClient,
     deleteClient,

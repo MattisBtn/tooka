@@ -10,8 +10,9 @@
     </PageHeader>
 
     <div ref="tableContainer" class="mt-6">
-      <UTable :columns="columns" :data="tableRows" sticky :loading="clientStore.loading.value ? true : false"
-        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" class="w-full" />
+      <UTable ref="table" :columns="columns" :data="tableRows" sticky
+        :loading="clientStore.loading.value ? true : false"
+        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" class="w-full h-[calc(100vh-200px)]" />
     </div>
 
     <!-- Client Modal -->
@@ -43,6 +44,7 @@ const searchQuery = ref('')
 const searchTimeout = ref<NodeJS.Timeout | null>(null)
 const clientStore = useClients()
 const tableContainer = ref<HTMLElement | null>(null)
+const table = ref<ComponentPublicInstance | null>(null)
 
 // Modal states
 const showModal = ref(false)
@@ -202,27 +204,32 @@ const handleSearch = () => {
 
   searchTimeout.value = setTimeout(() => {
     clientStore.reset()
-    clientStore.fetchClients({
+    clientStore.initialLoad({
       search: searchQuery.value.trim() || undefined
     })
   }, 300)
 }
 
-onMounted(() => {
-  clientStore.fetchClients()
-})
+onMounted(async () => {
+  await clientStore.initialLoad()
 
-useInfiniteScroll(
-  tableContainer,
-  async () => {
-    if (clientStore.hasMore.value && !clientStore.loading.value) {
-      await clientStore.loadMore({
-        search: searchQuery.value.trim() || undefined
-      })
+  useInfiniteScroll(
+    table.value?.$el,
+    async () => {
+      if (clientStore.hasMore.value && !clientStore.loading.value) {
+        await clientStore.loadMore({
+          search: searchQuery.value.trim() || undefined
+        })
+      }
+    },
+    {
+      distance: 200,
+      canLoadMore: () => {
+        return !clientStore.loading.value && clientStore.hasMore.value
+      }
     }
-  },
-  { distance: 100 }
-)
+  )
+})
 </script>
 
 <style></style>
