@@ -35,7 +35,7 @@ import type { TableColumn } from '@nuxt/ui'
 import { useInfiniteScroll } from '@vueuse/core'
 import { h, resolveComponent } from 'vue'
 import type { Client } from '~/types/client'
-
+import { useClients } from '~/composables/clients/useClients'
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 

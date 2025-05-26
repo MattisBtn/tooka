@@ -239,7 +239,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import type { Client, ClientFormData, ClientTypeItem } from "~/types/client";
-
+import { useClientForm } from "~/composables/clients/useClientForm";
 interface Props {
     client?: Client;
 }

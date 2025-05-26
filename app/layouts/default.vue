@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAuth } from '~/composables/auth/useAuth'
+
 const isSidebarCollapsed = ref(false)
 
 const toggleSidebar = () => {
@@ -93,7 +95,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                    }}</span>
+                                }}</span>
                             </UButton>
                         </div>
                     </div>

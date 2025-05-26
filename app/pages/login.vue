@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { ILoginCredentials } from '~/types/auth'
+import { useAuth } from '~/composables/auth/useAuth'
 
 definePageMeta({
   layout: 'auth'
