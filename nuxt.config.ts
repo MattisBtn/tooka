@@ -25,4 +25,12 @@ export default defineNuxtConfig({
       exclude: ["/register", "/login", "/reset-password"],
     },
   },
+  imports: {
+    dirs: [
+      // Scanne les composables à la racine
+      "~/composables",
+      // Scanne tous les sous-dossiers récursivement
+      "~/composables/**",
+    ],
+  },
 });
