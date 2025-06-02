@@ -100,13 +100,25 @@ export const projectRepository: IProjectRepository = {
 
   async create(
     projectData: Omit<Project, "id" | "created_at" | "updated_at">
-  ): Promise<Project> {
+  ): Promise<ProjectWithClient> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
       .from("projects")
       .insert(projectData)
-      .select()
+      .select(
+        `
+        *,
+        client:clients(
+          id,
+          type,
+          first_name,
+          last_name,
+          company_name,
+          billing_email
+        )
+      `
+      )
       .single();
 
     if (error) {
@@ -129,7 +141,19 @@ export const projectRepository: IProjectRepository = {
       .update(projectData)
       .eq("id", id)
       .eq("user_id", user.value.id)
-      .select()
+      .select(
+        `
+        *,
+        client:clients(
+          id,
+          type,
+          first_name,
+          last_name,
+          company_name,
+          billing_email
+        )
+      `
+      )
       .single();
 
     if (error) {

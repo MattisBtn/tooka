@@ -17,5 +17,15 @@ export default defineAppConfig({
         size: "xl",
       },
     },
+    selectMenu: {
+      defaultVariants: {
+        size: "xl",
+      },
+    },
+    textarea: {
+      defaultVariants: {
+        size: "xl",
+      },
+    },
   },
 });

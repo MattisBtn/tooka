@@ -3,8 +3,8 @@
     <PageHeader badge="Projets" badge-color="primary" badge-variant="soft" badge-icon="i-heroicons-folder"
       title="Gestion des projets" subtitle="Créez, gérez et suivez vos projets clients" separator>
       <template #actions>
-        <USelectMenu v-model="statusFilter" :options="statusOptions" placeholder="Filtrer par statut" class="mr-2"
-          @update:model-value="handleStatusFilter" />
+        <USelectMenu v-model="statusFilter" :items="statusOptions" value-key="value" placeholder="Filtrer par statut"
+          class="mr-2" @update:model-value="handleStatusFilter" />
         <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Rechercher..." class="mr-2"
           @update:model-value="handleSearch" />
         <UButton icon="i-lucide-plus" color="primary" size="lg" label="Nouveau projet" @click="openCreateModal" />
@@ -16,6 +16,9 @@
         :loading="projectStore.loading.value ? true : false"
         :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" class="w-full h-[calc(100vh-200px)]" />
     </div>
+
+    <!-- Project Modal -->
+    <ProjectModal v-model="showModal" :project="selectedProject" @project-saved="handleProjectSaved" />
 
     <!-- Delete Confirmation Modal -->
     <UModal v-model:open="showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
@@ -33,14 +36,14 @@
 import type { TableColumn } from '@nuxt/ui'
 import { useInfiniteScroll } from '@vueuse/core'
 import { h, resolveComponent } from 'vue'
-import type { ProjectWithClient } from '~/types/project'
 import { useProjects } from '~/composables/projects/useProjects'
+import type { ProjectWithClient } from '~/types/project'
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 
 const searchQuery = ref('')
-const statusFilter = ref<string | null>(null)
+const statusFilter = ref<"draft" | "in_progress" | "completed" | null>(null)
 const searchTimeout = ref<NodeJS.Timeout | null>(null)
 const projectStore = useProjects()
 const tableContainer = ref<HTMLElement | null>(null)
@@ -85,20 +88,6 @@ const columns: TableColumn<ProjectWithClient>[] = [
     }
   },
   {
-    accessorKey: 'status',
-    header: 'Statut',
-    cell: ({ row }) => {
-      const status = row.original.status
-      const statusOption = projectStore.getStatusOptions().find(s => s.value === status)
-
-      return h(UBadge, {
-        color: statusOption?.color || 'gray',
-        variant: 'subtle',
-        class: 'capitalize'
-      }, () => statusOption?.label || status)
-    }
-  },
-  {
     accessorKey: 'initial_price',
     header: 'Prix initial',
     cell: ({ row }) => {
@@ -123,6 +112,20 @@ const columns: TableColumn<ProjectWithClient>[] = [
           day: 'numeric'
         }).format(new Date(date))
         : ''
+    }
+  },
+  {
+    accessorKey: 'status',
+    header: 'Statut',
+    cell: ({ row }) => {
+      const status = row.original.status
+      const statusOption = projectStore.getStatusOptions().find(s => s.value === status)
+
+      return h(UBadge, {
+        color: statusOption?.color || 'gray',
+        variant: 'subtle',
+        class: 'capitalize'
+      }, () => statusOption?.label || status)
     }
   },
   {
@@ -237,21 +240,23 @@ const handleSearch = () => {
     clearTimeout(searchTimeout.value)
   }
 
-  searchTimeout.value = setTimeout(() => {
-    projectStore.reset()
-    projectStore.initialLoad({
+  searchTimeout.value = setTimeout(async () => {
+    const filters = {
       search: searchQuery.value.trim() || undefined,
       status: statusFilter.value || undefined
-    })
+    }
+
+    await projectStore.refresh(filters)
   }, 300)
 }
 
-const handleStatusFilter = () => {
-  projectStore.reset()
-  projectStore.initialLoad({
+const handleStatusFilter = async () => {
+  const filters = {
     search: searchQuery.value.trim() || undefined,
     status: statusFilter.value || undefined
-  })
+  }
+
+  await projectStore.refresh(filters)
 }
 
 onMounted(async () => {
@@ -261,10 +266,7 @@ onMounted(async () => {
     table.value?.$el,
     async () => {
       if (projectStore.hasMore.value && !projectStore.loading.value) {
-        await projectStore.loadMore({
-          search: searchQuery.value.trim() || undefined,
-          status: statusFilter.value || undefined
-        })
+        await projectStore.loadMore()
       }
     },
     {

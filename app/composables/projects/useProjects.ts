@@ -13,6 +13,7 @@ export const useProjects = () => {
   const hasMore = ref(true);
   const skip = ref(0);
   const pageSize = 20;
+  const currentFilters = ref<IProjectFilters>({});
 
   // Reset all states
   const reset = () => {
@@ -27,7 +28,10 @@ export const useProjects = () => {
     filters: IProjectFilters = {},
     isInitialLoad = false
   ) => {
-    if (!hasMore.value || loading.value) return;
+    if (loading.value) return;
+
+    // For initial load, always allow the request
+    if (!isInitialLoad && !hasMore.value) return;
 
     loading.value = true;
     error.value = null;
@@ -58,13 +62,22 @@ export const useProjects = () => {
   };
 
   // Load more data (for infinite scrolling)
-  const loadMore = async (filters: IProjectFilters = {}) => {
-    return await fetchProjects(filters, false);
+  const loadMore = async (filters?: IProjectFilters) => {
+    const filtersToUse = filters || currentFilters.value;
+    return await fetchProjects(filtersToUse, false);
   };
 
-  // Initial load
+  // Initial load with proper reset
   const initialLoad = async (filters: IProjectFilters = {}) => {
-    skip.value = 0;
+    reset();
+    currentFilters.value = { ...filters };
+    return await fetchProjects(filters, true);
+  };
+
+  // Refresh with current filters (useful for search/filter changes)
+  const refresh = async (filters: IProjectFilters = {}) => {
+    reset();
+    currentFilters.value = { ...filters };
     return await fetchProjects(filters, true);
   };
 
@@ -79,14 +92,19 @@ export const useProjects = () => {
       | "secure_link"
       | "password_hash"
     >
-  ) => {
+  ): Promise<ProjectWithClient> => {
     loading.value = true;
     error.value = null;
 
     try {
       const newProject = await projectService.createProject(projectData);
-      projects.value = [newProject, ...projects.value];
-      return newProject;
+      // Convert Project to ProjectWithClient for consistency
+      const projectWithClient: ProjectWithClient = {
+        ...newProject,
+        client: undefined, // Will be populated when list is refreshed
+      };
+      projects.value = [projectWithClient, ...projects.value];
+      return projectWithClient;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to create project");
@@ -162,6 +180,7 @@ export const useProjects = () => {
     fetchProjects,
     loadMore,
     initialLoad,
+    refresh,
     createProject,
     updateProject,
     deleteProject,

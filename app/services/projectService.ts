@@ -53,17 +53,12 @@ export const projectService = {
       | "secure_link"
       | "password_hash"
     >
-  ): Promise<Project> {
+  ): Promise<ProjectWithClient> {
     // Get current user from Supabase
     const user = useSupabaseUser();
 
     if (!user.value) {
       throw new Error("Vous devez être connecté pour créer un projet");
-    }
-
-    // Business validation
-    if (!projectData.title?.trim()) {
-      throw new Error("Project title is required");
     }
 
     if (!projectData.client_id?.trim()) {
@@ -189,21 +184,21 @@ export const projectService = {
         label: "Brouillon",
         description: "Projet en cours de préparation",
         icon: "i-lucide-file-text",
-        color: "gray",
+        color: "neutral",
       },
       {
         value: "in_progress" as const,
         label: "En cours",
         description: "Projet en cours de réalisation",
         icon: "i-lucide-play-circle",
-        color: "blue",
+        color: "info",
       },
       {
         value: "completed" as const,
         label: "Terminé",
         description: "Projet terminé",
         icon: "i-lucide-check-circle",
-        color: "green",
+        color: "success",
       },
     ];
   },

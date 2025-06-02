@@ -122,4 +122,30 @@ export const clientService = {
 
     return await this.getClients(filters, pagination);
   },
+
+  /**
+   * Get all clients for the current user (for dropdowns/selectors)
+   */
+  async getAllClients(
+    filters: Omit<IClientFilters, "search"> = {}
+  ): Promise<Client[]> {
+    // Use a large page size to get all clients at once
+    const pagination: IPagination = { page: 1, pageSize: 1000 };
+
+    const clients = await clientRepository.findMany(filters, pagination);
+
+    // Sort clients alphabetically by name
+    return clients.sort((a, b) => {
+      const nameA =
+        a.type === "individual"
+          ? `${a.first_name || ""} ${a.last_name || ""}`.trim()
+          : a.company_name || "";
+      const nameB =
+        b.type === "individual"
+          ? `${b.first_name || ""} ${b.last_name || ""}`.trim()
+          : b.company_name || "";
+
+      return nameA.localeCompare(nameB);
+    });
+  },
 };

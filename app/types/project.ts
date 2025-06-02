@@ -17,7 +17,7 @@ export interface IProjectRepository {
   findById(id: string): Promise<ProjectWithClient | null>;
   create(
     data: Omit<Project, "id" | "created_at" | "updated_at">
-  ): Promise<Project>;
+  ): Promise<ProjectWithClient>;
   update(id: string, data: Partial<Project>): Promise<Project>;
   delete(id: string): Promise<void>;
 }
@@ -39,7 +39,7 @@ export interface ProjectStatusItem {
 // Validation schema for project form
 export const projectFormSchema = z.object({
   title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   client_id: z.string().min(1, "Client requis"),
   status: z.enum(["draft", "in_progress", "completed"]).default("draft"),
   initial_price: z
@@ -48,8 +48,7 @@ export const projectFormSchema = z.object({
     .optional()
     .nullable(),
   link_expires_at: z.string().optional().nullable(),
-  password_hash: z.string().min(1, "Mot de passe requis"),
-  secure_link: z.string().min(1, "Lien sécurisé requis"),
+  // password_hash et secure_link sont générés automatiquement par le service
 });
 
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
