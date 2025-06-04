@@ -137,12 +137,12 @@ const columns: TableColumn<ProjectWithClient>[] = [
         { class: 'flex items-center gap-2' },
         [
           h(UButton, {
-            icon: 'i-lucide-eye',
+            icon: 'i-lucide-settings',
             size: 'sm',
             color: 'primary',
             variant: 'ghost',
-            title: 'Voir',
-            onClick: () => viewProject(row.original)
+            title: 'Configurer',
+            onClick: () => viewProject(row.original.id)
           }),
           h(UButton, {
             icon: 'i-lucide-edit',
@@ -190,9 +190,9 @@ const openEditModal = (project: ProjectWithClient) => {
   showModal.value = true
 }
 
-const viewProject = (project: ProjectWithClient) => {
+const viewProject = (id: string) => {
   // Navigate to project detail page
-  navigateTo(`/projects/${project.id}`)
+  navigateTo(`/projects/${id}/setup`)
 }
 
 const handleProjectSaved = (project: ProjectWithClient) => {

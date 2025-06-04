@@ -30,6 +30,16 @@ export const projectRepository: IProjectRepository = {
           last_name,
           company_name,
           billing_email
+        ),
+        proposal:proposals(
+          id,
+          title,
+          status,
+          price,
+          deposit_required,
+          deposit_amount,
+          contract_url,
+          quote_url
         )
       `
       )
@@ -60,7 +70,16 @@ export const projectRepository: IProjectRepository = {
       throw new Error(`Failed to fetch projects: ${error.message}`);
     }
 
-    return data || [];
+    // Transform the data to handle the proposal array (Supabase returns arrays for relations)
+    const transformedData = (data || []).map((project) => ({
+      ...project,
+      proposal:
+        Array.isArray(project.proposal) && project.proposal.length > 0
+          ? project.proposal[0]
+          : null,
+    }));
+
+    return transformedData;
   },
 
   async findById(id: string): Promise<ProjectWithClient | null> {
@@ -83,6 +102,16 @@ export const projectRepository: IProjectRepository = {
           last_name,
           company_name,
           billing_email
+        ),
+        proposal:proposals(
+          id,
+          title,
+          status,
+          price,
+          deposit_required,
+          deposit_amount,
+          contract_url,
+          quote_url
         )
       `
       )
@@ -95,7 +124,16 @@ export const projectRepository: IProjectRepository = {
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    return data;
+    // Transform the data to handle the proposal array (Supabase returns arrays for relations)
+    const transformedData = {
+      ...data,
+      proposal:
+        Array.isArray(data.proposal) && data.proposal.length > 0
+          ? data.proposal[0]
+          : null,
+    };
+
+    return transformedData;
   },
 
   async create(

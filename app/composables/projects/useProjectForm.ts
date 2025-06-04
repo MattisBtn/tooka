@@ -130,6 +130,11 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
           description: "Le nouveau projet a été ajouté avec succès.",
           color: "success",
         });
+
+        // Redirect to setup page for new projects
+        setTimeout(() => {
+          navigateTo(`/projects/${result.id}/setup`);
+        }, 1000);
       }
 
       return result;

@@ -63,4 +63,14 @@ export interface ProjectWithClient extends Project {
     company_name?: string | null;
     billing_email: string;
   };
+  proposal?: {
+    id: string;
+    title: string;
+    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    price: number;
+    deposit_required: boolean;
+    deposit_amount: number | null;
+    contract_url: string | null;
+    quote_url: string | null;
+  } | null;
 }
