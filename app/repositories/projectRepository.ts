@@ -40,6 +40,14 @@ export const projectRepository: IProjectRepository = {
           deposit_amount,
           contract_url,
           quote_url
+        ),
+        gallery:galleries(
+          id,
+          status,
+          payment_required,
+          selection_id,
+          created_at,
+          updated_at
         )
       `
       )
@@ -77,6 +85,10 @@ export const projectRepository: IProjectRepository = {
         Array.isArray(project.proposal) && project.proposal.length > 0
           ? project.proposal[0]
           : null,
+      gallery:
+        Array.isArray(project.gallery) && project.gallery.length > 0
+          ? project.gallery[0]
+          : null,
     }));
 
     return transformedData;
@@ -112,6 +124,14 @@ export const projectRepository: IProjectRepository = {
           deposit_amount,
           contract_url,
           quote_url
+        ),
+        gallery:galleries(
+          id,
+          status,
+          payment_required,
+          selection_id,
+          created_at,
+          updated_at
         )
       `
       )
@@ -124,12 +144,16 @@ export const projectRepository: IProjectRepository = {
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    // Transform the data to handle the proposal array (Supabase returns arrays for relations)
+    // Transform the data to handle the proposal and gallery arrays (Supabase returns arrays for relations)
     const transformedData = {
       ...data,
       proposal:
         Array.isArray(data.proposal) && data.proposal.length > 0
           ? data.proposal[0]
+          : null,
+      gallery:
+        Array.isArray(data.gallery) && data.gallery.length > 0
+          ? data.gallery[0]
           : null,
     };
 

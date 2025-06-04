@@ -71,14 +71,37 @@ export const useProject = (projectId: string) => {
       modules.value.proposal.summary = null;
     }
 
+    // Update gallery module state
+    if (projectData.gallery) {
+      modules.value.gallery.enabled = true;
+      modules.value.gallery.completed = true;
+      modules.value.gallery.summary = `Galerie (${getGalleryStatusLabel(
+        projectData.gallery.status
+      )})`;
+    } else {
+      // Keep enabled state but mark as not completed if no gallery exists
+      modules.value.gallery.completed = false;
+      modules.value.gallery.summary = null;
+    }
+
     // TODO: Update other module states when implemented
     // modules.value.moodboard.enabled = !!projectData.moodboard;
     // modules.value.selection.enabled = !!projectData.selection;
-    // modules.value.gallery.enabled = !!projectData.gallery;
   };
 
   // Get proposal status label
   const getProposalStatusLabel = (status: string) => {
+    const statusMap = {
+      draft: "Brouillon",
+      awaiting_client: "En attente client",
+      revision_requested: "Révision demandée",
+      completed: "Acceptée",
+    };
+    return statusMap[status as keyof typeof statusMap] || status;
+  };
+
+  // Get gallery status label
+  const getGalleryStatusLabel = (status: string) => {
     const statusMap = {
       draft: "Brouillon",
       awaiting_client: "En attente client",

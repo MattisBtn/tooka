@@ -73,4 +73,12 @@ export interface ProjectWithClient extends Project {
     contract_url: string | null;
     quote_url: string | null;
   } | null;
+  gallery?: {
+    id: string;
+    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    payment_required: boolean;
+    selection_id: string | null;
+    created_at: string;
+    updated_at: string;
+  } | null;
 }

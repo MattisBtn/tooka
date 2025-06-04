@@ -61,10 +61,13 @@
                     @update:enabled="(value: boolean) => toggleModule('selection', value)" />
 
                 <!-- Gallery Module -->
-                <ModuleCard v-model:enabled="modules.gallery.enabled" title="Galerie"
-                    description="Galerie finale pour le client" icon="i-lucide-images" icon-color="text-violet-500"
-                    :completed="modules.gallery.completed" :summary="modules.gallery.summary"
-                    @update:enabled="(value: boolean) => toggleModule('gallery', value)" />
+                <GalleryModule v-model:enabled="modules.gallery.enabled" :gallery-data="galleryData"
+                    :gallery-status-info="galleryStatusInfo || null" :pricing="galleryPricing || null"
+                    :formatted-base-price="formattedGalleryBasePrice"
+                    :formatted-deposit-paid="formattedGalleryDepositPaid"
+                    :formatted-remaining-amount="formattedGalleryRemainingAmount" :image-count="imageCount"
+                    :has-images="hasImages" :project-id="projectId" :is-uploading="isUploadingImages"
+                    :upload-progress="uploadProgress" @gallery-saved="handleGallerySaved" />
             </div>
 
             <!-- Action Buttons -->
@@ -83,11 +86,14 @@
 
 <script lang="ts" setup>
 import type { BreadcrumbItem } from '@nuxt/ui'
+import { useGallery } from '~/composables/galleries/useGallery'
 import { useProject } from '~/composables/projects/useProject'
 import { useProposal } from '~/composables/proposals/useProposal'
+import type { Gallery, GalleryFormData } from '~/types/gallery'
 import type { Proposal, ProposalFormData } from '~/types/proposal'
 
 // Import components
+import GalleryModule from '~/components/project/GalleryModule.vue'
 import ModuleCard from '~/components/project/ModuleCard.vue'
 import ProjectSummary from '~/components/project/ProjectSummary.vue'
 import ProposalModule from '~/components/project/ProposalModule.vue'
@@ -122,6 +128,25 @@ const {
     getStatusOptions: getProposalStatusOptions,
 } = useProposal(projectId)
 
+// Use gallery composable
+const {
+    gallery: galleryData,
+    pricing: galleryPricing,
+    imageCount,
+    hasImages,
+    formattedBasePrice: formattedGalleryBasePrice,
+    formattedDepositPaid: formattedGalleryDepositPaid,
+    formattedRemainingAmount: formattedGalleryRemainingAmount,
+    fetchGallery,
+    saveGallery,
+    getStatusOptions: getGalleryStatusOptions,
+    uploadImages,
+} = useGallery(projectId)
+
+// Upload state for UI feedback
+const isUploadingImages = ref(false)
+const uploadProgress = ref(0)
+
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
     {
@@ -145,6 +170,13 @@ const proposalStatusInfo = computed(() => {
     if (!proposalData.value) return null
     const statusOptions = getProposalStatusOptions()
     return statusOptions.find((s) => s.value === proposalData.value!.status)
+})
+
+// Gallery status info
+const galleryStatusInfo = computed(() => {
+    if (!galleryData.value) return null
+    const statusOptions = getGalleryStatusOptions()
+    return statusOptions.find((s) => s.value === galleryData.value!.status)
 })
 
 // Handle proposal saved
@@ -196,6 +228,100 @@ const handleProposalSaved = async (data: { proposal: Proposal; projectUpdated: b
     }
 }
 
+// Handle gallery saved
+const handleGallerySaved = async (data: { gallery: Gallery; projectUpdated: boolean; selectedFiles?: File[] }) => {
+    try {
+        // Save the gallery using the composable
+        const result = await saveGallery(data.gallery as GalleryFormData, data.projectUpdated)
+
+        // Handle file uploads if there are selected files
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            // Get the gallery ID from the result or existing gallery data
+            const galleryId = result.gallery.id || galleryData.value?.id
+
+            if (galleryId) {
+                isUploadingImages.value = true
+                uploadProgress.value = 0
+
+                try {
+                    // Simulate progress for better UX
+                    const progressInterval = setInterval(() => {
+                        if (uploadProgress.value < 85) {
+                            uploadProgress.value += Math.random() * 15
+                        }
+                    }, 300)
+
+                    // Upload images using the gallery composable
+                    await uploadImages(data.selectedFiles)
+
+                    clearInterval(progressInterval)
+                    uploadProgress.value = 100
+
+                    // Small delay to show 100% before hiding
+                    setTimeout(() => {
+                        isUploadingImages.value = false
+                        uploadProgress.value = 0
+                    }, 1000)
+
+                } catch (uploadErr) {
+                    console.error('Error uploading images:', uploadErr)
+                    isUploadingImages.value = false
+                    uploadProgress.value = 0
+
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Erreur d\'upload',
+                        description: uploadErr instanceof Error ? uploadErr.message : 'Une erreur est survenue lors de l\'upload des images.',
+                        icon: 'i-lucide-alert-circle',
+                        color: 'error'
+                    })
+                }
+            }
+        }
+
+        // Update module state
+        updateModuleState('gallery', {
+            completed: true,
+            summary: `Galerie avec ${imageCount.value} image${imageCount.value > 1 ? 's' : ''}`
+        })
+
+        // Show success notification for gallery save
+        const toast = useToast()
+        if (data.projectUpdated) {
+            toast.add({
+                title: 'Galerie validée !',
+                description: 'La galerie a été envoyée au client.',
+                icon: 'i-lucide-check-circle',
+                color: 'success'
+            })
+        } else {
+            toast.add({
+                title: 'Brouillon sauvegardé',
+                description: 'Votre galerie a été sauvegardée en brouillon.',
+                icon: 'i-lucide-save',
+                color: 'info'
+            })
+        }
+
+        // Refresh project data if needed
+        if (data.projectUpdated) {
+            await fetchProject()
+        }
+
+        // Refresh gallery data
+        await fetchGallery()
+    } catch (err) {
+        console.error('Error saving gallery:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
 // Initialize
 onMounted(async () => {
     try {
@@ -222,6 +348,13 @@ watch(() => project.value?.proposal, async (newProposal) => {
         await fetchProposal()
     }
 }, { immediate: true })
+
+// Watch for gallery module changes
+watch(() => modules.value.gallery.enabled, async (enabled) => {
+    if (enabled && !galleryData.value) {
+        await fetchGallery()
+    }
+})
 </script>
 
 <style scoped>

@@ -50,7 +50,7 @@
                             <span
                                 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Acompte</span>
                             <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedDepositAmount
-                                }}
+                            }}
                             </p>
                         </div>
                     </div>
