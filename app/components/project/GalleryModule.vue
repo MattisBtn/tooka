@@ -85,10 +85,9 @@
                         <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                             label="Aperçu client" :to="`/gallery/${galleryData.id}`" target="_blank" />
 
-                        <!-- Delete button for draft galleries -->
-                        <UButton v-if="galleryData.status === 'draft'" icon="i-lucide-trash-2" size="sm"
-                            variant="outline" color="error" label="Supprimer" :loading="isDeleting"
-                            @click="confirmDeleteGallery" />
+                        <!-- Delete button for draft and revision requested galleries -->
+                        <UButton v-if="canEditGallery" icon="i-lucide-trash-2" size="sm" variant="outline" color="error"
+                            label="Supprimer" :loading="isDeleting" @click="confirmDeleteGallery" />
                     </div>
 
                     <!-- Image Grid Preview -->
@@ -126,6 +125,15 @@
                         <template #description>
                             Cette galerie a été envoyée au client et ne peut plus être modifiée ni supprimée.
                             Le module ne peut pas être désactivé.
+                        </template>
+                    </UAlert>
+
+                    <!-- Info for revision requested galleries -->
+                    <UAlert v-else-if="galleryData.status === 'revision_requested'" color="warning" variant="soft"
+                        icon="i-lucide-edit" title="Révisions demandées" class="mt-4">
+                        <template #description>
+                            Le client a demandé des révisions sur cette galerie. Vous pouvez modifier les paramètres
+                            et ajouter/supprimer des images selon les demandes.
                         </template>
                     </UAlert>
 
@@ -233,7 +241,7 @@ const cannotDisableGallery = computed(() => {
 })
 
 const canEditGallery = computed(() => {
-    return !props.galleryData || props.galleryData.status === 'draft'
+    return !props.galleryData || props.galleryData.status === 'draft' || props.galleryData.status === 'revision_requested'
 })
 
 // Methods
