@@ -40,7 +40,7 @@ export const useGalleryAuth = (galleryId: string) => {
 
     if (import.meta.client) {
       try {
-        sessionStorage.setItem(AUTH_KEY, JSON.stringify(session));
+        localStorage.setItem(AUTH_KEY, JSON.stringify(session));
       } catch (error) {
         console.warn("Failed to save auth session:", error);
       }
@@ -52,7 +52,7 @@ export const useGalleryAuth = (galleryId: string) => {
     if (!import.meta.client) return null;
 
     try {
-      const stored = sessionStorage.getItem(AUTH_KEY);
+      const stored = localStorage.getItem(AUTH_KEY);
       if (!stored) return null;
 
       const session: AuthSession = JSON.parse(stored);

@@ -120,7 +120,7 @@ const emit = defineEmits<Emits>();
 const hasStoredSession = computed(() => {
     if (!props.galleryId || !import.meta.client) return false;
     try {
-        const stored = sessionStorage.getItem(`gallery_auth_${props.galleryId}`);
+        const stored = localStorage.getItem(`gallery_auth_${props.galleryId}`);
         return !!stored;
     } catch {
         return false;
