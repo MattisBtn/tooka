@@ -54,7 +54,8 @@ export default defineEventHandler(async (event) => {
     // Check if gallery is accessible to clients
     if (
       gallery.status !== "awaiting_client" &&
-      gallery.status !== "completed"
+      gallery.status !== "completed" &&
+      gallery.status !== "revision_requested"
     ) {
       console.error(
         "[DEBUG] Verify API - Gallery not accessible, status:",

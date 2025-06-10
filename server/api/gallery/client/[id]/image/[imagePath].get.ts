@@ -36,7 +36,8 @@ export default defineEventHandler(async (event) => {
     // Check if gallery is accessible to clients
     if (
       gallery.status !== "awaiting_client" &&
-      gallery.status !== "completed"
+      gallery.status !== "completed" &&
+      gallery.status !== "revision_requested"
     ) {
       throw createError({
         statusCode: 403,

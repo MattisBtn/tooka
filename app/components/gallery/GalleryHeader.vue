@@ -122,7 +122,7 @@
                                         <div class="flex items-center justify-between text-sm">
                                             <span class="text-gray-600 dark:text-gray-400">Photos</span>
                                             <span class="text-gray-900 dark:text-gray-100">{{ gallery?.imageCount || 0
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                         <div v-if="project" class="pt-2">
                                             <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-1">{{
@@ -137,6 +137,10 @@
                             </template>
                         </UDrawer>
                     </div>
+
+                    <!-- Logout button -->
+                    <UButton v-if="showLogoutButton" icon="i-heroicons-arrow-left-on-rectangle" color="neutral"
+                        variant="ghost" size="sm" title="Se déconnecter" @click="$emit('logout')" />
 
                     <!-- Dark mode toggle -->
                     <UButton :icon="isDarkMode ? 'i-heroicons-sun' : 'i-heroicons-moon'" color="neutral" variant="ghost"
@@ -155,6 +159,7 @@ interface Props {
     gallery: ClientGalleryAccess["gallery"] | null;
     isAuthenticated: boolean;
     downloadingGallery: boolean;
+    showLogoutButton?: boolean;
 }
 
 interface Emits {
@@ -162,6 +167,7 @@ interface Emits {
     "validate-with-payment": [];
     "request-revisions": [];
     download: [];
+    logout: [];
 }
 
 const props = defineProps<Props>();

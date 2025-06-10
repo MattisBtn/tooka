@@ -1,21 +1,23 @@
 import type { ClientGalleryAccess, GalleryImage } from "~/types/gallery";
+import { useGalleryAuth } from "./useGalleryAuth";
 
 export const useClientGallery = async (galleryId: string) => {
   const loading = ref(true);
   const loadingMore = ref(false);
   const error = ref<Error | null>(null);
   const galleryData = ref<ClientGalleryAccess | null>(null);
-  const isAuthenticated = ref(false);
-  const authError = ref<string | null>(null);
   const images = ref<GalleryImage[]>([]);
   const hasMore = ref(true);
   const currentPage = ref(1);
+
+  // Use gallery authentication composable
+  const galleryAuth = useGalleryAuth(galleryId);
 
   // Computed properties
   const project = computed(() => galleryData.value?.project || null);
   const gallery = computed(() => galleryData.value?.gallery || null);
   const needsPassword = computed(
-    () => project.value?.hasPassword && !isAuthenticated.value
+    () => project.value?.hasPassword && !galleryAuth.isAuthenticated.value
   );
 
   // Initial fetch of gallery data (without images for faster loading)
@@ -45,9 +47,13 @@ export const useClientGallery = async (galleryId: string) => {
     hasMore.value = data.value.gallery.hasMore || false;
     currentPage.value = data.value.gallery.currentPage || 1;
 
-    // If no password required, authenticate immediately
+    // Initialize authentication
     if (!data.value.project.hasPassword) {
-      isAuthenticated.value = true;
+      // No password required, authenticate immediately using a dummy verify function
+      await galleryAuth.authenticate("", async () => true);
+    } else {
+      // Try to restore from stored session
+      await galleryAuth.initializeAuth();
     }
   }
 
@@ -59,7 +65,12 @@ export const useClientGallery = async (galleryId: string) => {
 
   // Load more images for infinite scroll
   const loadMore = async () => {
-    if (loadingMore.value || !hasMore.value || !isAuthenticated.value) return;
+    if (
+      loadingMore.value ||
+      !hasMore.value ||
+      !galleryAuth.isAuthenticated.value
+    )
+      return;
 
     try {
       loadingMore.value = true;
@@ -86,29 +97,18 @@ export const useClientGallery = async (galleryId: string) => {
 
   // Password verification
   const verifyPassword = async (password: string) => {
-    try {
-      authError.value = null;
-
+    const serverVerify = async (pwd: string) => {
       const verificationResult = await $fetch<{ valid: boolean }>(
         `/api/gallery/client/${galleryId}/verify`,
         {
           method: "POST",
-          body: { password },
+          body: { password: pwd },
         }
       );
+      return verificationResult.valid;
+    };
 
-      if (verificationResult.valid) {
-        isAuthenticated.value = true;
-        authError.value = null;
-        return true;
-      } else {
-        authError.value = "Mot de passe incorrect";
-        return false;
-      }
-    } catch {
-      authError.value = "Erreur lors de la vérification du mot de passe";
-      return false;
-    }
+    return await galleryAuth.authenticate(password, serverVerify);
   };
 
   // Action states
@@ -230,8 +230,8 @@ export const useClientGallery = async (galleryId: string) => {
     loading: readonly(loading),
     loadingMore: readonly(loadingMore),
     error: readonly(error),
-    isAuthenticated: readonly(isAuthenticated),
-    authError: readonly(authError),
+    isAuthenticated: galleryAuth.isAuthenticated,
+    authError: galleryAuth.authError,
     hasMore: readonly(hasMore),
 
     // Action states
@@ -265,5 +265,8 @@ export const useClientGallery = async (galleryId: string) => {
     handleValidateWithPayment,
     handleRequestRevisions,
     handleDownload,
+
+    // Auth methods
+    logout: galleryAuth.logout,
   };
 };

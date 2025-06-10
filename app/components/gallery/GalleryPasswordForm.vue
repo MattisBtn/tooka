@@ -19,26 +19,21 @@
                         </div>
                     </div>
 
-                    <div
-                        class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <div class="flex items-start gap-3">
-                            <div
-                                class="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <UIcon name="i-heroicons-information-circle"
-                                    class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div class="text-left">
-                                <h3 class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                                    Galerie protégée
-                                </h3>
-                                <p class="text-sm text-blue-700 dark:text-blue-300">
-                                    Cette galerie est protégée par un code d'accès de 6 caractères. Saisissez le code
-                                    qui vous a
-                                    été fourni pour consulter vos photos.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    <UAlert v-if="hasStoredSession" color="success" variant="soft" icon="i-heroicons-clock"
+                        title="Session précédente trouvée">
+                        <template #description>
+                            Une session précédente a été trouvée pour cette galerie.
+                            Entrez votre code d'accès pour continuer automatiquement.
+                        </template>
+                    </UAlert>
+
+                    <UAlert v-else color="info" variant="soft" icon="i-heroicons-information-circle"
+                        title="Galerie protégée">
+                        <template #description>
+                            Cette galerie est protégée par un code d'accès de 6 caractères.
+                            Saisissez le code qui vous a été fourni pour consulter vos photos.
+                        </template>
+                    </UAlert>
                 </div>
 
                 <USeparator />
@@ -111,6 +106,7 @@ interface Props {
         description: string | null;
     } | null;
     error?: string | null;
+    galleryId?: string;
 }
 
 interface Emits {
@@ -119,6 +115,17 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Check for stored session if galleryId is provided
+const hasStoredSession = computed(() => {
+    if (!props.galleryId || !import.meta.client) return false;
+    try {
+        const stored = sessionStorage.getItem(`gallery_auth_${props.galleryId}`);
+        return !!stored;
+    } catch {
+        return false;
+    }
+});
 
 // Form state
 const form = ref();
