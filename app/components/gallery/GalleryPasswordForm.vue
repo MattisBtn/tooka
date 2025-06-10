@@ -162,12 +162,4 @@ const handleSubmit = async () => {
         loading.value = false;
     }
 };
-
-// SEO
-useHead({
-    title: `Accès galerie - ${props.project?.title || 'Galerie'}`,
-    meta: [
-        { name: "robots", content: "noindex, nofollow" }
-    ]
-});
 </script>
