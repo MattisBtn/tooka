@@ -67,9 +67,29 @@ export const projectRepository: IProjectRepository = {
     }
 
     if (filters.search) {
-      query = query.or(
-        `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-      );
+      // First, find clients that match the search criteria
+      const { data: matchingClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("user_id", user.value.id)
+        .or(
+          `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
+        );
+
+      const clientIds = matchingClients?.map((c) => c.id) || [];
+
+      // Search in project fields or by client IDs
+      if (clientIds.length > 0) {
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${
+            filters.search
+          }%,client_id.in.(${clientIds.join(",")})`
+        );
+      } else {
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
+      }
     }
 
     const { data, error } = await query;
