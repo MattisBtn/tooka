@@ -46,12 +46,7 @@ export const projectService = {
   async createProject(
     projectData: Omit<
       Project,
-      | "id"
-      | "created_at"
-      | "updated_at"
-      | "user_id"
-      | "secure_link"
-      | "password_hash"
+      "id" | "created_at" | "updated_at" | "user_id" | "password_hash"
     >
   ): Promise<ProjectWithClient> {
     // Get current user from Supabase
@@ -65,17 +60,13 @@ export const projectService = {
       throw new Error("Client is required");
     }
 
-    // Generate secure link and password hash
-    const secureLink = this.generateSecureLink();
-    const passwordHash = await this.hashPassword(
-      projectData.title + Date.now()
-    );
+    // Generate secure password
+    const passwordHash = this.generatePassword();
 
     // Add user_id and generated fields
     const dataWithUserAndSecurity = {
       ...projectData,
       user_id: user.value.id,
-      secure_link: secureLink,
       password_hash: passwordHash,
     };
 
@@ -150,28 +141,18 @@ export const projectService = {
   },
 
   /**
-   * Generate a secure link for project access
+   * Generate random password for project access
    */
-  generateSecureLink(): string {
+  generatePassword(): string {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  },
+    let password = "";
 
-  /**
-   * Hash password for project access
-   */
-  async hashPassword(password: string): Promise<string> {
-    // Simple hash for demo - in production use proper hashing like bcrypt
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    for (let i = 0; i < 6; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    return password;
   },
 
   /**

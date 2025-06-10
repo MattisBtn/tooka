@@ -64,7 +64,7 @@ const logout = async () => {
                     <UIcon name="i-heroicons-bolt" class="flex-shrink-0 text-primary-500 h-6 w-6" />
                     <span
                         :class="['font-bold text-lg transition-opacity', isSidebarCollapsed ? 'opacity-0' : 'opacity-100']">
-                        Flow
+                        Tooka
                     </span>
                 </div>
                 <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-left"
@@ -95,7 +95,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                }}</span>
+                                    }}</span>
                             </UButton>
                         </div>
                     </div>

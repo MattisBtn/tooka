@@ -172,13 +172,13 @@ export const useProject = (projectId: string) => {
   });
 
   const formattedExpiresAt = computed(() => {
-    if (!project.value?.link_expires_at) return "Aucune expiration";
+    if (!project.value?.password_expires_at) return "Aucune expiration";
 
     return new Intl.DateTimeFormat("fr-FR", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    }).format(new Date(project.value.link_expires_at));
+    }).format(new Date(project.value.password_expires_at));
   });
 
   return {

@@ -73,6 +73,21 @@ export interface GalleryWithDetails extends Gallery {
   };
   images?: readonly GalleryImage[];
   imageCount?: number;
+  hasMore?: boolean;
+  currentPage?: number;
+}
+
+// Gallery with project info for client access
+export interface GalleryWithProjectDetails extends Gallery {
+  project: {
+    id: string;
+    title: string;
+    description: string | null;
+    password_hash: string;
+    status: "draft" | "in_progress" | "completed";
+  };
+  images: GalleryImage[];
+  imageCount: number;
 }
 
 // Image upload data
@@ -91,3 +106,24 @@ export interface GalleryPricing {
   remainingAmount: number;
   paymentRequired: boolean;
 }
+
+// Client gallery access types
+export interface ClientGalleryAccess {
+  project: {
+    id: string;
+    title: string;
+    description: string | null;
+    hasPassword: boolean;
+  };
+  gallery: GalleryWithDetails;
+}
+
+export interface ClientPasswordVerification {
+  password: string;
+}
+
+export const clientPasswordSchema = z.object({
+  password: z.string().min(1, "Mot de passe requis"),
+});
+
+export type ClientPasswordFormData = z.infer<typeof clientPasswordSchema>;

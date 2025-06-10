@@ -278,9 +278,8 @@ export type Database = {
           description: string | null
           id: string
           initial_price: number | null
-          link_expires_at: string | null
+          password_expires_at: string | null
           password_hash: string
-          secure_link: string
           status: Database["public"]["Enums"]["project_status"]
           title: string
           updated_at: string
@@ -292,9 +291,8 @@ export type Database = {
           description?: string | null
           id?: string
           initial_price?: number | null
-          link_expires_at?: string | null
+          password_expires_at?: string | null
           password_hash: string
-          secure_link: string
           status?: Database["public"]["Enums"]["project_status"]
           title: string
           updated_at?: string
@@ -306,9 +304,8 @@ export type Database = {
           description?: string | null
           id?: string
           initial_price?: number | null
-          link_expires_at?: string | null
+          password_expires_at?: string | null
           password_hash?: string
-          secure_link?: string
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
           updated_at?: string

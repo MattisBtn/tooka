@@ -81,6 +81,10 @@
                         <UButton icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
                             :disabled="!canEditGallery" @click="editGallery" />
 
+                        <!-- Client preview button -->
+                        <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                            label="Aperçu client" :to="`/gallery/${galleryData.id}`" target="_blank" />
+
                         <!-- Delete button for draft galleries -->
                         <UButton v-if="galleryData.status === 'draft'" icon="i-lucide-trash-2" size="sm"
                             variant="outline" color="error" label="Supprimer" :loading="isDeleting"

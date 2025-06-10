@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import * as z from 'zod'
-import type { ILoginCredentials } from '~/types/auth'
 import { useAuth } from '~/composables/auth/useAuth'
+import type { ILoginCredentials } from '~/types/auth'
 
 definePageMeta({
   layout: 'auth'
 })
 
 useHead({
-  title: 'Login - Flow'
+  title: 'Login - Tooka'
 })
 
 const { login, loading, error, resetError } = useAuth()

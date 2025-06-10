@@ -72,9 +72,9 @@
                 </div>
             </div>
 
-            <UFormField label="Expiration du lien d'accès" name="link_expires_at"
+            <UFormField label="Expiration du lien d'accès" name="password_expires_at"
                 help="Date limite pour l'accès du client aux galeries">
-                <UInput v-model="state.link_expires_at" type="datetime-local" icon="i-heroicons-calendar" />
+                <UInput v-model="state.password_expires_at" type="datetime-local" icon="i-heroicons-calendar" />
             </UFormField>
 
             <!-- Info box about project status -->

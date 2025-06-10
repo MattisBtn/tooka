@@ -1,6 +1,5 @@
 import { faker } from "@faker-js/faker/locale/fr";
 import { createClient } from "@supabase/supabase-js";
-import { createHash } from "crypto";
 import { config } from "dotenv";
 import type { Database } from "~/types/database.types";
 
@@ -19,20 +18,11 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE
 );
 
-const generateSecureLink = (): string => {
-  return faker.string.alphanumeric(32);
-};
-
-const generatePasswordHash = (password: string): string => {
-  return createHash("sha256").update(password).digest("hex");
-};
-
 const generateProject = (
   userId: string,
   clientId: string
 ): Database["public"]["Tables"]["projects"]["Insert"] => {
-  const password = faker.internet.password({ length: 8 });
-  const secureLink = generateSecureLink();
+  const password = faker.internet.password({ length: 6 });
   const status = faker.helpers.arrayElement([
     "draft",
     "in_progress",
@@ -51,9 +41,8 @@ const generateProject = (
       () => faker.number.int({ min: 500, max: 10000 }),
       { probability: 0.8 }
     ),
-    secure_link: secureLink,
-    password_hash: generatePasswordHash(password),
-    link_expires_at: faker.helpers.maybe(
+    password_hash: password,
+    password_expires_at: faker.helpers.maybe(
       () => faker.date.future({ years: 1 }).toISOString(),
       { probability: 0.3 }
     ),
@@ -99,7 +88,7 @@ async function seedProjects(userId: string, count: number = 20) {
   // Affiche quelques exemples de mots de passe générés
   console.log("\n📋 Exemples de mots de passe générés:");
   projects.slice(0, 3).forEach((project, index) => {
-    console.log(`Project ${index + 1}: ${project.secure_link}`);
+    console.log(`Project ${index + 1}: ${project.password_hash}`);
   });
 }
 

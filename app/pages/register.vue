@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import * as z from 'zod'
-import type { IRegistrationData } from '~/types/auth'
 import { useAuth } from '~/composables/auth/useAuth'
+import type { IRegistrationData } from '~/types/auth'
 definePageMeta({
     layout: 'auth'
 })
 
 useHead({
-    title: 'Create an account - Flow'
+    title: 'Create an account - Tooka'
 })
 
 const { register, loading, error, resetError } = useAuth()
@@ -50,7 +50,7 @@ const handleRegister = async () => {
     <div>
         <div class="mb-6 text-center">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Create your account</h1>
-            <p class="text-gray-500 dark:text-gray-400">Start your journey with Flow</p>
+            <p class="text-gray-500 dark:text-gray-400">Start your journey with Tooka</p>
         </div>
 
         <UCard class="shadow-lg">

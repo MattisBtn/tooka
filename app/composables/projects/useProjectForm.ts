@@ -14,15 +14,15 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
     client_id: initialProject?.client_id || "",
     status: initialProject?.status || "draft",
     initial_price: initialProject?.initial_price || null,
-    link_expires_at: initialProject?.link_expires_at
-      ? new Date(initialProject.link_expires_at).toISOString().slice(0, 16)
+    password_expires_at: initialProject?.password_expires_at
+      ? new Date(initialProject.password_expires_at).toISOString().slice(0, 16)
       : (() => {
           // Default to +30 days
           const defaultExpiration = new Date();
           defaultExpiration.setDate(defaultExpiration.getDate() + 30);
           return defaultExpiration.toISOString().slice(0, 16);
         })(),
-    // password_hash et secure_link ne sont pas nécessaires dans le formulaire
+    // password_hash est généré automatiquement par le service
   });
 
   // Client management
@@ -73,7 +73,7 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
       client_id: "",
       status: "draft",
       initial_price: null,
-      link_expires_at: defaultExpiration.toISOString().slice(0, 16),
+      password_expires_at: defaultExpiration.toISOString().slice(0, 16),
     });
   };
 
@@ -82,13 +82,12 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
     data: ProjectFormData
   ): Promise<ProjectWithClient | null> => {
     try {
-      console.log("data", data);
       const formData = { ...data };
 
       // Convert datetime-local to ISO string if provided
-      if (formData.link_expires_at) {
-        formData.link_expires_at = new Date(
-          formData.link_expires_at
+      if (formData.password_expires_at) {
+        formData.password_expires_at = new Date(
+          formData.password_expires_at
         ).toISOString();
       }
 
@@ -106,8 +105,8 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
         status: formData.status,
         description: formData.description || null,
         initial_price: formData.initial_price || null,
-        link_expires_at: formData.link_expires_at || null,
-        // password_hash et secure_link sont générés automatiquement par le service
+        password_expires_at: formData.password_expires_at || null,
+        // password_hash sont générés automatiquement par le service
       };
 
       let result: ProjectWithClient;

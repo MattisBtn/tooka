@@ -85,12 +85,7 @@ export const useProjects = () => {
   const createProject = async (
     projectData: Omit<
       Project,
-      | "id"
-      | "created_at"
-      | "updated_at"
-      | "user_id"
-      | "secure_link"
-      | "password_hash"
+      "id" | "created_at" | "updated_at" | "user_id" | "password_hash"
     >
   ): Promise<ProjectWithClient> => {
     loading.value = true;

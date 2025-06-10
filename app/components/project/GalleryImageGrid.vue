@@ -20,7 +20,6 @@
                             @click.stop="$emit('delete-image', image.id)" />
                     </div>
                 </div>
-                </img>
             </div>
         </div>
 

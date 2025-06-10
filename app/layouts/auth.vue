@@ -3,7 +3,7 @@
         <header class="w-full p-4 border-b border-gray-200 dark:border-gray-800">
             <div class="container mx-auto flex justify-center">
                 <NuxtLink to="/" class="flex items-center gap-2">
-                    <span class="text-xl font-bold text-gray-900 dark:text-white">Flow</span>
+                    <span class="text-xl font-bold text-gray-900 dark:text-white">Tooka</span>
                 </NuxtLink>
             </div>
         </header>
@@ -15,7 +15,7 @@
         </main>
 
         <footer class="w-full p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>© {{ new Date().getFullYear() }} Flow. All rights reserved.</p>
+            <p>© {{ new Date().getFullYear() }} Tooka. All rights reserved.</p>
         </footer>
     </div>
 </template>
