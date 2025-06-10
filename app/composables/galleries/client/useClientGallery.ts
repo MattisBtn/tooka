@@ -111,6 +111,117 @@ export const useClientGallery = async (galleryId: string) => {
     }
   };
 
+  // Action states
+  const validatingGallery = ref(false);
+  const requestingRevisions = ref(false);
+  const downloadingGallery = ref(false);
+
+  // Modal states
+  const showValidateDialog = ref(false);
+  const showValidateWithPaymentDialog = ref(false);
+  const showRequestRevisionsDialog = ref(false);
+
+  // Form state
+  const revisionComment = ref("");
+
+  // Client actions methods
+  const validateGallery = async () => {
+    if (!gallery.value) return;
+
+    try {
+      validatingGallery.value = true;
+      await $fetch(`/api/gallery/client/${gallery.value.id}/validate`, {
+        method: "POST",
+      });
+      // Refresh the page data
+      await reloadNuxtApp();
+    } catch (error) {
+      console.error("Failed to validate gallery:", error);
+    } finally {
+      validatingGallery.value = false;
+      showValidateDialog.value = false;
+    }
+  };
+
+  const validateGalleryWithPayment = async () => {
+    if (!gallery.value) return;
+
+    try {
+      validatingGallery.value = true;
+      await $fetch(
+        `/api/gallery/client/${gallery.value.id}/validate-with-payment`,
+        {
+          method: "POST",
+        }
+      );
+      // Refresh the page data
+      await reloadNuxtApp();
+    } catch (error) {
+      console.error("Failed to validate gallery with payment:", error);
+    } finally {
+      validatingGallery.value = false;
+      showValidateWithPaymentDialog.value = false;
+    }
+  };
+
+  const requestRevisions = async () => {
+    if (!gallery.value) return;
+
+    try {
+      requestingRevisions.value = true;
+      await $fetch(
+        `/api/gallery/client/${gallery.value.id}/request-revisions`,
+        {
+          method: "POST",
+          body: {
+            comment: revisionComment.value,
+          },
+        }
+      );
+      // Refresh the page data
+      await reloadNuxtApp();
+    } catch (error) {
+      console.error("Failed to request revisions:", error);
+    } finally {
+      requestingRevisions.value = false;
+      showRequestRevisionsDialog.value = false;
+      revisionComment.value = "";
+    }
+  };
+
+  const downloadGallery = async () => {
+    if (!gallery.value) return;
+
+    try {
+      downloadingGallery.value = true;
+      const response = await $fetch(
+        `/api/gallery/client/${gallery.value.id}/download`
+      );
+      console.log("Download initiated:", response);
+    } catch (error) {
+      console.error("Failed to download gallery:", error);
+    } finally {
+      downloadingGallery.value = false;
+    }
+  };
+
+  // Action handlers for components
+  const handleValidate = () => {
+    showValidateDialog.value = true;
+  };
+
+  const handleValidateWithPayment = () => {
+    showValidateWithPaymentDialog.value = true;
+  };
+
+  const handleRequestRevisions = () => {
+    showRequestRevisionsDialog.value = true;
+  };
+
+  const handleDownload = () => {
+    downloadGallery();
+  };
+
   return {
     // State
     project: readonly(project),
@@ -123,11 +234,36 @@ export const useClientGallery = async (galleryId: string) => {
     authError: readonly(authError),
     hasMore: readonly(hasMore),
 
+    // Action states
+    validatingGallery: readonly(validatingGallery),
+    requestingRevisions: readonly(requestingRevisions),
+    downloadingGallery: readonly(downloadingGallery),
+
+    // Modal states
+    showValidateDialog,
+    showValidateWithPaymentDialog,
+    showRequestRevisionsDialog,
+
+    // Form state
+    revisionComment,
+
     // Computed
     needsPassword,
 
     // Actions
     verifyPassword,
     loadMore,
+
+    // Client actions
+    validateGallery,
+    validateGalleryWithPayment,
+    requestRevisions,
+    downloadGallery,
+
+    // Action handlers
+    handleValidate,
+    handleValidateWithPayment,
+    handleRequestRevisions,
+    handleDownload,
   };
 };

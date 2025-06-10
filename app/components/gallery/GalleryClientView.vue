@@ -1,30 +1,7 @@
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <!-- Header -->
-        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div class="text-center max-w-3xl mx-auto">
-                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                        {{ project?.title }}
-                    </h1>
-                    <p v-if="project?.description" class="text-lg text-gray-600 dark:text-gray-400 mb-6">
-                        {{ project.description }}
-                    </p>
-                    <div class="flex items-center justify-center gap-4">
-                        <UBadge :color="statusColor" variant="soft" size="lg" class="px-4 py-2">
-                            <UIcon :name="statusIcon" class="w-4 h-4 mr-2" />
-                            {{ statusLabel }}
-                        </UBadge>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ gallery?.imageCount || 0 }} {{ (gallery?.imageCount || 0) === 1 ? 'photo' : 'photos' }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Gallery Content -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Gallery Grid -->
             <div v-if="images.length > 0" class="space-y-8">
                 <!-- Gallery Stats -->
@@ -33,10 +10,6 @@
                         <div class="flex items-center gap-2">
                             <UIcon name="i-heroicons-photo" class="w-4 h-4" />
                             <span>{{ images.length }} / {{ gallery?.imageCount || 0 }} images chargées</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <UIcon name="i-heroicons-eye" class="w-4 h-4" />
-                            <span>Galerie {{ statusLabel.toLowerCase() }}</span>
                         </div>
                     </div>
 
@@ -112,6 +85,8 @@
                 </p>
             </div>
         </div>
+
+
 
         <!-- Lightbox Carousel -->
         <UModal v-model:open="lightboxOpen" fullscreen :overlay="true" :transition="true" :close="false">
@@ -190,23 +165,7 @@ const lightboxOpen = ref(false);
 const selectedCarouselIndex = ref(0);
 const carousel = ref();
 
-// Gallery status display
-const statusConfig = {
-    draft: { label: "Brouillon", color: "neutral" as const, icon: "i-heroicons-document" },
-    awaiting_client: { label: "En attente de validation", color: "info" as const, icon: "i-heroicons-clock" },
-    revision_requested: { label: "Révision demandée", color: "warning" as const, icon: "i-heroicons-arrow-path" },
-    completed: { label: "Terminée", color: "success" as const, icon: "i-heroicons-check-circle" },
-};
 
-const statusLabel = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].label
-);
-const statusColor = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].color
-);
-const statusIcon = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].icon
-);
 
 
 

@@ -74,11 +74,6 @@
             <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                 <UButton icon="i-lucide-arrow-left" variant="ghost" color="neutral" label="Retour aux projets"
                     @click="navigateTo('/projects')" />
-
-                <div class="flex items-center gap-3">
-                    <UButton icon="i-lucide-eye" variant="outline" color="primary" label="Aperçu client" disabled />
-                    <UButton icon="i-lucide-save" color="primary" label="Sauvegarder" disabled />
-                </div>
             </div>
         </div>
     </div>
@@ -86,7 +81,7 @@
 
 <script lang="ts" setup>
 import type { BreadcrumbItem } from '@nuxt/ui'
-import { useGallery } from '~/composables/galleries/useGallery'
+import { useGallery } from '~/composables/galleries/user/useGallery'
 import { useProject } from '~/composables/projects/useProject'
 import { useProposal } from '~/composables/proposals/useProposal'
 import type { Gallery, GalleryFormData } from '~/types/gallery'

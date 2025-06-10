@@ -127,3 +127,30 @@ export const clientPasswordSchema = z.object({
 });
 
 export type ClientPasswordFormData = z.infer<typeof clientPasswordSchema>;
+
+// Client gallery actions
+export interface ClientGalleryAction {
+  gallery_id: string;
+  action: "validate" | "validate_with_payment" | "request_revisions";
+  comment?: string;
+  timestamp: string;
+}
+
+export interface ClientRevisionRequest {
+  comment?: string;
+}
+
+export const clientRevisionRequestSchema = z.object({
+  comment: z.string().optional(),
+});
+
+export type ClientRevisionRequestData = z.infer<
+  typeof clientRevisionRequestSchema
+>;
+
+// Gallery status update
+export interface GalleryStatusUpdate {
+  status: "completed" | "revision_requested";
+  client_comment?: string;
+  updated_at: string;
+}

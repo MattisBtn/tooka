@@ -187,7 +187,7 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useGalleryForm } from "~/composables/galleries/useGalleryForm";
+import { useGalleryForm } from "~/composables/galleries/user/useGalleryForm";
 import type { Gallery, GalleryImage, GalleryPricing } from "~/types/gallery";
 
 interface Props {

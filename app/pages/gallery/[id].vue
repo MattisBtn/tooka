@@ -1,56 +1,90 @@
 <template>
-  <div>
-    <!-- Password form if needed -->
-    <GalleryPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :error="authError"
-      @authenticated="handleAuthentication" />
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Gallery Header -->
+    <GalleryHeader :project="project" :gallery="gallery" :is-authenticated="isAuthenticated"
+      :downloading-gallery="downloadingGallery" @validate="handleValidate"
+      @validate-with-payment="handleValidateWithPayment" @request-revisions="handleRequestRevisions"
+      @download="handleDownload" />
 
-    <!-- Gallery view -->
-    <GalleryClientView v-else-if="gallery && isAuthenticated && project" :gallery-id="galleryId" :gallery="gallery"
-      :project="project" :images="images" :has-more="hasMore" :loading-more="loadingMore" :load-more="loadMore" />
+    <!-- Simple header for other states -->
+    <GallerySimpleHeader v-if="!gallery || !isAuthenticated || !project" />
 
-    <!-- Loading state -->
-    <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
-      <div class="text-center">
-        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-        <p class="text-gray-600 dark:text-gray-400">Chargement de la galerie...</p>
+    <!-- Content with top padding when header is fixed -->
+    <div :class="{ 'pt-16': gallery && isAuthenticated && project }">
+      <!-- Password form if needed -->
+      <GalleryPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :error="authError"
+        @authenticated="handleAuthentication" />
+
+      <!-- Gallery view -->
+      <GalleryClientView v-else-if="gallery && isAuthenticated && project" :gallery-id="galleryId" :gallery="gallery"
+        :project="project" :images="images" :has-more="hasMore" :loading-more="loadingMore" :load-more="loadMore" />
+
+      <!-- Loading state -->
+      <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
+          <p class="text-gray-600 dark:text-gray-400">Chargement de la galerie...</p>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div v-else class="min-h-screen flex items-center justify-center p-4">
+        <UCard class="w-full max-w-lg text-center">
+          <div class="space-y-6">
+            <div class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Galerie non trouvée
+              </h1>
+              <p class="text-gray-600 dark:text-gray-400 mb-4">
+                Cette galerie n'existe pas ou n'est plus accessible.
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-500">
+                Vérifiez le lien fourni ou contactez votre photographe.
+              </p>
+            </div>
+          </div>
+        </UCard>
       </div>
     </div>
 
-    <!-- Error state -->
-    <div v-else class="min-h-screen flex items-center justify-center p-4">
-      <UCard class="w-full max-w-lg text-center">
-        <div class="space-y-6">
-          <div class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-600 dark:text-red-400" />
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Galerie non trouvée
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Cette galerie n'existe pas ou n'est plus accessible.
-            </p>
-            <p class="text-sm text-gray-500 dark:text-gray-500">
-              Vérifiez le lien fourni ou contactez votre photographe.
-            </p>
-          </div>
+    <!-- Action Modals -->
+    <GalleryActionModals v-model:show-validate-dialog="showValidateDialog"
+      v-model:show-validate-with-payment-dialog="showValidateWithPaymentDialog"
+      v-model:show-request-revisions-dialog="showRequestRevisionsDialog" v-model:revision-comment="revisionComment"
+      :validating-gallery="validatingGallery" :requesting-revisions="requestingRevisions" @validate="validateGallery"
+      @validate-with-payment="validateGalleryWithPayment" @request-revisions="requestRevisions" />
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Powered by
+            <span class="font-medium text-primary-600 dark:text-primary-400">Tooka</span>
+          </p>
         </div>
-      </UCard>
-    </div>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useClientGallery } from '~/composables/galleries/useClientGallery';
+import { useClientGallery } from '~/composables/galleries/client/useClientGallery';
+
 definePageMeta({
-  layout: 'gallery'
+  layout: false // We handle the layout ourselves
 })
+
 // Get gallery ID from route
 const route = useRoute();
 const galleryId = route.params.id as string;
 
-// Use client gallery composable with infinite scroll
+// Use client gallery composable with all functionality
 const {
+  // Core data
   project,
   gallery,
   images,
@@ -61,14 +95,42 @@ const {
   isAuthenticated,
   authError,
   hasMore,
+
+  // Action states
+  validatingGallery,
+  requestingRevisions,
+  downloadingGallery,
+
+  // Modal states
+  showValidateDialog,
+  showValidateWithPaymentDialog,
+  showRequestRevisionsDialog,
+
+  // Form state
+  revisionComment,
+
+  // Core actions
   verifyPassword,
   loadMore,
+
+  // Client actions
+  validateGallery,
+  validateGalleryWithPayment,
+  requestRevisions,
+
+  // Action handlers
+  handleValidate,
+  handleValidateWithPayment,
+  handleRequestRevisions,
+  handleDownload,
 } = await useClientGallery(galleryId);
 
 // Handle password authentication
 const handleAuthentication = async (password: string) => {
   await verifyPassword(password);
 };
+
+
 
 // SEO meta
 useHead({

@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { useClientGalleryImages } from "~/composables/galleries/useClientGalleryImages";
+import { useClientGalleryImages } from "~/composables/galleries/client/useClientGalleryImages";
 import type { GalleryImage } from "~/types/gallery";
 
 interface Props {
