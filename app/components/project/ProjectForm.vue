@@ -8,8 +8,9 @@
                     <UIcon name="i-heroicons-folder" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Informations du projet</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Détails principaux et identification du projet
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations du projet</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails principaux et identification du
+                        projet
                     </p>
                 </div>
             </div>
@@ -42,8 +43,8 @@
                     <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Tarification</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Prix initial et conditions financières</p>
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix initial et conditions financières</p>
                 </div>
             </div>
 
@@ -51,7 +52,7 @@
                 <UInput v-model="state.initial_price" type="number" placeholder="1500.00" step="0.01" min="0"
                     icon="i-heroicons-currency-euro">
                     <template #trailing>
-                        <span class="text-gray-500 dark:text-gray-400 text-xs font-medium">€</span>
+                        <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
                     </template>
                 </UInput>
             </UFormField>
@@ -67,8 +68,9 @@
                     <UIcon name="i-heroicons-link" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Accès client</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Paramètres de partage et d'accès sécurisé</p>
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Accès client</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Paramètres de partage et d'accès sécurisé
+                    </p>
                 </div>
             </div>
 
@@ -92,8 +94,8 @@
                     <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Sécurité</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Protection et accès sécurisé</p>
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Sécurité</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Protection et accès sécurisé</p>
                 </div>
             </div>
 
@@ -102,8 +104,8 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
+            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                 <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
                 <span>Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</span>
             </div>

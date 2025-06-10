@@ -42,8 +42,8 @@ const handleLogin = async () => {
 <template>
   <div>
     <div class="mb-6 text-center">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome back</h1>
-      <p class="text-gray-500 dark:text-gray-400">Sign in to your account to continue</p>
+      <h1 class="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Welcome back</h1>
+      <p class="text-neutral-500 dark:text-neutral-400">Sign in to your account to continue</p>
     </div>
 
     <UCard class="shadow-lg">
@@ -72,7 +72,7 @@ const handleLogin = async () => {
         </UButton>
 
         <div class="text-center pt-2">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Don't have an account?
             <NuxtLink to="/register" class="font-medium text-primary-600 hover:text-primary-500">
               Sign up

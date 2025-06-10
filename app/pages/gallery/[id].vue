@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900">
       <!-- Gallery Header -->
       <GalleryHeader :project="project" :gallery="gallery" :is-authenticated="isAuthenticated"
         :downloading-gallery="downloadingGallery" :show-logout-button="project?.hasPassword && isAuthenticated"
@@ -24,7 +24,7 @@
         <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
           <div class="text-center">
             <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-            <p class="text-gray-600 dark:text-gray-400">Chargement de la galerie...</p>
+            <p class="text-neutral-600 dark:text-neutral-400">Chargement de la galerie...</p>
           </div>
         </div>
 
@@ -37,13 +37,13 @@
                 <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
                   Galerie non trouvée
                 </h1>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                <p class="text-neutral-600 dark:text-neutral-400 mb-4">
                   Cette galerie n'existe pas ou n'est plus accessible.
                 </p>
-                <p class="text-sm text-gray-500 dark:text-gray-500">
+                <p class="text-sm text-neutral-500 dark:text-neutral-500">
                   Vérifiez le lien fourni ou contactez votre photographe.
                 </p>
               </div>
@@ -60,10 +60,10 @@
         @validate-with-payment="validateGalleryWithPayment" @request-revisions="requestRevisions" />
 
       <!-- Footer -->
-      <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8">
+      <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
               Powered by
               <span class="font-medium text-primary-600 dark:text-primary-400">Tooka</span>
             </p>

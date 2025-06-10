@@ -1,12 +1,12 @@
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900">
         <!-- Gallery Content -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Gallery Grid -->
             <div v-if="images.length > 0" class="space-y-8">
                 <!-- Gallery Stats -->
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+                    <div class="flex items-center gap-6 text-sm text-neutral-600 dark:text-neutral-400">
                         <div class="flex items-center gap-2">
                             <UIcon name="i-heroicons-photo" class="w-4 h-4" />
                             <span>{{ images.length }} / {{ gallery?.imageCount || 0 }} images chargées</span>
@@ -32,7 +32,7 @@
                 <!-- Images Grid -->
                 <div ref="galleryContainer" :class="gridClasses">
                     <div v-for="(image, index) in images" :key="image.id"
-                        class="group relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                        class="group relative aspect-square bg-neutral-200 dark:bg-neutral-700 rounded-xl overflow-hidden cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
                         @click="openLightbox(image, index)">
                         <GalleryImageClient :image="image" :gallery-id="gallery?.id || ''"
                             class="transition-transform duration-300 group-hover:scale-105" />
@@ -54,7 +54,7 @@
 
                 <!-- Loading More Indicator -->
                 <div v-if="loadingMore" class="flex items-center justify-center py-8">
-                    <div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                    <div class="flex items-center gap-3 text-neutral-600 dark:text-neutral-400">
                         <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
                         <span>Chargement des images suivantes...</span>
                     </div>
@@ -63,7 +63,7 @@
                 <!-- End of Gallery Indicator -->
                 <div v-else-if="!hasMore && images.length > 0" class="text-center py-8">
                     <div
-                        class="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2">
+                        class="inline-flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-4 py-2">
                         <UIcon name="i-heroicons-check-circle" class="w-4 h-4" />
                         <span>Toutes les images ont été chargées</span>
                     </div>
@@ -73,13 +73,13 @@
             <!-- Empty State -->
             <div v-else class="text-center py-24">
                 <div
-                    class="w-24 h-24 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-                    <UIcon name="i-heroicons-camera" class="w-12 h-12 text-gray-400" />
+                    class="w-24 h-24 mx-auto bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-6">
+                    <UIcon name="i-heroicons-camera" class="w-12 h-12 text-neutral-400" />
                 </div>
-                <h3 class="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <h3 class="text-xl font-medium text-neutral-900 dark:text-neutral-100 mb-2">
                     Galerie en préparation
                 </h3>
-                <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                <p class="text-neutral-600 dark:text-neutral-400 max-w-md mx-auto">
                     Vos photos sont en cours de traitement. Vous recevrez une notification dès qu'elles seront
                     disponibles.
                 </p>

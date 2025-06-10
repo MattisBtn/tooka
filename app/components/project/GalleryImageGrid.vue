@@ -2,7 +2,7 @@
     <div class="space-y-3">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <div v-for="(image, index) in displayImages" :key="image.id"
-                class="relative group aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer"
+                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden cursor-pointer"
                 @click="$emit('image-click', image)">
 
                 <!-- Image -->

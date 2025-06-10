@@ -6,7 +6,7 @@
                     <UIcon name="i-lucide-images" class="w-5 h-5 text-violet-500" />
                     <div>
                         <h3 class="font-semibold">Galerie</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Livrable final pour le client</p>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Livrable final pour le client</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -30,11 +30,12 @@
         <div v-if="enabled" class="space-y-4">
             <!-- Existing Gallery Display -->
             <div v-if="galleryData && !showEditForm" class="space-y-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div
+                    class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div class="flex items-start justify-between mb-3">
                         <div class="space-y-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">Galerie du projet</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Galerie du projet</h4>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 {{ imageCount }} image{{ imageCount > 1 ? 's' : '' }} uploadée{{ imageCount > 1 ? 's' :
                                     '' }}
                             </p>
@@ -45,32 +46,34 @@
                     <div v-if="pricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                         <div class="space-y-1">
                             <span
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Prix
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix
                                 total</span>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedBasePrice }}
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
+                                formattedBasePrice }}
                             </p>
                         </div>
                         <div class="space-y-1">
                             <span
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Acompte
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte
                                 payé</span>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedDepositPaid }}
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
+                                formattedDepositPaid }}
                             </p>
                         </div>
                         <div class="space-y-1">
                             <span
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Reste
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Reste
                                 à
                                 payer</span>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
                                 formattedRemainingAmount }}</p>
                         </div>
                     </div>
 
                     <!-- Payment Required Toggle -->
                     <div class="flex items-center gap-3 mb-4">
-                        <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-gray-500" />
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-neutral-500" />
+                        <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                             Paiement requis pour téléchargement :
                         </span>
                         <UBadge :color="galleryData.payment_required ? 'warning' : 'success'" variant="subtle"
@@ -92,27 +95,27 @@
 
                     <!-- Image Grid Preview -->
                     <div v-if="hasImages" class="space-y-3 mt-4">
-                        <h5 class="text-sm font-medium text-gray-900 dark:text-gray-100">Aperçu des images</h5>
+                        <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Aperçu des images</h5>
                         <ProjectGalleryImageGrid :images="Array.from(galleryData.images || [])" :max-preview="6"
                             :can-delete="false" @image-click="handleImageClick" @delete-image="handleDeleteImage" />
                     </div>
 
                     <!-- Upload Progress -->
                     <div v-if="isUploading"
-                        class="space-y-3 mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        class="space-y-3 mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                         <div class="flex items-center gap-3">
-                            <UIcon name="i-lucide-upload" class="w-5 h-5 text-blue-500 animate-pulse" />
+                            <UIcon name="i-lucide-upload" class="w-5 h-5 text-orange-500 animate-pulse" />
                             <div class="flex-1">
                                 <div
-                                    class="flex items-center justify-between text-sm font-medium text-blue-900 dark:text-blue-100">
+                                    class="flex items-center justify-between text-sm font-medium text-orange-900 dark:text-orange-100">
                                     <span>Upload des images en cours...</span>
                                     <span>{{ Math.round(uploadProgress || 0) }}%</span>
                                 </div>
-                                <div class="mt-2 w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                <div class="mt-2 w-full bg-orange-200 dark:bg-orange-800 rounded-full h-2">
+                                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
                                         :style="{ width: `${uploadProgress || 0}%` }" />
                                 </div>
-                                <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                <p class="text-xs text-orange-700 dark:text-orange-300 mt-1">
                                     Veuillez patienter, les images sont en cours d'ajout à la galerie...
                                 </p>
                             </div>
@@ -159,8 +162,9 @@
                             <UIcon name="i-lucide-plus" class="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">Créer une galerie</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Configurez votre galerie et uploadez vos
+                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Créer une galerie</h4>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Configurez votre galerie et
+                                uploadez vos
                                 images
                             </p>
                         </div>
@@ -189,14 +193,14 @@
         <!-- Module disabled state -->
         <div v-else class="py-8 text-center">
             <div
-                class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UIcon name="i-lucide-images" class="w-8 h-8 text-gray-400" />
+                class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UIcon name="i-lucide-images" class="w-8 h-8 text-neutral-400" />
             </div>
-            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Module Galerie désactivé</h4>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Galerie désactivé</h4>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
                 Activez ce module pour créer des galeries de livraison pour vos clients
             </p>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-neutral-500 dark:text-neutral-400">
                 <UIcon name="i-lucide-arrow-up" class="w-3 h-3 inline mr-1" />
                 Utilisez le switch ci-dessus pour activer
             </div>

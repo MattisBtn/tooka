@@ -1,6 +1,6 @@
 <template>
     <header v-if="gallery && isAuthenticated && project"
-        class="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+        class="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-neutral-800/95 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and Project Info -->
@@ -9,15 +9,15 @@
                         <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-camera" class="w-4 h-4 text-white" />
                         </div>
-                        <span class="text-xl font-semibold text-gray-900 dark:text-gray-100 hidden sm:block">
+                        <span class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 hidden sm:block">
                             Tooka
                         </span>
                     </div>
 
                     <!-- Project Title and Status -->
                     <div class="hidden md:flex items-center gap-4 min-w-0">
-                        <div class="border-l border-gray-300 dark:border-gray-600 pl-4">
-                            <h1 class="text-lg font-medium text-gray-900 dark:text-gray-100 truncate">
+                        <div class="border-l border-neutral-300 dark:border-neutral-600 pl-4">
+                            <h1 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 truncate">
                                 {{ project.title }}
                             </h1>
                         </div>
@@ -73,10 +73,11 @@
                             <template #content>
                                 <div class="p-4 space-y-4">
                                     <div
-                                        class="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+                                        class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-700">
                                         <UIcon name="i-heroicons-cog-6-tooth"
-                                            class="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Actions</h3>
+                                            class="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Actions
+                                        </h3>
                                     </div>
 
                                     <!-- Awaiting client actions -->
@@ -111,24 +112,25 @@
                                     </template>
 
                                     <!-- Gallery info -->
-                                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                                    <div class="pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
                                         <div class="flex items-center justify-between text-sm">
-                                            <span class="text-gray-600 dark:text-gray-400">Statut</span>
+                                            <span class="text-neutral-600 dark:text-neutral-400">Statut</span>
                                             <UBadge :color="statusColor" variant="soft" size="sm">
                                                 <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
                                                 {{ statusLabel }}
                                             </UBadge>
                                         </div>
                                         <div class="flex items-center justify-between text-sm">
-                                            <span class="text-gray-600 dark:text-gray-400">Photos</span>
-                                            <span class="text-gray-900 dark:text-gray-100">{{ gallery?.imageCount || 0
+                                            <span class="text-neutral-600 dark:text-neutral-400">Photos</span>
+                                            <span class="text-neutral-900 dark:text-neutral-100">{{ gallery?.imageCount
+                                                || 0
                                                 }}</span>
                                         </div>
                                         <div v-if="project" class="pt-2">
-                                            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-1">{{
+                                            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{{
                                                 project.title }}</h4>
                                             <p v-if="project.description"
-                                                class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                                                class="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">
                                                 {{ project.description }}
                                             </p>
                                         </div>

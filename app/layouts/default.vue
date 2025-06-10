@@ -54,12 +54,12 @@ const logout = async () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div class="min-h-screen flex bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
         <aside :class="[
-            'transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 flex flex-col',
+            'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col',
             isSidebarCollapsed ? 'w-16' : 'w-64'
         ]">
-            <div class="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+            <div class="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-700">
                 <div class="flex items-center gap-2 overflow-hidden">
                     <UIcon name="i-heroicons-bolt" class="flex-shrink-0 text-primary-500 h-6 w-6" />
                     <span
@@ -75,7 +75,7 @@ const logout = async () => {
                 <div>
                     <div v-for="(category, index) in categories" :key="index" class="mb-6">
                         <div :class="[
-                            'mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider transition-all duration-300',
+                            'mb-2 text-xs font-semibold text-neutral-400 uppercase tracking-wider transition-all duration-300',
                             isSidebarCollapsed ? 'text-center px-1' : 'px-4'
                         ]">
                             <span v-if="isSidebarCollapsed">{{ category.name.charAt(0) }}</span>
@@ -95,7 +95,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                    }}</span>
+                                }}</span>
                             </UButton>
                         </div>
                     </div>
@@ -105,8 +105,8 @@ const logout = async () => {
                 <div class="px-4 mt-auto">
                     <div :class="['flex items-center', isSidebarCollapsed ? 'justify-center' : 'justify-between']">
                         <div v-if="!isSidebarCollapsed" class="flex items-center gap-4">
-                            <UIcon name="i-heroicons-moon" class="text-gray-500" />
-                            <span class="text-sm text-gray-600 dark:text-gray-300">Dark Mode</span>
+                            <UIcon name="i-heroicons-moon" class="text-neutral-500" />
+                            <span class="text-sm text-neutral-600 dark:text-neutral-300">Dark Mode</span>
                         </div>
                         <USwitch v-model="isDarkMode" color="primary" size="md" checked-icon="i-heroicons-moon"
                             unchecked-icon="i-heroicons-sun" />
@@ -115,13 +115,13 @@ const logout = async () => {
             </div>
 
             <!-- User profile and logout button -->
-            <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+            <div class="border-t border-neutral-200 dark:border-neutral-700 p-4">
                 <div class="flex items-center gap-2">
                     <UAvatar :src="user?.user_metadata?.avatar_url" :alt="user?.user_metadata?.name || 'User'"
                         class="flex-shrink-0" size="sm" />
                     <div :class="[isSidebarCollapsed ? 'sr-only' : 'min-w-0 flex-1']">
                         <p class="text-sm font-medium truncate">{{ user?.user_metadata?.name || user?.email }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{
                             user?.user_metadata?.organization || 'Your workspace' }}</p>
                     </div>
                 </div>

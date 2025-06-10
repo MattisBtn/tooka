@@ -8,9 +8,11 @@
                     <UIcon name="i-lucide-file-check" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Informations de la proposition
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations de la
+                        proposition
                     </h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Détails du devis et contrat pour le client</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails du devis et contrat pour le client
+                    </p>
                 </div>
             </div>
 
@@ -31,12 +33,12 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                     <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Tarification</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Prix et conditions de paiement</p>
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions de paiement</p>
                 </div>
             </div>
 
@@ -44,7 +46,7 @@
                 <UInput v-model="state.price" type="number" placeholder="1500.00" step="0.01" min="0"
                     icon="i-lucide-euro">
                     <template #trailing>
-                        <span class="text-gray-500 dark:text-gray-400 text-xs font-medium">€</span>
+                        <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
                     </template>
                 </UInput>
             </UFormField>
@@ -62,7 +64,7 @@
                             :max="state.price" icon="i-lucide-euro">
                             <template #trailing>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-gray-500 dark:text-gray-400 text-xs font-medium">€</span>
+                                    <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
                                     <span v-if="depositPercentage > 0"
                                         class="text-xs font-medium text-primary-600 dark:text-primary-400">
                                         ({{ depositPercentage }}%)
@@ -74,7 +76,7 @@
 
                     <!-- Quick deposit buttons -->
                     <div class="flex items-center gap-2">
-                        <span class="text-sm text-gray-600 dark:text-gray-400">Rapide:</span>
+                        <span class="text-sm text-neutral-600 dark:text-neutral-400">Rapide:</span>
                         <div class="flex gap-2">
                             <UButton v-for="option in quickDepositOptions" :key="option.value" size="xs"
                                 variant="outline" color="primary" :label="option.label"
@@ -95,8 +97,8 @@
                     <UIcon name="i-lucide-paperclip" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Documents</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Fichiers contractuels (optionnel)</p>
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Documents</h2>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Fichiers contractuels (optionnel)</p>
                 </div>
             </div>
 
@@ -116,8 +118,8 @@
         <USeparator />
 
         <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
+            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                 <UIcon name="i-lucide-info" class="w-4 h-4" />
                 <span>Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</span>
             </div>

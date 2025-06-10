@@ -49,15 +49,15 @@ const handleRegister = async () => {
 <template>
     <div>
         <div class="mb-6 text-center">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Create your account</h1>
-            <p class="text-gray-500 dark:text-gray-400">Start your journey with Tooka</p>
+            <h1 class="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Create your account</h1>
+            <p class="text-neutral-500 dark:text-neutral-400">Start your journey with Tooka</p>
         </div>
 
         <UCard class="shadow-lg">
             <div v-if="emailConfirmationRequired" class="py-8 px-4">
                 <UIcon name="lucide:mail-check" class="h-12 w-12 mx-auto text-primary-500 mb-4" />
                 <h2 class="text-xl font-semibold text-center mb-2">Check your email</h2>
-                <p class="text-gray-500 dark:text-gray-400 text-center mb-4">
+                <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
                     We've sent a confirmation link to <span class="font-medium">{{ formData.email }}</span>.
                     Please check your inbox and click the link to activate your account.
                 </p>
@@ -81,7 +81,7 @@ const handleRegister = async () => {
                     <UInput v-model="formData.password" type="password" placeholder="••••••••"
                         autocomplete="new-password" leading-icon="lucide:lock" class="w-full" />
                     <template #hint>
-                        <span class="text-xs text-gray-500">Password must be at least 6 characters</span>
+                        <span class="text-xs text-neutral-500">Password must be at least 6 characters</span>
                     </template>
                 </UFormField>
 
@@ -97,7 +97,7 @@ const handleRegister = async () => {
                 </UButton>
 
                 <div class="text-center pt-2">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
                         Already have an account?
                         <NuxtLink to="/login" class="font-medium text-primary-600 hover:text-primary-500">
                             Sign in

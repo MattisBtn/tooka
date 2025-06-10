@@ -6,7 +6,7 @@
                     <UIcon :name="icon" :class="`w-5 h-5 ${iconColor}`" />
                     <div>
                         <h3 class="font-semibold">{{ title }}</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ description }}</p>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">{{ description }}</p>
                     </div>
                 </div>
                 <USwitch :model-value="enabled" color="primary" size="md" @update:model-value="handleToggle" />

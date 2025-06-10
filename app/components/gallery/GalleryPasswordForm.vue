@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center p-4">
         <UCard class="w-full max-w-lg">
             <UForm ref="form" :schema="clientPasswordSchema" :state="formData" class="space-y-6" @submit="handleSubmit">
                 <!-- Header Section -->
@@ -10,7 +10,7 @@
                             <UIcon name="i-heroicons-key" class="w-6 h-6 text-white" />
                         </div>
                         <div class="text-left">
-                            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
                                 Accès sécurisé
                             </h1>
                             <p class="text-sm font-medium text-primary-600 dark:text-primary-400">
@@ -46,8 +46,9 @@
                             <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Code d'accès</h2>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Entrez votre code de 6 caractères pour
+                            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Code d'accès</h2>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Entrez votre code de 6 caractères
+                                pour
                                 continuer
                             </p>
                         </div>
@@ -85,7 +86,7 @@
 
                     <div class="text-center">
                         <div
-                            class="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                            class="inline-flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-3 py-2">
                             <UIcon name="i-heroicons-question-mark-circle" class="w-4 h-4" />
                             <span>Code d'accès oublié ? Contactez votre photographe</span>
                         </div>

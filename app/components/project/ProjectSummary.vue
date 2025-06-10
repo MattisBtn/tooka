@@ -4,12 +4,13 @@
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
                     <div
-                        class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                         <UIcon name="i-lucide-info" class="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Résumé du projet</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Informations principales et état actuel</p>
+                        <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé du projet</h2>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Informations principales et état
+                            actuel</p>
                     </div>
                 </div>
                 <UBadge :color="(statusInfo?.color as any) || 'gray'" variant="subtle"
@@ -21,45 +22,45 @@
             <!-- Client Info -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-user" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Client</span>
+                    <UIcon name="i-lucide-user" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Client</span>
                 </div>
-                <p class="text-gray-900 dark:text-gray-100">{{ clientDisplayName }}</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ project.client?.billing_email }}</p>
+                <p class="text-neutral-900 dark:text-neutral-100">{{ clientDisplayName }}</p>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400">{{ project.client?.billing_email }}</p>
             </div>
 
             <!-- Price Info -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-euro" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Prix initial</span>
+                    <UIcon name="i-lucide-euro" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Prix initial</span>
                 </div>
-                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedPrice }}</p>
+                <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ formattedPrice }}</p>
             </div>
 
             <!-- Dates Info -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-calendar" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Créé le</span>
+                    <UIcon name="i-lucide-calendar" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Créé le</span>
                 </div>
-                <p class="text-gray-900 dark:text-gray-100">{{ formattedCreatedAt }}</p>
+                <p class="text-neutral-900 dark:text-neutral-100">{{ formattedCreatedAt }}</p>
             </div>
 
             <!-- Link Expiration -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-link" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Lien expire le</span>
+                    <UIcon name="i-lucide-link" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Lien expire le</span>
                 </div>
-                <p class="text-gray-900 dark:text-gray-100">{{ formattedExpiresAt }}</p>
+                <p class="text-neutral-900 dark:text-neutral-100">{{ formattedExpiresAt }}</p>
             </div>
 
             <!-- Password Hash -->
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-key" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Mot de passe</span>
+                    <UIcon name="i-lucide-key" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Mot de passe</span>
                 </div>
                 <UInput :model-value="project.password_hash" :type="showPassword ? 'text' : 'password'" readonly
                     size="sm" variant="outline" :ui="{ trailing: 'pe-1' }">
@@ -84,10 +85,10 @@
             <!-- Description -->
             <div v-if="project.description" class="md:col-span-2 space-y-2">
                 <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-file-text" class="w-4 h-4 text-gray-500" />
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Description</span>
+                    <UIcon name="i-lucide-file-text" class="w-4 h-4 text-neutral-500" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Description</span>
                 </div>
-                <p class="text-gray-900 dark:text-gray-100">{{ project.description }}</p>
+                <p class="text-neutral-900 dark:text-neutral-100">{{ project.description }}</p>
             </div>
         </div>
     </UCard>

@@ -8,7 +8,7 @@
                     </UBadge>
                 </div>
                 <h1 class="text-2xl font-bold mb-1">{{ title }}</h1>
-                <p v-if="subtitle" class="text-gray-500 dark:text-gray-400">{{ subtitle }}</p>
+                <p v-if="subtitle" class="text-neutral-500 dark:text-neutral-400">{{ subtitle }}</p>
             </div>
             <div class="flex items-center gap-2">
                 <slot name="actions" />

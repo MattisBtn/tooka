@@ -6,7 +6,7 @@
                     <UIcon name="i-lucide-file-check" class="w-5 h-5 text-emerald-500" />
                     <div>
                         <h3 class="font-semibold">Proposition</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Devis et contrat pour le client</p>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Devis et contrat pour le client</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -30,11 +30,13 @@
         <div v-if="enabled" class="space-y-4">
             <!-- Existing Proposal Display -->
             <div v-if="proposalData && !showEditForm" class="space-y-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div
+                    class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div class="flex items-start justify-between mb-3">
                         <div class="space-y-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">{{ proposalData.title }}</h4>
-                            <p v-if="proposalData.description" class="text-sm text-gray-600 dark:text-gray-400">
+                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">{{ proposalData.title }}
+                            </h4>
+                            <p v-if="proposalData.description" class="text-sm text-neutral-600 dark:text-neutral-400">
                                 {{ proposalData.description }}
                             </p>
                         </div>
@@ -43,14 +45,16 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div class="space-y-1">
                             <span
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Prix</span>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedPrice }}</p>
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix</span>
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ formattedPrice }}
+                            </p>
                         </div>
                         <div v-if="proposalData.deposit_required" class="space-y-1">
                             <span
-                                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Acompte</span>
-                            <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ formattedDepositAmount
-                            }}
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
+                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
+                                formattedDepositAmount
+                                }}
                             </p>
                         </div>
                     </div>
@@ -67,7 +71,7 @@
 
                     <!-- File attachments -->
                     <div v-if="proposalData.contract_url || proposalData.quote_url" class="space-y-3 mt-4">
-                        <h5 class="text-sm font-medium text-gray-900 dark:text-gray-100">Documents attachés</h5>
+                        <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Documents attachés</h5>
 
                         <ProposalFileViewer v-if="proposalData.contract_url" :file-path="proposalData.contract_url"
                             @error="handleFileError" />
@@ -106,8 +110,9 @@
                             <UIcon name="i-lucide-plus" class="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">Créer une proposition</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Remplissez les informations ci-dessous
+                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Créer une proposition</h4>
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Remplissez les informations
+                                ci-dessous
                                 pour créer votre proposition</p>
                         </div>
                     </div>
@@ -134,14 +139,14 @@
         <!-- Module disabled state -->
         <div v-else class="py-8 text-center">
             <div
-                class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UIcon name="i-lucide-file-check" class="w-8 h-8 text-gray-400" />
+                class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UIcon name="i-lucide-file-check" class="w-8 h-8 text-neutral-400" />
             </div>
-            <h4 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Module Proposition désactivé</h4>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Proposition désactivé</h4>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
                 Activez ce module pour créer des propositions commerciales pour vos clients
             </p>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-neutral-500 dark:text-neutral-400">
                 <UIcon name="i-lucide-arrow-up" class="w-3 h-3 inline mr-1" />
                 Utilisez le switch ci-dessus pour activer
             </div>

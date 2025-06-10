@@ -33,9 +33,11 @@
                         <UIcon name="i-lucide-puzzle" class="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Configuration des modules
+                        <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration des
+                            modules
                         </h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Activez et configurez les fonctionnalités de
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Activez et configurez les
+                            fonctionnalités de
                             votre projet</p>
                     </div>
                 </div>
@@ -56,7 +58,7 @@
                 <!-- Selection Module -->
                 <ModuleCard v-model:enabled="modules.selection.enabled" title="Pré-sélection"
                     description="Sélection d'images par le client" icon="i-lucide-mouse-pointer-click"
-                    icon-color="text-blue-500" :completed="modules.selection.completed"
+                    icon-color="text-orange-500" :completed="modules.selection.completed"
                     :summary="modules.selection.summary"
                     @update:enabled="(value: boolean) => toggleModule('selection', value)" />
 
@@ -71,7 +73,7 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
                 <UButton icon="i-lucide-arrow-left" variant="ghost" color="neutral" label="Retour aux projets"
                     @click="navigateTo('/projects')" />
             </div>

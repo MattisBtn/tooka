@@ -8,8 +8,9 @@
                     <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Valider la galerie</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Confirmer la réception et approuver les images
+                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Valider la galerie</h3>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Confirmer la réception et approuver les
+                        images
                     </p>
                 </div>
             </div>
@@ -21,13 +22,14 @@
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-information-circle" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Confirmation de validation
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Confirmation de
+                            validation
                         </h4>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
                         Vous confirmez valider cette galerie ? Une fois validée, vous pourrez télécharger toutes les
                         images en haute résolution.
                     </p>
@@ -42,7 +44,7 @@
                             class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-gift" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Avantages inclus</h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Avantages inclus</h4>
                     </div>
 
                     <UAlert color="success" variant="soft" icon="i-heroicons-gift" title="Téléchargement gratuit">
@@ -81,12 +83,13 @@
         <template #header>
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                     <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Valider et payer</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Finaliser la galerie avec paiement sécurisé</p>
+                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Valider et payer</h3>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Finaliser la galerie avec paiement
+                        sécurisé</p>
                 </div>
             </div>
         </template>
@@ -100,10 +103,11 @@
                             class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-check-badge" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Finalisation avec paiement
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Finalisation avec
+                            paiement
                         </h4>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
                         Vous confirmez valider cette galerie et procéder au paiement du solde restant ? Une fois le
                         paiement effectué, vous aurez accès au téléchargement.
                     </p>
@@ -115,10 +119,11 @@
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-credit-card" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Informations de paiement</h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Informations de
+                            paiement</h4>
                     </div>
 
                     <UAlert color="primary" variant="soft" icon="i-heroicons-credit-card" title="Paiement sécurisé">
@@ -144,23 +149,23 @@
                             class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-star" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Après le paiement</h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Après le paiement</h4>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 text-green-500" />
                             <span>Téléchargement immédiat</span>
                         </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <UIcon name="i-heroicons-photo" class="w-4 h-4 text-green-500" />
                             <span>Haute résolution</span>
                         </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <UIcon name="i-heroicons-clock" class="w-4 h-4 text-green-500" />
                             <span>Accès permanent</span>
                         </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <UIcon name="i-heroicons-document-duplicate" class="w-4 h-4 text-green-500" />
                             <span>Reçu automatique</span>
                         </div>
@@ -193,8 +198,9 @@
                     <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Demander des retouches</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Demander des modifications sur les images</p>
+                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Demander des retouches</h3>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Demander des modifications sur les images
+                    </p>
                 </div>
             </div>
         </template>
@@ -205,12 +211,13 @@
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-chat-bubble-left-right" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Demande de retouches</h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Demande de retouches
+                        </h4>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
                         Décrivez les modifications que vous souhaitez apporter à cette galerie. Soyez aussi précis que
                         possible pour faciliter le travail de retouche.
                     </p>
@@ -225,7 +232,8 @@
                             class="w-6 h-6 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-document-text" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Détails des modifications
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Détails des
+                            modifications
                         </h4>
                     </div>
 
@@ -258,7 +266,8 @@
                             class="w-6 h-6 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-clock" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-gray-900 dark:text-gray-100">Processus de retouche</h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Processus de retouche
+                        </h4>
                     </div>
 
                     <UAlert color="warning" variant="soft" icon="i-heroicons-information-circle"

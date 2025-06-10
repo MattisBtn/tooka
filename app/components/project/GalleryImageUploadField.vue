@@ -1,20 +1,20 @@
 <template>
     <div class="space-y-4">
         <!-- File Input -->
-        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+        <div class="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-6 text-center hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors"
             :class="{ 'border-primary-500 bg-primary-50 dark:bg-primary-900/20': isDragOver }"
             @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop">
 
-            <UIcon name="i-lucide-upload-cloud" class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <UIcon name="i-lucide-upload-cloud" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
 
             <div class="space-y-2">
-                <p class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <p class="text-lg font-medium text-neutral-900 dark:text-neutral-100">
                     Glissez-déposez vos images ici
                 </p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
+                <p class="text-sm text-neutral-600 dark:text-neutral-400">
                     ou cliquez pour sélectionner des fichiers
                 </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
+                <p class="text-xs text-neutral-500 dark:text-neutral-400">
                     Formats supportés: JPG, PNG, WebP • Max {{ maxFiles }} images • 10MB par image
                 </p>
             </div>
@@ -28,7 +28,7 @@
         <!-- Selected Files Preview -->
         <div v-if="selectedFiles.length > 0" class="space-y-3">
             <div class="flex items-center justify-between">
-                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <h4 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                     Images sélectionnées ({{ selectedFiles.length }})
                 </h4>
                 <UButton icon="i-lucide-x" size="xs" variant="ghost" color="error" label="Tout supprimer"
@@ -37,7 +37,7 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <div v-for="(file, index) in selectedFiles" :key="index"
-                    class="relative group aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
 
                     <!-- Image Preview -->
                     <img :src="getFilePreview(file)" :alt="file.name" class="w-full h-full object-cover">

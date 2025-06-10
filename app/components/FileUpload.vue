@@ -9,8 +9,8 @@
             class="relative border-2 border-dashed rounded-lg transition-all duration-200 cursor-pointer group" :class="[
                 isDragOver
                     ? 'border-primary-400 bg-primary-50 dark:bg-primary-950 dark:border-primary-600'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-700',
-                disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'border-neutral-300 dark:border-neutral-600 hover:border-primary-300 dark:hover:border-primary-700',
+                disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'
             ]" @click="!disabled && fileInput?.click()" @dragover.prevent="handleDragOver"
             @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop">
 
@@ -18,20 +18,20 @@
                 <!-- Icon -->
                 <div class="w-12 h-12 mb-4 rounded-full flex items-center justify-center transition-colors" :class="isDragOver
                     ? 'bg-primary-100 dark:bg-primary-900'
-                    : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-primary-50 dark:group-hover:bg-primary-950'">
+                    : 'bg-neutral-100 dark:bg-neutral-800 group-hover:bg-primary-50 dark:group-hover:bg-primary-950'">
                     <UIcon :name="isDragOver ? 'i-lucide-download' : 'i-lucide-upload'"
                         class="w-6 h-6 transition-colors" :class="isDragOver
                             ? 'text-primary-600 dark:text-primary-400'
-                            : 'text-gray-500 dark:text-gray-400 group-hover:text-primary-500'" />
+                            : 'text-neutral-500 dark:text-neutral-400 group-hover:text-primary-500'" />
                 </div>
 
                 <!-- Text -->
                 <div class="space-y-2">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                         {{ isDragOver ? 'Déposez votre fichier ici' :
                             'Glissez-déposez votre fichier ou cliquez pour sélectionner' }}
                     </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
                         {{ acceptText }} • Max {{ maxSizeText }}
                     </p>
                 </div>
@@ -46,7 +46,7 @@
 
         <!-- File Preview -->
         <div v-else
-            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            class="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center gap-3 min-w-0 flex-1">
                 <!-- File Icon -->
                 <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -56,10 +56,10 @@
 
                 <!-- File Info -->
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                         {{ file?.name }}
                     </p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                         <span>{{ formatFileSize(file || undefined) }}</span>
                         <span>•</span>
                         <span>{{ getFileTypeLabel(file || undefined) }}</span>
@@ -84,7 +84,7 @@
         <UAlert v-if="error" color="error" variant="soft" icon="i-lucide-alert-circle" :title="error" class="text-sm" />
 
         <!-- Help Text -->
-        <p v-if="helpText && !error" class="text-xs text-gray-500 dark:text-gray-400">
+        <p v-if="helpText && !error" class="text-xs text-neutral-500 dark:text-neutral-400">
             {{ helpText }}
         </p>
     </div>
@@ -276,14 +276,14 @@ const getFileTypeIcon = (file?: File | ExistingFileInfo): string => {
 }
 
 const getFileTypeColor = (file?: File | ExistingFileInfo): string => {
-    if (!file) return 'bg-gray-500'
+    if (!file) return 'bg-neutral-500'
 
     if ('type' in file) {
         // It's a File object
         const mimeType = file.type
         if (mimeType.startsWith('image/')) return 'bg-green-500'
         if (mimeType === 'application/pdf') return 'bg-red-500'
-        if (mimeType.includes('document') || mimeType.includes('word')) return 'bg-blue-500'
+        if (mimeType.includes('document') || mimeType.includes('word')) return 'bg-orange-500'
         if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'bg-emerald-500'
         if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'bg-orange-500'
         if (mimeType.startsWith('video/')) return 'bg-purple-500'
@@ -292,13 +292,13 @@ const getFileTypeColor = (file?: File | ExistingFileInfo): string => {
     } else {
         // It's an ExistingFileInfo
         const fileName = file.name.toLowerCase()
-        if (fileName.includes('contract')) return 'bg-blue-500'
+        if (fileName.includes('contract')) return 'bg-orange-500'
         if (fileName.includes('quote')) return 'bg-green-500'
         if (fileName.endsWith('.pdf')) return 'bg-red-500'
         if (fileName.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'bg-green-500'
     }
 
-    return 'bg-gray-500'
+    return 'bg-neutral-500'
 }
 
 const getFileTypeLabel = (file?: File | ExistingFileInfo): string => {

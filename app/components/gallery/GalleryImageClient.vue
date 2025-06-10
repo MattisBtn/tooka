@@ -3,14 +3,15 @@
         <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="`Image de galerie`" :class="imageClasses"
             @error="handleImageError" />
         <div v-else-if="loading"
-            class="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
-            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
+            class="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse flex items-center justify-center">
+            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-neutral-400" />
         </div>
-        <div v-else-if="error" class="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-gray-400" />
+        <div v-else-if="error"
+            class="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-neutral-400" />
         </div>
-        <div v-else class="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
+        <div v-else class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
+            <UIcon name="i-heroicons-photo" class="w-8 h-8 text-neutral-400" />
         </div>
     </div>
 </template>

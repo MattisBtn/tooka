@@ -2,7 +2,7 @@
     <div v-if="filePath" class="space-y-3">
         <!-- File Display -->
         <div
-            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            class="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center gap-3 min-w-0 flex-1">
                 <!-- File Icon -->
                 <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -12,10 +12,10 @@
 
                 <!-- File Info -->
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                         {{ displayName }}
                     </p>
-                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                         <span>{{ fileTypeLabel }}</span>
                         <span v-if="showPath">•</span>
                         <span v-if="showPath" class="truncate">{{ filePath }}</span>
@@ -114,11 +114,11 @@ const getFileTypeIcon = (): string => {
 const getFileTypeColor = (): string => {
     switch (fileType.value) {
         case 'contract':
-            return 'bg-blue-500'
+            return 'bg-orange-500'
         case 'quote':
             return 'bg-green-500'
         default:
-            return 'bg-gray-500'
+            return 'bg-neutral-500'
     }
 }
 

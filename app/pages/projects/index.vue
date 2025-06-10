@@ -7,7 +7,7 @@
           class="mr-2" @update:model-value="handleStatusFilter" />
         <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Rechercher..." class="mr-2"
           @update:model-value="handleSearch" />
-        <UButton icon="i-lucide-plus" color="primary" size="lg" label="Nouveau projet" @click="openCreateModal" />
+        <UButton icon="i-lucide-plus" size="lg" label="Nouveau projet" @click="openCreateModal" />
       </template>
     </PageHeader>
 
