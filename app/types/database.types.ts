@@ -239,6 +239,7 @@ export type Database = {
       moodboards: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           project_id: string
           status: Database["public"]["Enums"]["status_enum"]
@@ -247,6 +248,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           project_id: string
           status?: Database["public"]["Enums"]["status_enum"]
@@ -255,6 +257,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           project_id?: string
           status?: Database["public"]["Enums"]["status_enum"]

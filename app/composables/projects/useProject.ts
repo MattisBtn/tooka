@@ -71,6 +71,19 @@ export const useProject = (projectId: string) => {
       modules.value.proposal.summary = null;
     }
 
+    // Update moodboard module state
+    if (projectData.moodboard) {
+      modules.value.moodboard.enabled = true;
+      modules.value.moodboard.completed = true;
+      modules.value.moodboard.summary = `Moodboard "${
+        projectData.moodboard.title
+      }" (${getMoodboardStatusLabel(projectData.moodboard.status)})`;
+    } else {
+      // Keep enabled state but mark as not completed if no moodboard exists
+      modules.value.moodboard.completed = false;
+      modules.value.moodboard.summary = null;
+    }
+
     // Update gallery module state
     if (projectData.gallery) {
       modules.value.gallery.enabled = true;
@@ -84,8 +97,7 @@ export const useProject = (projectId: string) => {
       modules.value.gallery.summary = null;
     }
 
-    // TODO: Update other module states when implemented
-    // modules.value.moodboard.enabled = !!projectData.moodboard;
+    // TODO: Update selection module state when implemented
     // modules.value.selection.enabled = !!projectData.selection;
   };
 
@@ -96,6 +108,17 @@ export const useProject = (projectId: string) => {
       awaiting_client: "En attente client",
       revision_requested: "Révision demandée",
       completed: "Acceptée",
+    };
+    return statusMap[status as keyof typeof statusMap] || status;
+  };
+
+  // Get moodboard status label
+  const getMoodboardStatusLabel = (status: string) => {
+    const statusMap = {
+      draft: "Brouillon",
+      awaiting_client: "En attente client",
+      revision_requested: "Révision demandée",
+      completed: "Validé",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };

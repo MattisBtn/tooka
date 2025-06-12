@@ -41,6 +41,14 @@ export const projectRepository: IProjectRepository = {
           contract_url,
           quote_url
         ),
+        moodboard:moodboards(
+          id,
+          title,
+          description,
+          status,
+          created_at,
+          updated_at
+        ),
         gallery:galleries(
           id,
           status,
@@ -98,12 +106,16 @@ export const projectRepository: IProjectRepository = {
       throw new Error(`Failed to fetch projects: ${error.message}`);
     }
 
-    // Transform the data to handle the proposal array (Supabase returns arrays for relations)
+    // Transform the data to handle the arrays (Supabase returns arrays for relations)
     const transformedData = (data || []).map((project) => ({
       ...project,
       proposal:
         Array.isArray(project.proposal) && project.proposal.length > 0
           ? project.proposal[0]
+          : null,
+      moodboard:
+        Array.isArray(project.moodboard) && project.moodboard.length > 0
+          ? project.moodboard[0]
           : null,
       gallery:
         Array.isArray(project.gallery) && project.gallery.length > 0
@@ -145,6 +157,14 @@ export const projectRepository: IProjectRepository = {
           contract_url,
           quote_url
         ),
+        moodboard:moodboards(
+          id,
+          title,
+          description,
+          status,
+          created_at,
+          updated_at
+        ),
         gallery:galleries(
           id,
           status,
@@ -164,12 +184,16 @@ export const projectRepository: IProjectRepository = {
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    // Transform the data to handle the proposal and gallery arrays (Supabase returns arrays for relations)
+    // Transform the data to handle the arrays (Supabase returns arrays for relations)
     const transformedData = {
       ...data,
       proposal:
         Array.isArray(data.proposal) && data.proposal.length > 0
           ? data.proposal[0]
+          : null,
+      moodboard:
+        Array.isArray(data.moodboard) && data.moodboard.length > 0
+          ? data.moodboard[0]
           : null,
       gallery:
         Array.isArray(data.gallery) && data.gallery.length > 0

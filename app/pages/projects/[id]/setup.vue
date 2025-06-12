@@ -50,10 +50,10 @@
                     @proposal-saved="handleProposalSaved" />
 
                 <!-- Moodboard Module -->
-                <ModuleCard v-model:enabled="modules.moodboard.enabled" title="Moodboard"
-                    description="Planche d'inspiration pour le client" icon="i-lucide-image" icon-color="text-pink-500"
-                    :completed="modules.moodboard.completed" :summary="modules.moodboard.summary"
-                    @update:enabled="(value: boolean) => toggleModule('moodboard', value)" />
+                <MoodboardModule v-model:enabled="modules.moodboard.enabled" :moodboard-data="moodboardData"
+                    :moodboard-status-info="moodboardStatusInfo || null" :image-count="moodboardImageCount"
+                    :has-images="hasMoodboardImages" :project-id="projectId" :is-uploading="isUploadingMoodboardImages"
+                    :upload-progress="moodboardUploadProgress" @moodboard-saved="handleMoodboardSaved" />
 
                 <!-- Selection Module -->
                 <ModuleCard v-model:enabled="modules.selection.enabled" title="Pré-sélection"
@@ -84,14 +84,17 @@
 <script lang="ts" setup>
 import type { BreadcrumbItem } from '@nuxt/ui'
 import { useGallery } from '~/composables/galleries/user/useGallery'
+import { useMoodboard } from '~/composables/moodboards/user/useMoodboard'
 import { useProject } from '~/composables/projects/useProject'
 import { useProposal } from '~/composables/proposals/useProposal'
 import type { Gallery, GalleryFormData } from '~/types/gallery'
+import type { Moodboard, MoodboardFormData } from '~/types/moodboard'
 import type { Proposal, ProposalFormData } from '~/types/proposal'
 
 // Import components
 import GalleryModule from '~/components/project/GalleryModule.vue'
 import ModuleCard from '~/components/project/ModuleCard.vue'
+import MoodboardModule from '~/components/project/MoodboardModule.vue'
 import ProjectSummary from '~/components/project/ProjectSummary.vue'
 import ProposalModule from '~/components/project/ProposalModule.vue'
 
@@ -125,6 +128,17 @@ const {
     getStatusOptions: getProposalStatusOptions,
 } = useProposal(projectId)
 
+// Use moodboard composable
+const {
+    moodboard: moodboardData,
+    imageCount: moodboardImageCount,
+    hasImages: hasMoodboardImages,
+    fetchMoodboard,
+    saveMoodboard,
+    uploadImages: uploadMoodboardImages,
+    getStatusOptions: getMoodboardStatusOptions,
+} = useMoodboard(projectId)
+
 // Use gallery composable
 const {
     gallery: galleryData,
@@ -143,6 +157,8 @@ const {
 // Upload state for UI feedback
 const isUploadingImages = ref(false)
 const uploadProgress = ref(0)
+const isUploadingMoodboardImages = ref(false)
+const moodboardUploadProgress = ref(0)
 
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
@@ -167,6 +183,13 @@ const proposalStatusInfo = computed(() => {
     if (!proposalData.value) return null
     const statusOptions = getProposalStatusOptions()
     return statusOptions.find((s) => s.value === proposalData.value!.status)
+})
+
+// Moodboard status info
+const moodboardStatusInfo = computed(() => {
+    if (!moodboardData.value) return null
+    const statusOptions = getMoodboardStatusOptions()
+    return statusOptions.find((s) => s.value === moodboardData.value!.status)
 })
 
 // Gallery status info
@@ -215,6 +238,100 @@ const handleProposalSaved = async (data: { proposal: Proposal; projectUpdated: b
         await fetchProposal()
     } catch (err) {
         console.error('Error saving proposal:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
+// Handle moodboard saved
+const handleMoodboardSaved = async (data: { moodboard: Moodboard; projectUpdated: boolean; selectedFiles?: File[] }) => {
+    try {
+        // Save the moodboard using the composable
+        const result = await saveMoodboard(data.moodboard as MoodboardFormData, data.projectUpdated)
+
+        // Handle file uploads if there are selected files
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            // Get the moodboard ID from the result or existing moodboard data
+            const moodboardId = result.moodboard.id || moodboardData.value?.id
+
+            if (moodboardId) {
+                isUploadingMoodboardImages.value = true
+                moodboardUploadProgress.value = 0
+
+                try {
+                    // Simulate progress for better UX
+                    const progressInterval = setInterval(() => {
+                        if (moodboardUploadProgress.value < 85) {
+                            moodboardUploadProgress.value += Math.random() * 15
+                        }
+                    }, 300)
+
+                    // Upload images using the moodboard composable
+                    await uploadMoodboardImages(data.selectedFiles)
+
+                    clearInterval(progressInterval)
+                    moodboardUploadProgress.value = 100
+
+                    // Small delay to show 100% before hiding
+                    setTimeout(() => {
+                        isUploadingMoodboardImages.value = false
+                        moodboardUploadProgress.value = 0
+                    }, 1000)
+
+                } catch (uploadErr) {
+                    console.error('Error uploading moodboard images:', uploadErr)
+                    isUploadingMoodboardImages.value = false
+                    moodboardUploadProgress.value = 0
+
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Erreur d\'upload',
+                        description: uploadErr instanceof Error ? uploadErr.message : 'Une erreur est survenue lors de l\'upload des images.',
+                        icon: 'i-lucide-alert-circle',
+                        color: 'error'
+                    })
+                }
+            }
+        }
+
+        // Update module state
+        updateModuleState('moodboard', {
+            completed: true,
+            summary: `Moodboard "${data.moodboard.title}" avec ${moodboardImageCount.value} image${moodboardImageCount.value > 1 ? 's' : ''}`
+        })
+
+        // Show success notification for moodboard save
+        const toast = useToast()
+        if (data.projectUpdated) {
+            toast.add({
+                title: 'Moodboard validé !',
+                description: 'Le moodboard a été envoyé au client.',
+                icon: 'i-lucide-check-circle',
+                color: 'success'
+            })
+        } else {
+            toast.add({
+                title: 'Brouillon sauvegardé',
+                description: 'Votre moodboard a été sauvegardé en brouillon.',
+                icon: 'i-lucide-save',
+                color: 'info'
+            })
+        }
+
+        // Refresh project data if needed
+        if (data.projectUpdated) {
+            await fetchProject()
+        }
+
+        // Refresh moodboard data
+        await fetchMoodboard()
+    } catch (err) {
+        console.error('Error saving moodboard:', err)
         const toast = useToast()
         toast.add({
             title: 'Erreur',
@@ -327,6 +444,10 @@ onMounted(async () => {
         if (project.value?.proposal && !proposalData.value) {
             await fetchProposal()
         }
+        // Sync moodboard data from project if it exists
+        if (project.value?.moodboard && !moodboardData.value) {
+            await fetchMoodboard()
+        }
     } catch (err) {
         console.error('Error loading project:', err)
     }
@@ -343,6 +464,20 @@ watch(() => modules.value.proposal.enabled, async (enabled) => {
 watch(() => project.value?.proposal, async (newProposal) => {
     if (newProposal && !proposalData.value) {
         await fetchProposal()
+    }
+}, { immediate: true })
+
+// Watch for moodboard module changes
+watch(() => modules.value.moodboard.enabled, async (enabled) => {
+    if (enabled && !moodboardData.value) {
+        await fetchMoodboard()
+    }
+})
+
+// Watch for project changes to sync moodboard data
+watch(() => project.value?.moodboard, async (newMoodboard) => {
+    if (newMoodboard && !moodboardData.value) {
+        await fetchMoodboard()
     }
 }, { immediate: true })
 
