@@ -119,6 +119,17 @@ export interface ClientMoodboardAccess {
   moodboard: MoodboardWithDetails;
 }
 
+// Moodboard image with client interaction data
+export interface MoodboardImageWithInteractions extends MoodboardImage {
+  reactions?: {
+    love: number;
+    like: number;
+    dislike: number;
+  };
+  userReaction?: "love" | "like" | "dislike" | null;
+  comments?: MoodboardComment[];
+}
+
 export interface ClientPasswordVerification {
   password: string;
 }
@@ -155,3 +166,13 @@ export interface MoodboardStatusUpdate {
   client_comment?: string;
   updated_at: string;
 }
+
+// Client comment form validation
+export const clientCommentSchema = z.object({
+  content: z
+    .string()
+    .min(1, "Le commentaire ne peut pas être vide")
+    .max(500, "Le commentaire est trop long"),
+});
+
+export type ClientCommentFormData = z.infer<typeof clientCommentSchema>;

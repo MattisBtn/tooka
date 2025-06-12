@@ -21,7 +21,9 @@ export const useAuth = () => {
   const handleAuthError = (err: Error | AuthError | unknown): IAuthError => {
     const authError: IAuthError = {
       message:
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        err instanceof Error
+          ? err.message
+          : "Une erreur inattendue est survenue",
       code: (err as AuthError)?.code,
       status: (err as AuthError)?.status,
     };

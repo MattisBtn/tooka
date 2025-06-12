@@ -2,5 +2,5 @@
 @import "@nuxt/ui";
 
 @theme static {
-  --font-sans: "Montserrat", sans-serif;
+  --font-sans: "Inter", sans-serif;
 }
