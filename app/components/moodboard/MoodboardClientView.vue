@@ -1,26 +1,39 @@
 <template>
     <div class="min-h-screen">
         <!-- Moodboard Description -->
-        <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div class="max-w-3xl">
-                    <h1 class="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-                        {{ moodboard.title }}
+        <div class="bg-white dark:bg-neutral-900">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                <div class="text-center max-w-4xl mx-auto">
+                    <!-- Main title MOODBOARD -->
+                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight">
+                        MOODBOARD
                     </h1>
-                    <p v-if="moodboard.description"
-                        class="text-lg text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        {{ moodboard.description }}
-                    </p>
 
+                    <!-- Subtitle with project and moodboard titles -->
+                    <div
+                        class="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-medium mb-8 space-y-1">
+                        <div>{{ project.title }}</div>
+                        <div class="text-neutral-400 dark:text-neutral-500">{{ moodboard.title }}</div>
+                    </div>
 
-                    <MoodboardImageUpload v-if="canInteract" :disabled="uploadingImages" :progress="uploadProgress"
-                        @files-selected="$emit('upload-images', $event)" />
+                    <!-- Description -->
+                    <div v-if="moodboard.description" class="max-w-2xl mx-auto">
+                        <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
+                            {{ moodboard.description }}
+                        </p>
+                    </div>
+
+                    <!-- Upload section for interactive mode -->
+                    <div v-if="canInteract" class="mt-12">
+                        <MoodboardImageUpload :disabled="uploadingImages" :progress="uploadProgress"
+                            @files-selected="$emit('upload-images', $event)" />
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Images Grid -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div ref="moodboardContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div v-if="images.length === 0" class="text-center py-12">
                 <div
                     class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -34,29 +47,38 @@
                 </p>
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <MoodboardImageCard v-for="image in images" :key="image.id" :image="image" :moodboard-id="moodboardId"
                     :can-interact="canInteract" @react="$emit('react-to-image', image.id, $event)"
                     @comment="$emit('add-comment', image.id, $event)" />
             </div>
 
-            <!-- Load More Button -->
-            <div v-if="hasMore" class="text-center mt-8">
-                <UButton variant="outline" size="lg" :loading="loadingMore" icon="i-lucide-chevron-down"
-                    @click="$emit('load-more')">
-                    Charger plus d'images
-                </UButton>
+            <!-- Loading indicator -->
+            <div v-if="loadingMore" class="text-center mt-8 py-4">
+                <div class="flex items-center justify-center gap-3">
+                    <UIcon name="i-lucide-loader-2" class="w-5 h-5 animate-spin text-primary-500" />
+                    <span class="text-neutral-600 dark:text-neutral-400">Chargement d'autres images...</span>
+                </div>
+            </div>
+
+            <!-- End of results -->
+            <div v-else-if="images.length > 0 && !hasMore" class="text-center mt-8 py-4">
+                <div class="flex items-center justify-center gap-2 text-neutral-500 dark:text-neutral-400">
+                    <UIcon name="i-lucide-check-circle" class="w-4 h-4" />
+                    <span>Toutes les images ont été chargées</span>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { useInfiniteScroll } from '@vueuse/core';
 import type {
     ClientMoodboardAccess,
     MoodboardImageWithInteractions,
     MoodboardWithDetails
-} from '~/types/moodboard'
+} from '~/types/moodboard';
 
 interface Props {
     moodboardId: string
@@ -77,8 +99,29 @@ interface Emits {
     'react-to-image': [imageId: string, reaction: 'love' | 'like' | 'dislike']
 }
 
-defineProps<Props>()
-defineEmits<Emits>()
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+// Container ref for infinite scroll
+const moodboardContainer = ref<HTMLElement | null>(null)
+
+// Infinite scroll setup
+onMounted(() => {
+    if (moodboardContainer.value) {
+        useInfiniteScroll(
+            moodboardContainer.value,
+            async () => {
+                if (props.hasMore && !props.loadingMore) {
+                    emit('load-more')
+                }
+            },
+            {
+                distance: 400, // Load more when 400px from bottom
+                canLoadMore: () => props.hasMore && !props.loadingMore
+            }
+        )
+    }
+})
 </script>
 
 <style scoped>

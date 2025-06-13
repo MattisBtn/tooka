@@ -63,15 +63,12 @@ export const useClientMoodboardImages = () => {
   /**
    * Use intersection observer for lazy loading images
    */
-  const useLazyImageLoading = (
-    moodboardId: string,
-    filePath: string,
-    threshold = 0.1
-  ) => {
+  const useLazyImageLoading = (moodboardId: string, filePath: string) => {
     const imageUrl = ref<string | null>(null);
     const loading = ref(false);
     const error = ref(false);
     const imageRef = ref<HTMLElement | null>(null);
+    const observerSet = ref(false);
 
     const loadImage = async () => {
       if (loading.value || imageUrl.value) return;
@@ -93,56 +90,81 @@ export const useClientMoodboardImages = () => {
       }
     };
 
+    const checkIfInViewport = (element: HTMLElement): boolean => {
+      const rect = element.getBoundingClientRect();
+      const windowHeight =
+        window.innerHeight || document.documentElement.clientHeight;
+      const windowWidth =
+        window.innerWidth || document.documentElement.clientWidth;
+
+      return (
+        rect.top < windowHeight + 100 && // 100px buffer below viewport
+        rect.bottom > -100 && // 100px buffer above viewport
+        rect.left < windowWidth &&
+        rect.right > 0
+      );
+    };
+
+    // Store observer reference for cleanup
+    let currentObserver: IntersectionObserver | null = null;
+
+    const cleanup = () => {
+      if (currentObserver) {
+        currentObserver.disconnect();
+        currentObserver = null;
+      }
+    };
+
     // Watch for imageRef changes and set up observer
     watch(
       imageRef,
-      (newRef) => {
-        if (!newRef || !import.meta.client) return;
+      (newRef, oldRef) => {
+        // Cleanup previous observer
+        if (oldRef && currentObserver) {
+          cleanup();
+          observerSet.value = false;
+        }
 
-        // Create intersection observer
-        const observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                loadImage();
-                observer.unobserve(entry.target);
-              }
-            });
-          },
-          {
-            threshold,
-            rootMargin: "50px", // Load images 50px before they enter viewport
-          }
-        );
+        if (!newRef || !import.meta.client || observerSet.value) return;
 
-        observer.observe(newRef);
+        observerSet.value = true;
 
-        // Cleanup on unmount
-        onUnmounted(() => {
-          observer.disconnect();
-        });
+        // Check immediately if element is in viewport
+        if (checkIfInViewport(newRef)) {
+          loadImage();
+          return;
+        }
+
+        // Only set up observer if IntersectionObserver is supported
+        if ("IntersectionObserver" in window) {
+          // Create intersection observer
+          currentObserver = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting && !imageUrl.value && !loading.value) {
+                  loadImage();
+                  cleanup(); // Clean up after loading
+                }
+              });
+            },
+            {
+              threshold: 0, // Trigger as soon as any part becomes visible
+              rootMargin: "100px", // Load images 100px before they enter viewport
+            }
+          );
+
+          currentObserver.observe(newRef);
+        } else {
+          // Fallback for browsers without IntersectionObserver
+          loadImage();
+        }
       },
       { immediate: true }
     );
 
-    // Fallback: Load immediately if no intersection observer support or after timeout
-    onMounted(() => {
-      // Load immediately if intersection observer is not supported
-      if (!("IntersectionObserver" in window)) {
-        loadImage();
-        return;
-      }
-
-      // Fallback timeout to ensure images load even if observer fails
-      setTimeout(() => {
-        if (!imageUrl.value && !loading.value && !error.value) {
-          console.warn(
-            "[DEBUG] Fallback loading image after timeout:",
-            filePath
-          );
-          loadImage();
-        }
-      }, 2000);
+    // Setup cleanup on unmount at the composable level
+    onUnmounted(() => {
+      cleanup();
     });
 
     return {

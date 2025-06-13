@@ -35,13 +35,13 @@
                         <!-- Awaiting client actions -->
                         <template v-if="moodboard?.status === 'awaiting_client'">
                             <!-- Validate button -->
-                            <UButton color="primary" size="sm" icon="i-lucide-check" class="hidden sm:flex"
+                            <UButton color="neutral" size="sm" icon="i-lucide-check" class="hidden sm:flex"
                                 @click="$emit('validate')">
                                 <span class="hidden lg:inline">Valider</span>
                             </UButton>
 
                             <!-- Request revisions button -->
-                            <UButton color="warning" variant="outline" size="sm" icon="i-lucide-edit"
+                            <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-edit"
                                 class="hidden sm:flex" @click="$emit('request-revisions')">
                                 <span class="hidden lg:inline">Demander des révisions</span>
                                 <span class="lg:hidden">Révisions</span>
@@ -65,13 +65,13 @@
                                     <!-- Awaiting client actions -->
                                     <template v-if="moodboard?.status === 'awaiting_client'">
                                         <!-- Validate button -->
-                                        <UButton color="primary" variant="solid" size="lg" icon="i-lucide-check" block
+                                        <UButton color="neutral" variant="solid" size="lg" icon="i-lucide-check" block
                                             @click="$emit('validate')">
                                             Valider le moodboard
                                         </UButton>
 
                                         <!-- Request revisions -->
-                                        <UButton color="warning" variant="outline" size="lg" icon="i-lucide-edit" block
+                                        <UButton color="neutral" variant="outline" size="lg" icon="i-lucide-edit" block
                                             @click="$emit('request-revisions')">
                                             Demander des révisions
                                         </UButton>

@@ -86,15 +86,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
   // Set initial data and enhance images with interactions
   if (data.value) {
-    console.log("[DEBUG] Client - Initial moodboard data loaded:", {
-      hasImages: !!(
-        data.value.moodboard.images && data.value.moodboard.images.length > 0
-      ),
-      imageCount: data.value.moodboard.images?.length || 0,
-      moodboardStatus: data.value.moodboard.status,
-      hasPassword: data.value.project.hasPassword,
-    });
-
     moodboardData.value = data.value;
 
     // Enhance images with interaction data
@@ -103,14 +94,7 @@ export const useClientMoodboard = async (moodboardId: string) => {
         Array.from(data.value.moodboard.images)
       );
       images.value = enhancedImages;
-
-      console.log("[DEBUG] Client - Enhanced images:", {
-        originalCount: data.value.moodboard.images.length,
-        enhancedCount: enhancedImages.length,
-        firstImageUrl: enhancedImages[0]?.file_url,
-      });
     } else {
-      console.log("[DEBUG] Client - No images found in moodboard");
       images.value = [];
     }
 
@@ -162,11 +146,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
         images.value = [...images.value, ...enhancedNewImages];
         hasMore.value = response.moodboard.hasMore || false;
         currentPage.value = nextPage;
-
-        console.log("[DEBUG] Client - Loaded more images:", {
-          newImagesCount: enhancedNewImages.length,
-          totalImages: images.value.length,
-        });
       }
     } catch (err) {
       console.error("Failed to load more images:", err);
@@ -244,11 +223,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
           response.images
         );
         images.value = [...images.value, ...enhancedNewImages];
-
-        console.log("[DEBUG] Client - Images uploaded:", {
-          uploadedCount: response.images.length,
-          totalImages: images.value.length,
-        });
       }
 
       // Small delay to show 100% before hiding
