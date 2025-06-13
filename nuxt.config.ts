@@ -28,6 +28,7 @@ export default defineNuxtConfig({
         "/reset-password",
         "/gallery",
         "/gallery/*",
+        "/moodboard/*",
       ],
     },
   },
