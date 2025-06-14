@@ -4,6 +4,7 @@ import type { Tables } from "~/types/database.types";
 export type Moodboard = Tables<"moodboards">;
 export type MoodboardImage = Tables<"moodboard_images">;
 export type MoodboardComment = Tables<"moodboard_comments">;
+export type MoodboardReaction = Tables<"moodboard_reactions">;
 
 export interface IMoodboardFilters {
   search?: string;
@@ -176,3 +177,40 @@ export const clientCommentSchema = z.object({
 });
 
 export type ClientCommentFormData = z.infer<typeof clientCommentSchema>;
+
+// Reaction types
+export type ReactionType = "love" | "like" | "dislike";
+
+export interface ReactionCounts {
+  love: number;
+  like: number;
+  dislike: number;
+}
+
+export interface ImageReactions {
+  [imageId: string]: ReactionCounts;
+}
+
+export interface ReactionRequest {
+  imageId: string;
+  reaction: ReactionType;
+}
+
+export interface ReactionResponse {
+  success: boolean;
+  action: "created" | "updated" | "removed";
+  reaction: ReactionType | null;
+}
+
+export interface ReactionsResponse {
+  success: boolean;
+  reactions: ImageReactions;
+}
+
+// Client reaction form validation
+export const clientReactionSchema = z.object({
+  imageId: z.string().uuid(),
+  reaction: z.enum(["love", "like", "dislike"]),
+});
+
+export type ClientReactionFormData = z.infer<typeof clientReactionSchema>;

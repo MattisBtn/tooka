@@ -99,11 +99,10 @@
 
                     <!-- Info for revision requested moodboards -->
                     <UAlert v-else-if="moodboardData.status === 'revision_requested'" color="warning" variant="soft"
-                        icon="i-lucide-edit" title="Révisions demandées" class="mt-4">
+                        icon="i-lucide-edit" title="Révisions demandées par le client" class="mt-4">
                         <template #description>
-                            Le client a demandé des révisions sur ce moodboard. Vous pouvez librement modifier le
-                            contenu
-                            et ajouter/supprimer des images selon les demandes.
+                            Le client a demandé des révisions sur ce moodboard. Vous pouvez le modifier librement,
+                            ajouter/supprimer des images et soit le renvoyer au client soit le repasser en brouillon.
                         </template>
                     </UAlert>
 
@@ -111,18 +110,17 @@
                     <UAlert v-else-if="moodboardData.status === 'awaiting_client'" color="info" variant="soft"
                         icon="i-lucide-clock" title="Envoyé au client" class="mt-4">
                         <template #description>
-                            Ce moodboard a été envoyé au client. Vous pouvez continuer à le modifier et ajouter des
-                            images
-                            d'inspiration pour enrichir la collaboration.
+                            Ce moodboard a été envoyé au client pour validation. Vous pouvez continuer à le modifier
+                            pour enrichir la collaboration ou le repasser en brouillon si nécessaire.
                         </template>
                     </UAlert>
 
                     <!-- Info for draft moodboards -->
                     <UAlert v-else-if="moodboardData.status === 'draft'" color="info" variant="soft"
-                        icon="i-lucide-info" title="Moodboard en brouillon" class="mt-4">
+                        icon="i-lucide-file-edit" title="Moodboard en brouillon" class="mt-4">
                         <template #description>
-                            Ce moodboard est encore en brouillon. Vous pouvez modifier le titre, la description,
-                            ajouter/supprimer des images librement.
+                            Ce moodboard est en brouillon. Vous pouvez le modifier librement et l'envoyer au client
+                            quand il sera prêt pour validation.
                         </template>
                     </UAlert>
                 </div>
@@ -183,6 +181,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, ref } from 'vue';
 import type { Moodboard, MoodboardImage, MoodboardWithDetails } from '~/types/moodboard';
 
 interface Props {
@@ -264,7 +263,7 @@ const handleDeleteImage = async (imageId: string) => {
     const toast = useToast()
 
     // Show confirmation dialog
-    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')
+    const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')
 
     if (!confirmed) return
 
@@ -303,7 +302,7 @@ const confirmDeleteMoodboard = async () => {
     const toast = useToast()
 
     // Show confirmation dialog
-    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer ce moodboard ? Cette action supprimera toutes les images et est irréversible.')
+    const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer ce moodboard ? Cette action supprimera toutes les images et est irréversible.')
 
     if (!confirmed) return
 
@@ -324,8 +323,8 @@ const confirmDeleteMoodboard = async () => {
             color: 'success'
         })
 
-        // Emit event to refresh parent data (moodboard deleted)
-        window.location.reload() // Simple solution to refresh the page
+        // Simple solution to refresh the page
+        window.location.reload()
 
     } catch (err) {
         console.error('Error deleting moodboard:', err)

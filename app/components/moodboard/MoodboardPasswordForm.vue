@@ -5,14 +5,11 @@
                 <!-- Header Section -->
                 <div class="text-center space-y-4">
                     <div class="flex items-center gap-3 justify-center mb-6">
-                        <div
-                            class="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <div class="w-12 h-12 bg-pink-500 rounded-xl flex items-center justify-center">
                             <UIcon name="i-lucide-lightbulb" class="w-6 h-6 text-white" />
                         </div>
                         <div class="text-left">
-                            <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-                                Accès sécurisé
-                            </h1>
+                            <h1 class="text-2xl font-bold">Accès sécurisé</h1>
                             <p class="text-sm font-medium text-pink-600 dark:text-pink-400">
                                 {{ project?.title }}
                             </p>
@@ -40,15 +37,12 @@
                 <!-- Password Section -->
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
                             <UIcon name="i-lucide-lock" class="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Code d'accès</h2>
+                            <h2 class="text-lg font-semibold">Code d'accès</h2>
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">Entrez votre code de 6 caractères
-                                pour
-                                continuer
                             </p>
                         </div>
                     </div>
@@ -65,12 +59,8 @@
                         <template #icon>
                             <UIcon name="i-lucide-alert-triangle" class="w-4 h-4" />
                         </template>
-                        <template #title>
-                            Accès refusé
-                        </template>
-                        <template #description>
-                            {{ error }}
-                        </template>
+                        <template #title>Accès refusé</template>
+                        <template #description>{{ error }}</template>
                     </UAlert>
                 </div>
 
@@ -112,7 +102,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// Check for stored session if moodboardId is provided
+// Check for stored session
 const hasStoredSession = computed(() => {
     if (!props.moodboardId || !import.meta.client) return false;
     try {
@@ -148,7 +138,6 @@ watchEffect(() => {
 // Handle PinInput completion
 const handlePinComplete = (value: string[]) => {
     formData.password = value.join('');
-    // Auto-submit when PIN is complete
     handleSubmit();
 };
 
@@ -159,17 +148,13 @@ watch(() => formData.passwordArray, (newValue) => {
 
 // Handle form submission
 const handleSubmit = async () => {
-    // Ensure we have a complete password
-    if (formData.password.length !== 6) {
-        return;
-    }
+    if (formData.password.length !== 6) return;
 
     loading.value = true
     error.value = null
 
     try {
         emit('authenticated', formData.password)
-        // Reset form on success
         formData.password = ''
         formData.passwordArray = []
     } finally {

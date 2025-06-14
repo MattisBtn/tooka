@@ -78,8 +78,8 @@
                     </h3>
                 </div>
 
-                <ProjectMoodboardImageGrid :images="Array.from(images)" :can-delete="true" :can-edit-caption="true"
-                    @delete-image="handleDeleteExistingImage" @update-caption="handleUpdateCaption" />
+                <ProjectMoodboardImageGrid :images="Array.from(images)" :can-delete="true"
+                    @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
             </div>
@@ -149,12 +149,19 @@
         <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                 <UIcon name="i-lucide-info" class="w-4 h-4" />
-                <span
-                    v-if="isEditMode && (props.moodboard?.status === 'awaiting_client' || props.moodboard?.status === 'revision_requested')">
-                    Modifiez le moodboard selon les besoins - les changements seront visibles par le client
+                <span v-if="isEditMode && props.moodboard?.status === 'revision_requested'">
+                    Le client a demandé des révisions - vous pouvez modifier le moodboard et le renvoyer ou le repasser
+                    en
+                    brouillon
+                </span>
+                <span v-else-if="isEditMode && props.moodboard?.status === 'awaiting_client'">
+                    Moodboard envoyé au client - vous pouvez continuer à le modifier ou le repasser en brouillon
+                </span>
+                <span v-else-if="isEditMode && props.moodboard?.status === 'draft'">
+                    Moodboard en brouillon - vous pouvez le modifier librement et l'envoyer au client quand il sera prêt
                 </span>
                 <span v-else>
-                    Le moodboard reste modifiable en permanence pour une collaboration continue
+                    Le moodboard reste modifiable en permanence pour une collaboration continue avec le client
                 </span>
             </div>
 
@@ -167,11 +174,12 @@
                     v-if="isEditMode && (props.moodboard?.status === 'awaiting_client' || props.moodboard?.status === 'revision_requested')">
                     <UButton type="submit" variant="outline" color="neutral"
                         :loading="(isSubmitting && submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-edit"
+                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-file-edit"
                         label="Repasser en brouillon" @click="submitAsDraft = true" />
                     <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-save"
-                        label="Enregistrer les modifications" @click="submitAsDraft = false" />
+                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
+                        :label="props.moodboard?.status === 'revision_requested' ? 'Renvoyer au client' : 'Enregistrer les modifications'"
+                        @click="submitAsDraft = false" />
                 </template>
 
                 <!-- Boutons pour nouveau moodboard ou brouillon -->
@@ -179,7 +187,7 @@
                     <UButton type="submit" variant="outline" color="neutral"
                         :loading="(isSubmitting && submitAsDraft) || uploading"
                         :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-save"
-                        label="Enregistrer en brouillon" @click="submitAsDraft = true" />
+                        label="Sauvegarder en brouillon" @click="submitAsDraft = true" />
                     <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
                         :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
                         label="Valider et envoyer" @click="submitAsDraft = false" />
@@ -191,8 +199,12 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useMoodboardForm } from "~/composables/moodboards/user/useMoodboardForm";
-import type { Moodboard, MoodboardImage } from "~/types/moodboard";
+import {
+    moodboardFormSchema,
+    type Moodboard,
+    type MoodboardFormData,
+    type MoodboardImage,
+} from "~/types/moodboard";
 
 interface Props {
     moodboard?: Moodboard;
@@ -208,31 +220,23 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Use the moodboard form composable
-const {
-    state,
-    schema,
-    selectedFiles: _selectedFiles,
-    images,
-    uploading,
-    uploadProgress,
-    hasSelectedFiles,
-    hasExistingImages,
-    totalImageCount,
-    addFiles,
-    clearFiles,
-    removeExistingImage,
-    updateImageCaption,
-} = useMoodboardForm(props.moodboard, props.existingImages);
-
-// Create a writable version for the upload field
-const selectedFiles = computed({
-    get: () => [..._selectedFiles.value],
-    set: (files: File[]) => {
-        clearFiles();
-        addFiles(files);
-    }
+// Form state
+const state = reactive<MoodboardFormData>({
+    title: props.moodboard?.title || "",
+    description: props.moodboard?.description || null,
+    status: props.moodboard?.status || "draft",
 });
+
+// File upload states
+const selectedFiles = ref<File[]>([]);
+const uploading = ref(false);
+const uploadProgress = ref(0);
+
+// Existing images management
+const images = ref<MoodboardImage[]>([...(props.existingImages || [])]);
+
+// Validation schema
+const schema = moodboardFormSchema;
 
 // Local loading state for form submission
 const isSubmitting = ref(false);
@@ -240,18 +244,39 @@ const submitAsDraft = ref(false);
 
 // Computed
 const isEditMode = computed(() => !!props.moodboard);
+const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
+const hasExistingImages = computed(() => images.value.length > 0);
+const totalImageCount = computed(() => images.value.length + selectedFiles.value.length);
 
 // Handle existing image deletion
 const handleDeleteExistingImage = async (imageId: string) => {
-    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.');
+    const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.');
     if (!confirmed) return;
 
-    await removeExistingImage(imageId);
-};
+    try {
+        const { moodboardService } = await import("~/services/moodboardService");
+        await moodboardService.deleteImage(imageId);
 
-// Handle caption updates
-const handleUpdateCaption = async (imageId: string, caption: string | null) => {
-    await updateImageCaption(imageId, caption);
+        // Remove from local state
+        images.value = images.value.filter((img) => img.id !== imageId);
+
+        const toast = useToast();
+        toast.add({
+            title: "Image supprimée",
+            description: "L'image a été supprimée avec succès.",
+            icon: "i-lucide-check-circle",
+            color: "success",
+        });
+    } catch (err) {
+        console.error("Error deleting image:", err);
+        const toast = useToast();
+        toast.add({
+            title: "Erreur",
+            description: err instanceof Error ? err.message : "Une erreur est survenue lors de la suppression.",
+            icon: "i-lucide-alert-circle",
+            color: "error",
+        });
+    }
 };
 
 // Handle form submission
@@ -259,7 +284,14 @@ const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
     isSubmitting.value = true;
 
     try {
-        const shouldValidate = !submitAsDraft.value;
+        // Determine the new status based on user action
+        let newStatus: "draft" | "awaiting_client";
+
+        if (submitAsDraft.value) {
+            newStatus = "draft";
+        } else {
+            newStatus = "awaiting_client";
+        }
 
         // Create moodboard data with proper structure
         const moodboardData = {
@@ -268,12 +300,13 @@ const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
             id: props.moodboard?.id || '',
             created_at: props.moodboard?.created_at || '',
             updated_at: props.moodboard?.updated_at || '',
+            status: newStatus, // Explicitly set the status
         } as Moodboard;
 
         // Emit the moodboard data to parent component for handling
         emit("moodboard-saved", {
             moodboard: moodboardData,
-            projectUpdated: shouldValidate,
+            projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
 

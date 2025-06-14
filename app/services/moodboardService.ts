@@ -124,19 +124,61 @@ export const moodboardService = {
     updates: Partial<Moodboard>,
     shouldValidate?: boolean
   ): Promise<{ moodboard: Moodboard; projectUpdated: boolean }> {
-    const _existingMoodboard = await this.getMoodboardById(id);
+    const existingMoodboard = await this.getMoodboardById(id);
 
     // Handle validation status change
     const finalUpdates = { ...updates };
+
+    // If shouldValidate is explicitly provided, override the status
     if (shouldValidate !== undefined) {
       finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
+    }
+
+    // If status is provided in updates, use it (allows direct status control)
+    if (updates.status) {
+      finalUpdates.status = updates.status;
+    }
+
+    // Business rules for status transitions
+    if (finalUpdates.status) {
+      const currentStatus = existingMoodboard.status;
+      const newStatus = finalUpdates.status;
+
+      // Allow logical transitions:
+      // - draft -> awaiting_client (send to client)
+      // - awaiting_client -> draft (back to draft)
+      // - revision_requested -> draft (back to draft)
+      // - revision_requested -> awaiting_client (send updated version to client)
+
+      const allowedTransitions: Record<string, string[]> = {
+        draft: ["awaiting_client"],
+        awaiting_client: ["draft", "revision_requested"],
+        revision_requested: ["draft", "awaiting_client"],
+        completed: [], // completed moodboards cannot be modified
+      };
+
+      if (currentStatus === "completed" && newStatus !== "completed") {
+        throw new Error(
+          "Les moodboards validés par le client ne peuvent plus être modifiés"
+        );
+      }
+
+      // Allow same status (no change)
+      if (
+        currentStatus !== newStatus &&
+        !allowedTransitions[currentStatus]?.includes(newStatus)
+      ) {
+        throw new Error(
+          `Transition de statut non autorisée: ${currentStatus} -> ${newStatus}`
+        );
+      }
     }
 
     // Update moodboard
     const moodboard = await moodboardRepository.update(id, finalUpdates);
 
-    // For now, we don't update project status automatically
-    const projectUpdated = false;
+    // Project is considered updated when moodboard is sent to client
+    const projectUpdated = finalUpdates.status === "awaiting_client";
 
     return { moodboard, projectUpdated };
   },
@@ -223,7 +265,6 @@ export const moodboardService = {
         const imageData = {
           moodboard_id: moodboardId,
           file_url: filePath,
-          caption: null,
         };
 
         const image = await moodboardImageRepository.create(imageData);
@@ -276,16 +317,6 @@ export const moodboardService = {
    */
   async deleteImage(imageId: string): Promise<void> {
     await moodboardImageRepository.delete(imageId);
-  },
-
-  /**
-   * Update image caption
-   */
-  async updateImageCaption(
-    imageId: string,
-    caption: string | null
-  ): Promise<MoodboardImage> {
-    return await moodboardImageRepository.update(imageId, { caption });
   },
 
   /**

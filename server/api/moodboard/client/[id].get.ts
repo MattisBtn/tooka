@@ -21,7 +21,7 @@ export default defineEventHandler(
     try {
       const supabase = await serverSupabaseClient(event);
 
-      // Single query with JOIN to get moodboard + project + images count
+      // Get moodboard with project info
       const { data: moodboard, error } = await supabase
         .from("moodboards")
         .select(
@@ -49,11 +49,11 @@ export default defineEventHandler(
         throw new Error(`Failed to fetch moodboard: ${error.message}`);
       }
 
-      // Check if moodboard is accessible to clients
+      // Check accessibility
       if (
-        moodboard.status !== "awaiting_client" &&
-        moodboard.status !== "completed" &&
-        moodboard.status !== "revision_requested"
+        !["awaiting_client", "completed", "revision_requested"].includes(
+          moodboard.status
+        )
       ) {
         throw createError({
           statusCode: 403,
@@ -61,39 +61,51 @@ export default defineEventHandler(
         });
       }
 
-      // Get paginated moodboard images with total count and comments
-      const [imagesResult, countResult] = await Promise.all([
-        supabase
-          .from("moodboard_images")
-          .select(
-            `
-            *,
-            comments:moodboard_comments(*)
+      // Get images with comments and reactions in one optimized query
+      const { data: imagesData, error: imagesError } = await supabase
+        .from("moodboard_images")
+        .select(
           `
-          )
-          .eq("moodboard_id", moodboard.id)
-          .order("created_at", { ascending: true })
-          .range(offset, offset + pageSize - 1),
+          *,
+          comments:moodboard_comments(*),
+          reactions:moodboard_reactions(reaction_type)
+        `
+        )
+        .eq("moodboard_id", moodboard.id)
+        .order("created_at", { ascending: true })
+        .range(offset, offset + pageSize - 1);
 
-        supabase
-          .from("moodboard_images")
-          .select("id", { count: "exact" })
-          .eq("moodboard_id", moodboard.id),
-      ]);
-
-      if (imagesResult.error) {
-        throw new Error(
-          `Failed to fetch moodboard images: ${imagesResult.error.message}`
-        );
+      if (imagesError) {
+        throw new Error(`Failed to fetch images: ${imagesError.message}`);
       }
 
-      if (countResult.error) {
-        throw new Error(
-          `Failed to count moodboard images: ${countResult.error.message}`
-        );
-      }
+      // Get total count for pagination
+      const { count } = await supabase
+        .from("moodboard_images")
+        .select("id", { count: "exact" })
+        .eq("moodboard_id", moodboard.id);
 
-      // Type assertion pour le projet
+      // Process reactions - group by image and count by type
+      const imagesWithReactions = (imagesData || []).map((image) => {
+        const reactionCounts = { love: 0, like: 0, dislike: 0 };
+
+        if (image.reactions) {
+          image.reactions.forEach(
+            (reaction: { reaction_type: "love" | "like" | "dislike" }) => {
+              reactionCounts[reaction.reaction_type]++;
+            }
+          );
+        }
+
+        // Return image without raw reactions array, only processed counts
+        const { reactions: _, ...imageWithoutReactions } = image;
+
+        return {
+          ...imageWithoutReactions,
+          reactions: reactionCounts,
+        };
+      });
+
       const projectData = moodboard.project as {
         id: string;
         title: string;
@@ -101,11 +113,9 @@ export default defineEventHandler(
         password_hash: string;
         status: string;
       };
-
-      const totalImages = countResult.count || 0;
+      const totalImages = count || 0;
       const hasMore = offset + pageSize < totalImages;
 
-      // Return minimal project info (no sensitive data) + paginated moodboard
       const result: ClientMoodboardAccess = {
         project: {
           id: moodboard.project_id,
@@ -115,7 +125,7 @@ export default defineEventHandler(
         },
         moodboard: {
           ...moodboard,
-          images: imagesResult.data || [],
+          images: imagesWithReactions,
           imageCount: totalImages,
           hasMore,
           currentPage: page,
@@ -124,12 +134,10 @@ export default defineEventHandler(
 
       return result;
     } catch (error) {
-      // Re-throw known errors
       if (error && typeof error === "object" && "statusCode" in error) {
         throw error;
       }
 
-      // Handle unknown errors
       throw createError({
         statusCode: 500,
         statusMessage: "Erreur serveur",

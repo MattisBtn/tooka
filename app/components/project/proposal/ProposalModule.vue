@@ -54,7 +54,7 @@
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
                                 formattedDepositAmount
-                                }}
+                            }}
                             </p>
                         </div>
                     </div>
@@ -73,10 +73,10 @@
                     <div v-if="proposalData.contract_url || proposalData.quote_url" class="space-y-3 mt-4">
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Documents attachés</h5>
 
-                        <ProposalFileViewer v-if="proposalData.contract_url" :file-path="proposalData.contract_url"
-                            @error="handleFileError" />
+                        <ProjectProposalFileViewer v-if="proposalData.contract_url"
+                            :file-path="proposalData.contract_url" @error="handleFileError" />
 
-                        <ProposalFileViewer v-if="proposalData.quote_url" :file-path="proposalData.quote_url"
+                        <ProjectProposalFileViewer v-if="proposalData.quote_url" :file-path="proposalData.quote_url"
                             @error="handleFileError" />
                     </div>
 
@@ -155,7 +155,6 @@
 </template>
 
 <script lang="ts" setup>
-import ProposalFileViewer from '~/components/project/ProposalFileViewer.vue';
 import type { Proposal } from '~/types/proposal';
 
 interface Props {

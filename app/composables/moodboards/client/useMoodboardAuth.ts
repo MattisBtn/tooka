@@ -1,44 +1,27 @@
 /**
- * Moodboard Authentication Composable
- * Handles client moodboard authentication with session persistence
+ * Simplified Moodboard Authentication Composable
  */
 
 export const useMoodboardAuth = (moodboardId: string) => {
   const AUTH_KEY = `moodboard_auth_${moodboardId}`;
-  const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   const isAuthenticated = ref(false);
   const authError = ref<string | null>(null);
 
-  // Auth session interface
+  // Simple auth session interface
   interface AuthSession {
     moodboardId: string;
     timestamp: number;
-    passwordHash: string; // Simple hash for verification
+    authenticated: boolean;
   }
 
-  // Simple hash function for password verification
-  const createPasswordHash = (
-    password: string,
-    moodboardId: string
-  ): string => {
-    // Simple hash combining password and moodboardId for uniqueness
-    const combined = `${password}_${moodboardId}`;
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-      const char = combined.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString(36);
-  };
-
   // Save authentication session
-  const saveAuthSession = (password: string) => {
+  const saveAuthSession = () => {
     const session: AuthSession = {
       moodboardId,
       timestamp: Date.now(),
-      passwordHash: createPasswordHash(password, moodboardId),
+      authenticated: true,
     };
 
     if (import.meta.client) {
@@ -90,17 +73,16 @@ export const useMoodboardAuth = (moodboardId: string) => {
     }
   };
 
-  // Verify password against stored session
+  // Verify stored session
   const verifyStoredAuth = async (): Promise<boolean> => {
     const session = loadAuthSession();
-    if (!session) return false;
+    if (!session || !session.authenticated) return false;
 
-    // Mark as authenticated if we have a valid session
     isAuthenticated.value = true;
     return true;
   };
 
-  // Authenticate with password and save session
+  // Authenticate with password
   const authenticate = async (
     password: string,
     verifyFn: (password: string) => Promise<boolean>
@@ -108,12 +90,11 @@ export const useMoodboardAuth = (moodboardId: string) => {
     try {
       authError.value = null;
 
-      // Verify password with server
       const isValid = await verifyFn(password);
 
       if (isValid) {
         isAuthenticated.value = true;
-        saveAuthSession(password);
+        saveAuthSession();
         return true;
       } else {
         authError.value = "Mot de passe incorrect";
@@ -134,15 +115,8 @@ export const useMoodboardAuth = (moodboardId: string) => {
 
   // Initialize authentication state
   const initializeAuth = async (): Promise<boolean> => {
-    // Try to restore from stored session first
-    const hasValidSession = await verifyStoredAuth();
-    return hasValidSession;
+    return await verifyStoredAuth();
   };
-
-  // Cleanup on unmount
-  onUnmounted(() => {
-    // Don't clear session on unmount - keep it for navigation
-  });
 
   return {
     // State

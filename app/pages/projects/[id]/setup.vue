@@ -43,27 +43,27 @@
                 </div>
 
                 <!-- Proposal Module -->
-                <ProposalModule v-model:enabled="modules.proposal.enabled" :proposal-data="proposalData"
+                <ProjectProposalModule v-model:enabled="modules.proposal.enabled" :proposal-data="proposalData"
                     :proposal-status-info="proposalStatusInfo || null" :formatted-price="formattedProposalPrice"
                     :formatted-deposit-amount="formattedProposalDeposit" :project-id="projectId"
                     :project-initial-price="project?.initial_price || undefined"
                     @proposal-saved="handleProposalSaved" />
 
                 <!-- Moodboard Module -->
-                <MoodboardModule v-model:enabled="modules.moodboard.enabled" :moodboard-data="moodboardData"
+                <ProjectMoodboardModule v-model:enabled="modules.moodboard.enabled" :moodboard-data="moodboardData"
                     :moodboard-status-info="moodboardStatusInfo || null" :image-count="moodboardImageCount"
                     :has-images="hasMoodboardImages" :project-id="projectId" :is-uploading="isUploadingMoodboardImages"
                     :upload-progress="moodboardUploadProgress" @moodboard-saved="handleMoodboardSaved" />
 
                 <!-- Selection Module -->
-                <ModuleCard v-model:enabled="modules.selection.enabled" title="Pré-sélection"
+                <ProjectModuleCard v-model:enabled="modules.selection.enabled" title="Pré-sélection"
                     description="Sélection d'images par le client" icon="i-lucide-mouse-pointer-click"
                     icon-color="text-orange-500" :completed="modules.selection.completed"
                     :summary="modules.selection.summary"
                     @update:enabled="(value: boolean) => toggleModule('selection', value)" />
 
                 <!-- Gallery Module -->
-                <GalleryModule v-model:enabled="modules.gallery.enabled" :gallery-data="galleryData"
+                <ProjectGalleryModule v-model:enabled="modules.gallery.enabled" :gallery-data="galleryData"
                     :gallery-status-info="galleryStatusInfo || null" :pricing="galleryPricing || null"
                     :formatted-base-price="formattedGalleryBasePrice"
                     :formatted-deposit-paid="formattedGalleryDepositPaid"
@@ -87,16 +87,10 @@ import { useGallery } from '~/composables/galleries/user/useGallery'
 import { useMoodboard } from '~/composables/moodboards/user/useMoodboard'
 import { useProject } from '~/composables/projects/useProject'
 import { useProposal } from '~/composables/proposals/useProposal'
+import { moodboardService } from '~/services/moodboardService'
 import type { Gallery, GalleryFormData } from '~/types/gallery'
 import type { Moodboard, MoodboardFormData } from '~/types/moodboard'
 import type { Proposal, ProposalFormData } from '~/types/proposal'
-
-// Import components
-import GalleryModule from '~/components/project/GalleryModule.vue'
-import ModuleCard from '~/components/project/ModuleCard.vue'
-import MoodboardModule from '~/components/project/MoodboardModule.vue'
-import ProjectSummary from '~/components/project/ProjectSummary.vue'
-import ProposalModule from '~/components/project/ProposalModule.vue'
 
 // Get project ID from route
 const route = useRoute()
@@ -136,7 +130,6 @@ const {
     fetchMoodboard,
     saveMoodboard,
     uploadImages: uploadMoodboardImages,
-    getStatusOptions: getMoodboardStatusOptions,
 } = useMoodboard(projectId)
 
 // Use gallery composable
@@ -188,8 +181,8 @@ const proposalStatusInfo = computed(() => {
 // Moodboard status info
 const moodboardStatusInfo = computed(() => {
     if (!moodboardData.value) return null
-    const statusOptions = getMoodboardStatusOptions()
-    return statusOptions.find((s) => s.value === moodboardData.value!.status)
+    const statusOptions = moodboardService.getStatusOptions()
+    return statusOptions.find((s: { value: string; label: string; color: string }) => s.value === moodboardData.value!.status)
 })
 
 // Gallery status info
@@ -252,7 +245,7 @@ const handleProposalSaved = async (data: { proposal: Proposal; projectUpdated: b
 const handleMoodboardSaved = async (data: { moodboard: Moodboard; projectUpdated: boolean; selectedFiles?: File[] }) => {
     try {
         // Save the moodboard using the composable
-        const result = await saveMoodboard(data.moodboard as MoodboardFormData, data.projectUpdated)
+        const result = await saveMoodboard(data.moodboard as MoodboardFormData)
 
         // Handle file uploads if there are selected files
         if (data.selectedFiles && data.selectedFiles.length > 0) {

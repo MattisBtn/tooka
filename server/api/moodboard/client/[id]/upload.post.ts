@@ -109,7 +109,6 @@ export default defineEventHandler(async (event) => {
         const imageData = {
           moodboard_id: moodboardId,
           file_url: filePath,
-          caption: null, // Clients can't set captions during upload
         };
 
         const { data: image, error: dbError } = await supabase

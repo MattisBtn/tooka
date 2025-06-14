@@ -128,10 +128,6 @@ const {
     addComment,
     reactToImage,
 
-    // Action handlers
-    handleValidate,
-    handleRequestRevisions,
-
     // Auth methods
     logout,
 } = await useClientMoodboard(moodboardId)
@@ -144,6 +140,16 @@ const handleAuthentication = async (password: string) => {
 // Handle logout
 const handleLogout = () => {
     logout()
+}
+
+// Handle validate action from header
+const handleValidate = () => {
+    showValidateDialog.value = true
+}
+
+// Handle request revisions action from header
+const handleRequestRevisions = () => {
+    showRequestRevisionsDialog.value = true
 }
 
 // Handle image upload

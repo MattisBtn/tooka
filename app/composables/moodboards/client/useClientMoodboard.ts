@@ -3,8 +3,8 @@ import type {
   MoodboardComment,
   MoodboardImage,
   MoodboardImageWithInteractions,
+  ReactionType,
 } from "~/types/moodboard";
-import { useClientMoodboardImages } from "./useClientMoodboardImages";
 import { useMoodboardAuth } from "./useMoodboardAuth";
 
 export const useClientMoodboard = async (moodboardId: string) => {
@@ -19,12 +19,65 @@ export const useClientMoodboard = async (moodboardId: string) => {
   // Use moodboard authentication composable
   const moodboardAuth = useMoodboardAuth(moodboardId);
 
-  // Use image management composable
-  const imageManager = useClientMoodboardImages();
-  const { useImageReactions } = imageManager;
+  // Image URL cache (simplified)
+  const imageUrlCache = new Map<string, string>();
 
-  // Initialize image interactions
-  const reactions = useImageReactions(moodboardId);
+  // Simple reactions management with localStorage
+  const USER_REACTIONS_KEY = `moodboard_user_reactions_${moodboardId}`;
+
+  const getUserReactions = () => {
+    if (!import.meta.client) return {};
+    try {
+      const stored = localStorage.getItem(USER_REACTIONS_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveUserReaction = (imageId: string, reaction: ReactionType | null) => {
+    if (!import.meta.client) return;
+    try {
+      const reactions = getUserReactions();
+      if (reaction) {
+        reactions[imageId] = reaction;
+        localStorage.setItem(USER_REACTIONS_KEY, JSON.stringify(reactions));
+      } else {
+        // Remove reaction by creating new object without this key
+        const { [imageId]: _, ...newReactions } = reactions;
+        localStorage.setItem(USER_REACTIONS_KEY, JSON.stringify(newReactions));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const getUserReaction = (imageId: string): ReactionType | null => {
+    const reactions = getUserReactions();
+    return reactions[imageId] || null;
+  };
+
+  // Get image signed URL (simplified)
+  const getImageUrl = async (filePath: string): Promise<string | null> => {
+    const cacheKey = `${moodboardId}:${filePath}`;
+
+    if (imageUrlCache.has(cacheKey)) {
+      return imageUrlCache.get(cacheKey)!;
+    }
+
+    try {
+      const encodedFilePath = encodeURIComponent(filePath);
+      const response = await $fetch<{ signedUrl: string }>(
+        `/api/moodboard/client/${moodboardId}/image/${encodedFilePath}`
+      );
+
+      imageUrlCache.set(cacheKey, response.signedUrl);
+      return response.signedUrl;
+    } catch (error) {
+      console.error("Failed to get image URL:", error);
+      return null;
+    }
+  };
 
   // Computed properties
   const project = computed(() => moodboardData.value?.project || null);
@@ -44,21 +97,17 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
   // Helper function to enhance images with interactions
   const enhanceImagesWithInteractions = (
-    imagesList: readonly MoodboardImage[]
+    imagesList: readonly (MoodboardImage & {
+      reactions?: { love: number; like: number; dislike: number };
+      comments?: readonly MoodboardComment[];
+    })[]
   ): MoodboardImageWithInteractions[] => {
-    return imagesList.map((image) => {
-      const imageWithComments = image as MoodboardImage & {
-        comments?: readonly MoodboardComment[];
-      };
-      return {
-        ...image,
-        reactions: reactions.getReactionCounts(image.id),
-        userReaction: reactions.getReaction(image.id),
-        comments: imageWithComments.comments
-          ? Array.from(imageWithComments.comments)
-          : [],
-      };
-    });
+    return imagesList.map((image) => ({
+      ...image,
+      reactions: image.reactions || { love: 0, like: 0, dislike: 0 },
+      userReaction: getUserReaction(image.id),
+      comments: image.comments ? Array.from(image.comments) : [],
+    }));
   };
 
   // Initial fetch of moodboard data
@@ -88,7 +137,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
   if (data.value) {
     moodboardData.value = data.value;
 
-    // Enhance images with interaction data
     if (data.value.moodboard.images && data.value.moodboard.images.length > 0) {
       const enhancedImages = enhanceImagesWithInteractions(
         Array.from(data.value.moodboard.images)
@@ -103,10 +151,8 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
     // Initialize authentication
     if (!data.value.project.hasPassword) {
-      // No password required, authenticate immediately using a dummy verify function
       await moodboardAuth.authenticate("", async () => true);
     } else {
-      // Try to restore from stored session
       await moodboardAuth.initializeAuth();
     }
   }
@@ -138,7 +184,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
       );
 
       if (response.moodboard.images && response.moodboard.images.length > 0) {
-        // Enhance new images with interaction data
         const enhancedNewImages = enhanceImagesWithInteractions(
           Array.from(response.moodboard.images)
         );
@@ -193,14 +238,13 @@ export const useClientMoodboard = async (moodboardId: string) => {
       uploadingImages.value = true;
       uploadProgress.value = 0;
 
-      // Simulate progress for better UX
+      // Simulate progress
       const progressInterval = setInterval(() => {
         if (uploadProgress.value < 85) {
           uploadProgress.value += Math.random() * 15;
         }
       }, 300);
 
-      // Upload to server API
       const formData = new FormData();
       files.forEach((file) => {
         formData.append("files", file);
@@ -217,7 +261,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
       clearInterval(progressInterval);
       uploadProgress.value = 100;
 
-      // Add new images to the list with interaction data
       if (response.images && response.images.length > 0) {
         const enhancedNewImages = enhanceImagesWithInteractions(
           response.images
@@ -225,7 +268,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
         images.value = [...images.value, ...enhancedNewImages];
       }
 
-      // Small delay to show 100% before hiding
       setTimeout(() => {
         uploadingImages.value = false;
         uploadProgress.value = 0;
@@ -261,15 +303,22 @@ export const useClientMoodboard = async (moodboardId: string) => {
   // Add comment to image
   const addComment = async (imageId: string, comment: string) => {
     try {
-      const newComment = await imageManager
-        .useImageComments(moodboardId)
-        .addComment(imageId, comment);
+      const response = await $fetch<{ comment: MoodboardComment }>(
+        `/api/moodboard/client/${moodboardId}/comment`,
+        {
+          method: "POST",
+          body: { imageId, content: comment },
+        }
+      );
 
       // Update the image in the list
       const imageIndex = images.value.findIndex((img) => img.id === imageId);
       if (imageIndex !== -1 && images.value[imageIndex]) {
         const currentComments = images.value[imageIndex]!.comments || [];
-        images.value[imageIndex]!.comments = [...currentComments, newComment];
+        images.value[imageIndex]!.comments = [
+          ...currentComments,
+          response.comment,
+        ];
       }
 
       const toast = useToast();
@@ -292,25 +341,56 @@ export const useClientMoodboard = async (moodboardId: string) => {
   };
 
   // React to image
-  const reactToImage = async (
-    imageId: string,
-    reaction: "love" | "like" | "dislike"
-  ) => {
+  const reactToImage = async (imageId: string, reaction: ReactionType) => {
     if (!canInteract.value) return;
 
-    try {
-      // Set reaction locally (mocked)
-      reactions.setReaction(imageId, reaction);
+    const currentUserReaction = getUserReaction(imageId);
+    const wasRemoving = currentUserReaction === reaction;
 
-      // Update the image in the list
-      const imageIndex = images.value.findIndex((img) => img.id === imageId);
-      if (imageIndex !== -1 && images.value[imageIndex]) {
-        images.value[imageIndex]!.reactions =
-          reactions.getReactionCounts(imageId);
-        images.value[imageIndex]!.userReaction = reactions.getReaction(imageId);
+    try {
+      if (wasRemoving) {
+        // Remove reaction locally
+        saveUserReaction(imageId, null);
+        const imageIndex = images.value.findIndex((img) => img.id === imageId);
+        if (imageIndex !== -1 && images.value[imageIndex]) {
+          images.value[imageIndex]!.userReaction = null;
+        }
+      } else {
+        // Add new reaction
+        saveUserReaction(imageId, reaction);
+
+        const response = await $fetch(
+          `/api/moodboard/client/${moodboardId}/reaction`,
+          {
+            method: "POST",
+            body: { imageId, reaction },
+          }
+        );
+
+        if (response.success) {
+          const imageIndex = images.value.findIndex(
+            (img) => img.id === imageId
+          );
+          if (imageIndex !== -1 && images.value[imageIndex]) {
+            images.value[imageIndex]!.userReaction = reaction;
+            if (images.value[imageIndex]!.reactions) {
+              images.value[imageIndex]!.reactions[reaction]++;
+              if (currentUserReaction && currentUserReaction !== reaction) {
+                images.value[imageIndex]!.reactions[currentUserReaction] =
+                  Math.max(
+                    0,
+                    images.value[imageIndex]!.reactions[currentUserReaction] - 1
+                  );
+              }
+            }
+          }
+        } else {
+          saveUserReaction(imageId, currentUserReaction);
+        }
       }
     } catch (err) {
       console.error("Error setting reaction:", err);
+      saveUserReaction(imageId, currentUserReaction);
     }
   };
 
@@ -323,7 +403,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
       await $fetch(`/api/moodboard/client/${moodboard.value.id}/validate`, {
         method: "POST",
       });
-      // Refresh the page data
       await reloadNuxtApp();
     } catch (error) {
       console.error("Failed to validate moodboard:", error);
@@ -342,12 +421,9 @@ export const useClientMoodboard = async (moodboardId: string) => {
         `/api/moodboard/client/${moodboard.value.id}/request-revisions`,
         {
           method: "POST",
-          body: {
-            comment: revisionComment.value,
-          },
+          body: { comment: revisionComment.value },
         }
       );
-      // Refresh the page data
       await reloadNuxtApp();
     } catch (error) {
       console.error("Failed to request revisions:", error);
@@ -356,15 +432,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
       showRequestRevisionsDialog.value = false;
       revisionComment.value = "";
     }
-  };
-
-  // Action handlers for components
-  const handleValidate = () => {
-    showValidateDialog.value = true;
-  };
-
-  const handleRequestRevisions = () => {
-    showRequestRevisionsDialog.value = true;
   };
 
   return {
@@ -399,17 +466,12 @@ export const useClientMoodboard = async (moodboardId: string) => {
     // Actions
     verifyPassword,
     loadMore,
-
-    // Client actions
     validateMoodboard,
     requestRevisions,
     uploadImages,
     addComment,
     reactToImage,
-
-    // Action handlers
-    handleValidate,
-    handleRequestRevisions,
+    getImageUrl,
 
     // Auth methods
     logout: moodboardAuth.logout,

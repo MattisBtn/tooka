@@ -8,11 +8,15 @@ export const useMoodboard = (projectId: string) => {
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const moodboard = ref<MoodboardWithDetails | null>(null);
+
+  // Computed properties
   const isEditMode = computed(() => !!moodboard.value);
+  const imageCount = computed(() => moodboard.value?.imageCount || 0);
+  const hasImages = computed(() => imageCount.value > 0);
 
   // Fetch moodboard for project
   const fetchMoodboard = async () => {
-    if (!projectId) return;
+    if (!projectId) return null;
 
     loading.value = true;
     error.value = null;
@@ -20,7 +24,6 @@ export const useMoodboard = (projectId: string) => {
     try {
       const data = await moodboardService.getMoodboardByProjectId(projectId);
       moodboard.value = data;
-
       return data;
     } catch (err) {
       error.value =
@@ -32,49 +35,40 @@ export const useMoodboard = (projectId: string) => {
   };
 
   // Save moodboard (create or update)
-  const saveMoodboard = async (
-    data: MoodboardFormData,
-    shouldValidate: boolean = false
-  ) => {
+  const saveMoodboard = async (data: MoodboardFormData) => {
     loading.value = true;
     error.value = null;
 
     try {
+      let result;
+
       if (isEditMode.value && moodboard.value) {
         // Update existing moodboard
-        const result = await moodboardService.updateMoodboard(
-          moodboard.value.id,
-          {
-            title: data.title,
-            description: data.description,
-          },
-          shouldValidate
-        );
+        result = await moodboardService.updateMoodboard(moodboard.value.id, {
+          title: data.title,
+          description: data.description,
+          status: data.status, // Use the status from form data
+        });
 
         // Update local state
         moodboard.value = {
           ...moodboard.value,
           ...result.moodboard,
         };
-
-        return result;
       } else {
         // Create new moodboard
-        const result = await moodboardService.createMoodboard(
-          {
-            project_id: projectId,
-            title: data.title,
-            description: data.description || null,
-            status: data.status,
-          },
-          shouldValidate
-        );
+        result = await moodboardService.createMoodboard({
+          project_id: projectId,
+          title: data.title,
+          description: data.description || null,
+          status: data.status,
+        });
 
         // Fetch the complete moodboard data
         await fetchMoodboard();
-
-        return result;
       }
+
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to save moodboard");
@@ -138,7 +132,6 @@ export const useMoodboard = (projectId: string) => {
 
     try {
       await moodboardService.deleteImage(imageId);
-
       // Refresh moodboard data to get updated images
       await fetchMoodboard();
     } catch (err) {
@@ -150,43 +143,14 @@ export const useMoodboard = (projectId: string) => {
     }
   };
 
-  // Update image caption
-  const updateImageCaption = async (
-    imageId: string,
-    caption: string | null
-  ) => {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      await moodboardService.updateImageCaption(imageId, caption);
-
-      // Refresh moodboard data to get updated images
-      await fetchMoodboard();
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err : new Error("Failed to update caption");
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // Get moodboard status options
-  const getStatusOptions = () => moodboardService.getStatusOptions();
-
-  // Computed properties
-  const imageCount = computed(() => moodboard.value?.imageCount || 0);
-  const hasImages = computed(() => imageCount.value > 0);
-
   return {
     // State
     loading: readonly(loading),
     error: readonly(error),
     moodboard: readonly(moodboard),
-    isEditMode,
 
     // Computed
+    isEditMode,
     imageCount,
     hasImages,
 
@@ -196,7 +160,5 @@ export const useMoodboard = (projectId: string) => {
     deleteMoodboard,
     uploadImages,
     deleteImage,
-    updateImageCaption,
-    getStatusOptions,
   };
 };

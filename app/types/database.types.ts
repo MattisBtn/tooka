@@ -206,21 +206,18 @@ export type Database = {
       }
       moodboard_images: {
         Row: {
-          caption: string | null
           created_at: string
           file_url: string
           id: string
           moodboard_id: string
         }
         Insert: {
-          caption?: string | null
           created_at?: string
           file_url: string
           id?: string
           moodboard_id: string
         }
         Update: {
-          caption?: string | null
           created_at?: string
           file_url?: string
           id?: string
@@ -232,6 +229,38 @@ export type Database = {
             columns: ["moodboard_id"]
             isOneToOne: false
             referencedRelation: "moodboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodboard_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          image_id: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_id: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_id?: string
+          reaction_type?: Database["public"]["Enums"]["reaction_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodboard_reactions_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "moodboard_images"
             referencedColumns: ["id"]
           },
         ]
@@ -520,6 +549,7 @@ export type Database = {
     Enums: {
       client_type: "individual" | "company"
       project_status: "draft" | "in_progress" | "completed"
+      reaction_type: "love" | "like" | "dislike"
       status_enum:
         | "draft"
         | "awaiting_client"
@@ -642,6 +672,7 @@ export const Constants = {
     Enums: {
       client_type: ["individual", "company"],
       project_status: ["draft", "in_progress", "completed"],
+      reaction_type: ["love", "like", "dislike"],
       status_enum: [
         "draft",
         "awaiting_client",
