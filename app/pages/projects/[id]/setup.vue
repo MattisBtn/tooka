@@ -56,11 +56,12 @@
                     :upload-progress="moodboardUploadProgress" @moodboard-saved="handleMoodboardSaved" />
 
                 <!-- Selection Module -->
-                <ProjectModuleCard v-model:enabled="modules.selection.enabled" title="Pré-sélection"
-                    description="Sélection d'images par le client" icon="i-lucide-mouse-pointer-click"
-                    icon-color="text-orange-500" :completed="modules.selection.completed"
-                    :summary="modules.selection.summary"
-                    @update:enabled="(value: boolean) => toggleModule('selection', value)" />
+                <ProjectSelectionModule v-model:enabled="modules.selection.enabled" :selection-data="selectionData"
+                    :selection-status-info="selectionStatusInfo || null" :image-count="selectionImageCount"
+                    :selected-count="selectionSelectedCount" :has-images="hasSelectionImages"
+                    :formatted-extra-media-price="formattedExtraMediaPrice" :project-id="projectId"
+                    :is-uploading="isUploadingSelectionImages" :upload-progress="selectionUploadProgress"
+                    @selection-saved="handleSelectionSaved" />
 
                 <!-- Gallery Module -->
                 <ProjectGalleryModule v-model:enabled="modules.gallery.enabled" :gallery-data="galleryData"
@@ -87,10 +88,12 @@ import { useGallery } from '~/composables/galleries/user/useGallery'
 import { useMoodboard } from '~/composables/moodboards/user/useMoodboard'
 import { useProject } from '~/composables/projects/useProject'
 import { useProposal } from '~/composables/proposals/useProposal'
+import { useSelection } from '~/composables/selections/user/useSelection'
 import { moodboardService } from '~/services/moodboardService'
 import type { Gallery, GalleryFormData } from '~/types/gallery'
 import type { Moodboard, MoodboardFormData } from '~/types/moodboard'
 import type { Proposal, ProposalFormData } from '~/types/proposal'
+import type { SelectionFormData } from '~/types/selection'
 
 // Get project ID from route
 const route = useRoute()
@@ -108,7 +111,7 @@ const {
     formattedCreatedAt,
     formattedExpiresAt,
     fetchProject,
-    toggleModule,
+    toggleModule: _toggleModule,
     updateModuleState,
 } = useProject(projectId)
 
@@ -147,11 +150,26 @@ const {
     uploadImages,
 } = useGallery(projectId)
 
+// Use selection composable
+const {
+    selection: selectionData,
+    imageCount: selectionImageCount,
+    selectedCount: selectionSelectedCount,
+    hasImages: hasSelectionImages,
+    formattedExtraMediaPrice,
+    fetchSelection,
+    saveSelection,
+    uploadImages: uploadSelectionImages,
+    getStatusOptions: getSelectionStatusOptions,
+} = useSelection(projectId)
+
 // Upload state for UI feedback
 const isUploadingImages = ref(false)
 const uploadProgress = ref(0)
 const isUploadingMoodboardImages = ref(false)
 const moodboardUploadProgress = ref(0)
+const isUploadingSelectionImages = ref(false)
+const selectionUploadProgress = ref(0)
 
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
@@ -190,6 +208,13 @@ const galleryStatusInfo = computed(() => {
     if (!galleryData.value) return null
     const statusOptions = getGalleryStatusOptions()
     return statusOptions.find((s) => s.value === galleryData.value!.status)
+})
+
+// Selection status info
+const selectionStatusInfo = computed(() => {
+    if (!selectionData.value) return null
+    const statusOptions = getSelectionStatusOptions()
+    return statusOptions.find((s) => s.value === selectionData.value!.status)
 })
 
 // Handle proposal saved
@@ -429,6 +454,100 @@ const handleGallerySaved = async (data: { gallery: Gallery; projectUpdated: bool
     }
 }
 
+// Handle selection saved
+const handleSelectionSaved = async (data: { selection: SelectionFormData; projectUpdated: boolean; selectedFiles?: File[] }) => {
+    try {
+        // Save the selection using the composable
+        const result = await saveSelection(data.selection, data.projectUpdated)
+
+        // Handle file uploads if there are selected files
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            // Get the selection ID from the result or existing selection data
+            const selectionId = result.selection.id || selectionData.value?.id
+
+            if (selectionId) {
+                isUploadingSelectionImages.value = true
+                selectionUploadProgress.value = 0
+
+                try {
+                    // Simulate progress for better UX
+                    const progressInterval = setInterval(() => {
+                        if (selectionUploadProgress.value < 85) {
+                            selectionUploadProgress.value += Math.random() * 15
+                        }
+                    }, 300)
+
+                    // Upload images using the selection composable
+                    await uploadSelectionImages(data.selectedFiles)
+
+                    clearInterval(progressInterval)
+                    selectionUploadProgress.value = 100
+
+                    // Small delay to show 100% before hiding
+                    setTimeout(() => {
+                        isUploadingSelectionImages.value = false
+                        selectionUploadProgress.value = 0
+                    }, 1000)
+
+                } catch (uploadErr) {
+                    console.error('Error uploading selection images:', uploadErr)
+                    isUploadingSelectionImages.value = false
+                    selectionUploadProgress.value = 0
+
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Erreur d\'upload',
+                        description: uploadErr instanceof Error ? uploadErr.message : 'Une erreur est survenue lors de l\'upload des images.',
+                        icon: 'i-lucide-alert-circle',
+                        color: 'error'
+                    })
+                }
+            }
+        }
+
+        // Update module state
+        updateModuleState('selection', {
+            completed: true,
+            summary: `Sélection avec ${selectionImageCount.value} image${selectionImageCount.value > 1 ? 's' : ''}`
+        })
+
+        // Show success notification for selection save
+        const toast = useToast()
+        if (data.projectUpdated) {
+            toast.add({
+                title: 'Sélection validée !',
+                description: 'La sélection a été envoyée au client.',
+                icon: 'i-lucide-check-circle',
+                color: 'success'
+            })
+        } else {
+            toast.add({
+                title: 'Brouillon sauvegardé',
+                description: 'Votre sélection a été sauvegardée en brouillon.',
+                icon: 'i-lucide-save',
+                color: 'info'
+            })
+        }
+
+        // Refresh project data if needed
+        if (data.projectUpdated) {
+            await fetchProject()
+        }
+
+        // Refresh selection data
+        await fetchSelection()
+    } catch (err) {
+        console.error('Error saving selection:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
 // Initialize
 onMounted(async () => {
     try {
@@ -440,6 +559,10 @@ onMounted(async () => {
         // Sync moodboard data from project if it exists
         if (project.value?.moodboard && !moodboardData.value) {
             await fetchMoodboard()
+        }
+        // Sync selection data from project if it exists
+        if (project.value?.selection && !selectionData.value) {
+            await fetchSelection()
         }
     } catch (err) {
         console.error('Error loading project:', err)
@@ -471,6 +594,20 @@ watch(() => modules.value.moodboard.enabled, async (enabled) => {
 watch(() => project.value?.moodboard, async (newMoodboard) => {
     if (newMoodboard && !moodboardData.value) {
         await fetchMoodboard()
+    }
+}, { immediate: true })
+
+// Watch for selection module changes
+watch(() => modules.value.selection.enabled, async (enabled) => {
+    if (enabled && !selectionData.value) {
+        await fetchSelection()
+    }
+})
+
+// Watch for project changes to sync selection data
+watch(() => project.value?.selection, async (newSelection) => {
+    if (newSelection && !selectionData.value) {
+        await fetchSelection()
     }
 }, { immediate: true })
 

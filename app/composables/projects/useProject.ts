@@ -84,6 +84,21 @@ export const useProject = (projectId: string) => {
       modules.value.moodboard.summary = null;
     }
 
+    // Update selection module state
+    if (projectData.selection) {
+      modules.value.selection.enabled = true;
+      modules.value.selection.completed = true;
+      modules.value.selection.summary = `Sélection de ${
+        projectData.selection.max_media_selection
+      } média${
+        projectData.selection.max_media_selection > 1 ? "s" : ""
+      } (${getSelectionStatusLabel(projectData.selection.status)})`;
+    } else {
+      // Keep enabled state but mark as not completed if no selection exists
+      modules.value.selection.completed = false;
+      modules.value.selection.summary = null;
+    }
+
     // Update gallery module state
     if (projectData.gallery) {
       modules.value.gallery.enabled = true;
@@ -96,9 +111,6 @@ export const useProject = (projectId: string) => {
       modules.value.gallery.completed = false;
       modules.value.gallery.summary = null;
     }
-
-    // TODO: Update selection module state when implemented
-    // modules.value.selection.enabled = !!projectData.selection;
   };
 
   // Get proposal status label
@@ -119,6 +131,17 @@ export const useProject = (projectId: string) => {
       awaiting_client: "En attente client",
       revision_requested: "Révision demandée",
       completed: "Validé",
+    };
+    return statusMap[status as keyof typeof statusMap] || status;
+  };
+
+  // Get selection status label
+  const getSelectionStatusLabel = (status: string) => {
+    const statusMap = {
+      draft: "Brouillon",
+      awaiting_client: "En attente client",
+      revision_requested: "Révision demandée",
+      completed: "Validée",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };

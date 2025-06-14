@@ -49,6 +49,14 @@ export const projectRepository: IProjectRepository = {
           created_at,
           updated_at
         ),
+        selection:selections(
+          id,
+          max_media_selection,
+          extra_media_price,
+          status,
+          created_at,
+          updated_at
+        ),
         gallery:galleries(
           id,
           status,
@@ -117,6 +125,10 @@ export const projectRepository: IProjectRepository = {
         Array.isArray(project.moodboard) && project.moodboard.length > 0
           ? project.moodboard[0]
           : null,
+      selection:
+        Array.isArray(project.selection) && project.selection.length > 0
+          ? project.selection[0]
+          : null,
       gallery:
         Array.isArray(project.gallery) && project.gallery.length > 0
           ? project.gallery[0]
@@ -165,6 +177,14 @@ export const projectRepository: IProjectRepository = {
           created_at,
           updated_at
         ),
+        selection:selections(
+          id,
+          max_media_selection,
+          extra_media_price,
+          status,
+          created_at,
+          updated_at
+        ),
         gallery:galleries(
           id,
           status,
@@ -194,6 +214,10 @@ export const projectRepository: IProjectRepository = {
       moodboard:
         Array.isArray(data.moodboard) && data.moodboard.length > 0
           ? data.moodboard[0]
+          : null,
+      selection:
+        Array.isArray(data.selection) && data.selection.length > 0
+          ? data.selection[0]
           : null,
       gallery:
         Array.isArray(data.gallery) && data.gallery.length > 0

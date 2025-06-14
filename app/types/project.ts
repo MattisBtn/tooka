@@ -81,6 +81,14 @@ export interface ProjectWithClient extends Project {
     created_at: string;
     updated_at: string;
   } | null;
+  selection?: {
+    id: string;
+    max_media_selection: number;
+    extra_media_price: number | null;
+    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    created_at: string;
+    updated_at: string;
+  } | null;
   gallery?: {
     id: string;
     status: "draft" | "awaiting_client" | "revision_requested" | "completed";
