@@ -1,9 +1,10 @@
 /**
- * Selection Authentication Composable for Client Side
+ * Generic Client Authentication Composable
+ * Can be used for moodboards, selections, galleries, etc.
  */
 
-export const useSelectionAuth = (selectionId: string) => {
-  const AUTH_KEY = `selection_auth_${selectionId}`;
+export const useClientAuth = (resourceType: string, resourceId: string) => {
+  const AUTH_KEY = `${resourceType}_auth_${resourceId}`;
   const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   const isAuthenticated = ref(false);
@@ -11,7 +12,8 @@ export const useSelectionAuth = (selectionId: string) => {
 
   // Simple auth session interface
   interface AuthSession {
-    selectionId: string;
+    resourceType: string;
+    resourceId: string;
     timestamp: number;
     authenticated: boolean;
   }
@@ -19,7 +21,8 @@ export const useSelectionAuth = (selectionId: string) => {
   // Save authentication session
   const saveAuthSession = () => {
     const session: AuthSession = {
-      selectionId,
+      resourceType,
+      resourceId,
       timestamp: Date.now(),
       authenticated: true,
     };
@@ -49,8 +52,11 @@ export const useSelectionAuth = (selectionId: string) => {
         return null;
       }
 
-      // Verify session belongs to current selection
-      if (session.selectionId !== selectionId) {
+      // Verify session belongs to current resource
+      if (
+        session.resourceId !== resourceId ||
+        session.resourceType !== resourceType
+      ) {
         return null;
       }
 

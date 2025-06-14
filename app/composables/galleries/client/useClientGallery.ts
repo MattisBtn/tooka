@@ -1,5 +1,4 @@
 import type { ClientGalleryAccess, GalleryImage } from "~/types/gallery";
-import { useGalleryAuth } from "./useGalleryAuth";
 
 export const useClientGallery = async (galleryId: string) => {
   const loading = ref(true);
@@ -11,7 +10,7 @@ export const useClientGallery = async (galleryId: string) => {
   const currentPage = ref(1);
 
   // Use gallery authentication composable
-  const galleryAuth = useGalleryAuth(galleryId);
+  const galleryAuth = useClientAuth("gallery", galleryId);
 
   // Computed properties
   const project = computed(() => galleryData.value?.project || null);

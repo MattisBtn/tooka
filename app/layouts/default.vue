@@ -29,17 +29,11 @@ const categories = [
         name: 'Workflow',
         links: [
             { name: 'Projects', icon: 'i-heroicons-folder', to: '/projects' },
-            { name: 'Proposals', icon: 'i-heroicons-document-text', to: '/proposals' },
-            { name: 'Contracts', icon: 'i-heroicons-document-check', to: '/contracts' },
-            { name: 'Invoices', icon: 'i-heroicons-document-chart-bar', to: '/invoices' },
-            { name: 'Calendar', icon: 'i-heroicons-calendar', to: '/calendar' }
         ]
     },
     {
         name: 'System',
         links: [
-            { name: 'Organization', icon: 'i-heroicons-building-office', to: '/organization' },
-            { name: 'Team', icon: 'i-heroicons-user-group', to: '/team' },
             { name: 'Billing', icon: 'i-heroicons-credit-card', to: '/billing' }
         ]
     }
@@ -95,7 +89,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                }}</span>
+                                    }}</span>
                             </UButton>
                         </div>
                     </div>

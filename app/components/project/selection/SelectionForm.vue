@@ -95,7 +95,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images pour la sélection</template>
                 </h3>
-                <ProjectSelectionImageUploadField v-model="selectedFiles" :max-files="200" />
+                <UiImageUploadField v-model="selectedFiles" :max-files="200" :config="selectionUploadConfig" />
             </div>
 
             <!-- Upload Progress -->
@@ -257,6 +257,28 @@ const schema = selectionFormSchema;
 const isSubmitting = ref(false);
 const submitAsDraft = ref(false);
 
+// Selection upload configuration
+const selectionUploadConfig = {
+    theme: 'orange' as const,
+    mainIcon: 'i-lucide-mouse-pointer-click',
+    buttonIcon: 'i-lucide-images',
+    buttonLabel: 'Ajouter des images de sélection',
+    title: 'Glissez-déposez vos images de sélection ici',
+    filesLabel: 'Images de sélection sélectionnées',
+    indicator: {
+        icon: 'i-lucide-mouse-pointer-click',
+        class: 'w-4 h-4 text-orange-400 drop-shadow-sm'
+    },
+    tips: {
+        title: 'Conseils pour vos images de sélection',
+        items: [
+            'Proposez plus d\'images que le nombre maximum sélectionnable',
+            'Variez les cadrages et les moments pour donner le choix au client',
+            'Les images seront disponibles pour sélection par le client'
+        ]
+    }
+};
+
 // Computed
 const isEditMode = computed(() => !!props.selection);
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
@@ -301,7 +323,7 @@ const handleToggleSelection = async (imageId: string, selected: boolean) => {
         const { selectionService } = await import("~/services/selectionService");
         const result = await selectionService.toggleImageSelection(imageId, selected);
 
-        if (!result.success && result.maxReached) {
+        if (!result?.success && result?.maxReached) {
             const toast = useToast();
             toast.add({
                 title: "Limite atteinte",
@@ -314,14 +336,14 @@ const handleToggleSelection = async (imageId: string, selected: boolean) => {
 
         // Update local state
         const imageIndex = images.value.findIndex(img => img.id === imageId);
-        if (imageIndex !== -1) {
+        if (imageIndex !== -1 && images.value[imageIndex]) {
             images.value[imageIndex].is_selected = selected;
         }
 
         const toast = useToast();
         toast.add({
             title: selected ? "Image sélectionnée" : "Image désélectionnée",
-            description: `${result.selectedCount} image${result.selectedCount > 1 ? 's' : ''} sélectionnée${result.selectedCount > 1 ? 's' : ''}.`,
+            description: `${result?.selectedCount || 0} image${(result?.selectedCount || 0) > 1 ? 's' : ''} sélectionnée${(result?.selectedCount || 0) > 1 ? 's' : ''}.`,
             icon: selected ? "i-lucide-check-circle" : "i-lucide-circle",
             color: "success",
         });

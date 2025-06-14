@@ -3,7 +3,6 @@ import type {
   SelectionImage,
   SelectionImageWithSelection,
 } from "~/types/selection";
-import { useSelectionAuth } from "./useSelectionAuth";
 
 export const useClientSelection = async (selectionId: string) => {
   const loading = ref(true);
@@ -15,7 +14,7 @@ export const useClientSelection = async (selectionId: string) => {
   const currentPage = ref(1);
 
   // Use selection authentication composable
-  const selectionAuth = useSelectionAuth(selectionId);
+  const selectionAuth = useClientAuth("selection", selectionId);
 
   // Image URL cache
   const imageUrlCache = new Map<string, string>();

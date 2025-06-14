@@ -5,7 +5,6 @@ import type {
   MoodboardImageWithInteractions,
   ReactionType,
 } from "~/types/moodboard";
-import { useMoodboardAuth } from "./useMoodboardAuth";
 
 export const useClientMoodboard = async (moodboardId: string) => {
   const loading = ref(true);
@@ -17,7 +16,7 @@ export const useClientMoodboard = async (moodboardId: string) => {
   const currentPage = ref(1);
 
   // Use moodboard authentication composable
-  const moodboardAuth = useMoodboardAuth(moodboardId);
+  const moodboardAuth = useClientAuth("moodboard", moodboardId);
 
   // Image URL cache (simplified)
   const imageUrlCache = new Map<string, string>();
