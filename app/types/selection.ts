@@ -110,7 +110,7 @@ export interface ImageUploadData {
   error?: string;
 }
 
-// Client selection access types
+// Client-side types for selection access
 export interface ClientSelectionAccess {
   project: {
     id: string;
@@ -118,52 +118,44 @@ export interface ClientSelectionAccess {
     description: string | null;
     hasPassword: boolean;
   };
-  selection: SelectionWithDetails;
+  selection: SelectionWithImages & {
+    imageCount: number;
+    hasMore: boolean;
+    currentPage: number;
+  };
 }
 
-// Selection image with client interaction data
-export interface SelectionImageWithInteractions extends SelectionImage {
-  comments?: SelectionComment[];
+export interface SelectionImageWithSelection extends SelectionImage {
+  userSelected?: boolean; // Track user's selection state
 }
 
-export interface ClientPasswordVerification {
-  password: string;
+export interface SelectionWithImages extends Selection {
+  images?: readonly SelectionImageWithSelection[];
 }
 
-export const clientPasswordSchema = z.object({
+// Client verification schema
+export const clientPasswordVerificationSchema = z.object({
   password: z.string().min(1, "Mot de passe requis"),
 });
 
-export type ClientPasswordFormData = z.infer<typeof clientPasswordSchema>;
+export type ClientPasswordVerification = z.infer<
+  typeof clientPasswordVerificationSchema
+>;
 
-// Client selection actions
-export interface ClientSelectionAction {
-  selection_id: string;
-  action: "validate" | "request_revisions";
-  selected_images: string[]; // Array of image IDs
-  comment?: string;
-  timestamp: string;
-}
-
-export interface ClientRevisionRequest {
-  comment?: string;
-}
-
+// Client revision request schema
 export const clientRevisionRequestSchema = z.object({
   comment: z.string().optional(),
 });
 
-export type ClientRevisionRequestData = z.infer<
-  typeof clientRevisionRequestSchema
->;
+export type ClientRevisionRequest = z.infer<typeof clientRevisionRequestSchema>;
 
-// Selection status update
-export interface SelectionStatusUpdate {
-  status: "completed" | "revision_requested";
-  client_comment?: string;
-  selected_images?: string[];
-  updated_at: string;
-}
+// Client image selection schema
+export const clientImageSelectionSchema = z.object({
+  imageId: z.string().uuid(),
+  selected: z.boolean(),
+});
+
+export type ClientImageSelection = z.infer<typeof clientImageSelectionSchema>;
 
 // Client comment form validation
 export const clientCommentSchema = z.object({
