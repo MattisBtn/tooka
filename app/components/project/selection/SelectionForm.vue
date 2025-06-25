@@ -76,15 +76,15 @@
             <div v-if="hasExistingImages" class="space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                        Images existantes ({{ images.length }})
+                        Images de la sélection ({{ images.length }})
                         <span v-if="selectedCount > 0" class="text-orange-600 dark:text-orange-400">
-                            - {{ selectedCount }} sélectionnée{{ selectedCount > 1 ? 's' : '' }}
+                            - {{ selectedCount }} sélectionnée{{ selectedCount > 1 ? 's' : '' }} par le client
                         </span>
                     </h3>
                 </div>
 
-                <ProjectSelectionImageGrid :images="Array.from(images)" :can-delete="true" :can-toggle-selection="true"
-                    @delete-image="handleDeleteExistingImage" @toggle-selection="handleToggleSelection" />
+                <ProjectSelectionImageGrid :images="Array.from(images)" :can-delete="true" :can-toggle-selection="false"
+                    :show-selection-state="true" @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
             </div>
@@ -137,9 +137,9 @@
                     class="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400 mt-1">
                     <UIcon name="i-lucide-check-circle" class="w-4 h-4" />
                     <span>
-                        {{ selectedCount }} image{{ selectedCount > 1 ? 's' : '' }} pré-sélectionnée{{ selectedCount > 1
+                        {{ selectedCount }} image{{ selectedCount > 1 ? 's' : '' }} sélectionnée{{ selectedCount > 1
                             ? 's' :
-                            '' }} par défaut
+                            '' }} par le client
                     </span>
                 </div>
             </div>
@@ -149,9 +149,10 @@
                 <template #description>
                     <ul class="text-sm space-y-1 mt-2">
                         <li>• Proposez plus d'images que le nombre maximum sélectionnable</li>
-                        <li>• Variez les cadrages et les moments pour donner le choix</li>
-                        <li>• Vous pouvez pré-sélectionner des images en cliquant dessus</li>
-                        <li>• Le client pourra modifier la sélection selon ses préférences</li>
+                        <li>• Variez les cadrages et les moments pour donner le choix au client</li>
+                        <li>• <strong>Sélection :</strong> Seul le client peut sélectionner ses images préférées</li>
+                        <li>• <strong>Votre rôle :</strong> Fournir un choix varié et de qualité pour faciliter la
+                            sélection</li>
                     </ul>
                 </template>
             </UAlert>
@@ -289,48 +290,6 @@ const handleDeleteExistingImage = async (imageId: string) => {
         toast.add({
             title: "Erreur",
             description: err instanceof Error ? err.message : "Une erreur est survenue lors de la suppression.",
-            icon: "i-lucide-alert-circle",
-            color: "error",
-        });
-    }
-};
-
-// Handle toggle selection
-const handleToggleSelection = async (imageId: string, selected: boolean) => {
-    try {
-        const { selectionService } = await import("~/services/selectionService");
-        const result = await selectionService.toggleImageSelection(imageId, selected);
-
-        if (!result.success && result.maxReached) {
-            const toast = useToast();
-            toast.add({
-                title: "Limite atteinte",
-                description: `Vous ne pouvez sélectionner que ${state.max_media_selection} images maximum.`,
-                icon: "i-lucide-alert-circle",
-                color: "warning",
-            });
-            return;
-        }
-
-        // Update local state
-        const imageIndex = images.value.findIndex(img => img.id === imageId);
-        if (imageIndex !== -1 && images.value[imageIndex]) {
-            images.value[imageIndex].is_selected = selected;
-        }
-
-        const toast = useToast();
-        toast.add({
-            title: selected ? "Image sélectionnée" : "Image désélectionnée",
-            description: `${result.selectedCount} image${result.selectedCount > 1 ? 's' : ''} sélectionnée${result.selectedCount > 1 ? 's' : ''}.`,
-            icon: selected ? "i-lucide-check-circle" : "i-lucide-circle",
-            color: "success",
-        });
-    } catch (err) {
-        console.error("Error toggling selection:", err);
-        const toast = useToast();
-        toast.add({
-            title: "Erreur",
-            description: err instanceof Error ? err.message : "Une erreur est survenue.",
             icon: "i-lucide-alert-circle",
             color: "error",
         });

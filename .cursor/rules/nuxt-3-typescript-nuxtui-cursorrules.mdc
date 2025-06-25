@@ -3,11 +3,13 @@ description:
 globs: 
 alwaysApply: true
 ---
+# Nuxt 3 TypeScript Nuxt UI Cursor Rules
+
 You have extensive expertise in Vue 3, Nuxt 3, TypeScript, Node.js, Vite, Vue Router, Pinia, VueUse, Nuxt UI, Supabase and Tailwind CSS. You possess a deep knowledge of best practices and performance optimization techniques across these technologies.
 
-Architecture & “God Tier” Nuxt 3 Structure
+## Architecture & "God Tier" Nuxt 3 Structure
 
-1.1 Overview
+### 1.1 Overview
 
 Feature-Based Modules: organize by feature, placing pages, components, composables, and stores within each feature folder.
 
@@ -21,7 +23,7 @@ Nuxt 3 Layered Structure:
 • ~/server/ for server API routes and middleware
 • ~/types/ for shared TypeScript interfaces
 
-1.2 Core Patterns
+### 1.2 Core Patterns
 
 Module Pattern: encapsulate domain features with a clear API surface.
 
@@ -31,9 +33,9 @@ Service Layer: plain functions handling business logic, used by composables and 
 
 Event Bus: use Pinia or a lightweight library like mitt for decoupled communication.
 
-Code Style & Structure
+## Code Style & Structure
 
-2.1 TypeScript & Typing
+### 2.1 TypeScript & Typing
 
 Always use TypeScript; prefer interfaces over types for extendability.
 
@@ -41,7 +43,7 @@ Avoid enum; use as const or mapped types for flexibility.
 
 Place types in ~/types with clear naming (IUser, IFeatureFlag) and always check (but never edit) database.types.ts in ~/types.
 
-2.2 Composition API
+### 2.2 Composition API
 
 Use in all components.
 
@@ -49,7 +51,7 @@ Prioritize composable functions: create in ~/composables, named useXxx.
 
 Avoid classes; favor pure functions and closures.
 
-2.3 Declarative & Functional
+### 2.3 Declarative & Functional
 
 Embrace immutability: treat props as readonly.
 
@@ -57,29 +59,29 @@ Use array methods (map, filter, reduce) over loops.
 
 Extract reusable logic into composables or helpers to enforce DRY.
 
-Nuxt 3 Specifics & SEO
+## Nuxt 3 Specifics & SEO
 
-3.1 Auto-Imports & APIs
+### 3.1 Auto-Imports & APIs
 
-Leverage Nuxt’s auto-imports: no manual imports for ref, computed, useState, useRouter.
+Leverage Nuxt's auto-imports: no manual imports for ref, computed, useState, useRouter.
 
 Use server API routes (~/server/api/*.ts) for secure operations.
 
 Access environment variables via useRuntimeConfig().
 
-3.2 Color Mode & Theming
+### 3.2 Color Mode & Theming
 
 Use @nuxtjs/color-mode with useColorMode().
 
 Define theme settings in app.config.ts (colors, typography, spacing).
 
-3.3 SEO & Meta
+### 3.3 SEO & Meta
 
 Manage page metadata with useHead and useSeoMeta.
 
 Generate sitemap via @nuxtjs/sitemap.
 
-Data Fetching Strategies
+## Data Fetching Strategies
 
 SSR with caching: useFetch with server: true, lazy: false.
 
@@ -91,7 +93,7 @@ Handle cancellations with AbortController.
 
 Always implement onError for user-friendly fallbacks.
 
-State Management
+## State Management
 
 Use Pinia: one store per domain (~/stores/useUserStore.ts).
 
@@ -99,9 +101,9 @@ Strongly type state and actions; avoid any.
 
 Prefer setup stores and pure getters.
 
-UI, Styling & Responsive Design
+## UI, Styling & Responsive Design
 
-6.1 Components & Utilities
+### 6.1 Components & Utilities
 
 Use Nuxt UI + Tailwind CSS.
 
@@ -109,15 +111,15 @@ Mobile-first approach: breakpoints sm → md → lg → xl.
 
 Standardize UI tokens: rounded-2xl, shadow-soft, consistent spacing scales.
 
-6.2 Images & Icons
+### 6.2 Images & Icons
 
 Optimize images with  / .
 
 Use Nuxt Icons for adaptive SVGs.
 
-Security & Performance
+## Security & Performance
 
-7.1 Security Practices
+### 7.1 Security Practices
 
 Validate all inputs with Zod or io-ts.
 
@@ -125,7 +127,7 @@ Regularly scan dependencies (npm audit, Dependabot).
 
 Enforce CSP, HSTS, and XSS protections via headers.
 
-7.2 Performance Optimization
+### 7.2 Performance Optimization
 
 Lazy-load components with defineAsyncComponent.
 
@@ -135,5 +137,64 @@ Analyze bundles with nuxt-bundle-analyzer or rollup-plugin-visualizer.
 
 Leverage CDN caching and enable Supabase RLS and IndexedDB caching on the client.
 
-These rules form the baseline for consistent, maintainable, and scalable code across our Nuxt 3 SaaS projects. Adapt as necessary, but always align with the core principles.
+## Simplicity & File Management
 
+### 8.1 File Size Guidelines
+
+**Components**: Max 200 lines. If exceeding, decompose into smaller components or extract logic to composables.
+
+**Composables**: Max 150 lines. Focus on single responsibility. Use multiple composables for complex features.
+
+**Services/Repositories**: Max 300 lines. Split large services by domain or functionality.
+
+**Type Files**: Max 100 types per file. Group related types, separate by feature when needed.
+
+**Pages**: Max 250 lines. Extract complex logic to composables or components.
+
+### 8.2 Avoiding Over-Engineering
+
+**Start Simple**: Build for current needs, not hypothetical future requirements.
+
+**YAGNI Principle**: You Aren't Gonna Need It - avoid premature abstractions.
+
+**Prefer Composition over Complex Inheritance**: Use composables and mixins over deep class hierarchies.
+
+**Limit Abstraction Layers**: Avoid repository pattern unless you switch data sources. Direct Supabase calls are often sufficient.
+
+**Progressive Enhancement**: Add complexity incrementally as features mature.
+
+### 8.3 Complexity Red Flags
+
+**Too Many Types**: More than 5 interface variations for the same entity suggests over-abstraction.
+
+**Deep Nesting**: More than 3 levels of component nesting or function calls.
+
+**Repetitive Patterns**: If you're copying similar code 3+ times, extract to composable.
+
+**Complex State Transitions**: More than 4-5 states usually indicates over-complexity.
+
+**Unused Abstractions**: Delete code that serves no current purpose.
+
+### 8.4 Refactoring Triggers
+
+When a file exceeds size limits, apply these strategies:
+
+**Extract Composables**: Move reusable logic to ~/composables/
+
+**Split Components**: Create child components for distinct UI sections
+
+**Create Utilities**: Move pure functions to ~/utils/
+
+**Feature Modules**: Group related files in feature folders
+
+**Service Decomposition**: Split services by subdomain (e.g., userAuth, userProfile)
+
+## Best Practices Summary
+
+These rules form the baseline for consistent, maintainable, and scalable code across our Nuxt 3 SaaS projects. Adapt as necessary, but always align with the core principles:
+
+• **Simplicity First**: Prefer simple, readable code over clever abstractions
+• **File Size Discipline**: Keep files focused and manageable
+• **Progressive Complexity**: Start simple, add complexity only when needed
+• **Feature-Based Organization**: Group by business function, not technical layer
+• **Composable-First**: Extract reusable logic to composables before creating complex services

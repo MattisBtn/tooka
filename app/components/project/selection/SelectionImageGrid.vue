@@ -35,19 +35,30 @@
                 </div>
 
                 <!-- Selection Indicator -->
-                <div v-if="canToggleSelection && (image.conversion_status === 'completed' || !image.requires_conversion)"
+                <div v-if="(canToggleSelection || showSelectionState) && (image.conversion_status === 'completed' || !image.requires_conversion)"
                     class="absolute bottom-2 left-2">
-                    <UButton :icon="image.is_selected ? 'i-lucide-check-circle' : 'i-lucide-circle'"
+                    <!-- Interactive button for clients -->
+                    <UButton v-if="canToggleSelection"
+                        :icon="image.is_selected ? 'i-lucide-check-circle' : 'i-lucide-circle'"
                         :color="image.is_selected ? 'success' : 'neutral'"
                         :variant="image.is_selected ? 'solid' : 'outline'" size="sm"
                         @click="handleToggleSelection(image.id, !image.is_selected)" />
+                    <!-- Read-only indicator for photographers -->
+                    <div v-else-if="showSelectionState"
+                        class="flex items-center justify-center w-8 h-8 rounded-full shadow-lg"
+                        :class="image.is_selected ? 'bg-green-500' : 'bg-neutral-500 bg-opacity-70'">
+                        <UIcon :name="image.is_selected ? 'i-lucide-check' : 'i-lucide-circle'"
+                            :class="image.is_selected ? 'text-white' : 'text-neutral-300'" class="w-4 h-4" />
+                    </div>
                 </div>
 
                 <!-- Action Menu -->
                 <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <UDropdown :items="getImageActions(image)">
+                    <UDropdownMenu :items="getImageActions(image)" :ui="{
+                        content: 'min-w-48'
+                    }">
                         <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
-                    </UDropdown>
+                    </UDropdownMenu>
                 </div>
 
                 <!-- Loading Overlay -->
@@ -106,18 +117,19 @@ import type { SelectionImage } from '~/types/selection';
 interface Props {
     images: SelectionImage[]
     canDelete?: boolean
-    canToggleSelection?: boolean
+    canToggleSelection?: boolean // Only for client interface - allows interactive selection
+    showSelectionState?: boolean // For photographer interface - shows client selection state in read-only mode
 }
 
 interface Emits {
     (e: 'delete-image', imageId: string): void
     (e: 'toggle-selection', imageId: string, selected: boolean): void
-    (e: 'retry-conversion', imageId: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
     canDelete: false,
     canToggleSelection: false,
+    showSelectionState: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -253,7 +265,7 @@ const getImageActions = (image: SelectionImage) => {
         actions.push({
             label: 'Télécharger JPEG',
             icon: 'i-lucide-download',
-            click: () => downloadImage(image.file_url, 'jpeg')
+            onSelect: () => downloadImage(image.file_url, 'jpeg')
         })
     }
 
@@ -261,7 +273,7 @@ const getImageActions = (image: SelectionImage) => {
         actions.push({
             label: `Télécharger ${(image.source_format || 'RAW').toUpperCase()} original`,
             icon: 'i-lucide-camera',
-            click: () => downloadImage(image.source_file_url!, 'raw')
+            onSelect: () => downloadImage(image.source_file_url!, 'raw')
         })
     }
 
@@ -270,20 +282,24 @@ const getImageActions = (image: SelectionImage) => {
         actions.push({
             label: 'Relancer la conversion',
             icon: 'i-lucide-refresh-cw',
-            click: () => emit('retry-conversion', image.id)
+            onSelect: () => retryConversion(image.id)
         })
     }
 
     // Delete action
     if (props.canDelete) {
+        if (actions.length > 0) {
+            actions.push({ type: 'separator' })
+        }
         actions.push({
             label: 'Supprimer',
             icon: 'i-lucide-trash-2',
-            click: () => emit('delete-image', image.id)
+            color: 'error',
+            onSelect: () => emit('delete-image', image.id)
         })
     }
 
-    return actions
+    return [actions] // Wrap in array for grouped structure
 }
 
 // Event handlers
@@ -298,21 +314,59 @@ const handleImageError = (event: Event) => {
     // Could implement fallback image here
 }
 
+const retryConversion = async (imageId: string) => {
+    try {
+        const { selectionService } = await import('~/services/selectionService')
+        await selectionService.retryConversion(imageId)
+
+        const toast = useToast()
+        toast.add({
+            title: 'Conversion relancée',
+            description: 'La conversion de l\'image a été relancée avec succès.',
+            icon: 'i-lucide-refresh-cw',
+            color: 'success'
+        })
+
+        // No need to refresh - real-time updates will handle UI changes
+    } catch (error) {
+        console.error('Retry conversion failed:', error)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: error instanceof Error ? error.message : 'Erreur lors de la relance de la conversion',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
 const downloadImage = async (filePath: string, type: 'jpeg' | 'raw') => {
     try {
         const { selectionService } = await import('~/services/selectionService')
-        const signedUrl = await selectionService.getImageSignedUrl(filePath)
 
-        // Create download link
-        const link = document.createElement('a')
-        link.href = signedUrl
-        link.download = `image_${type}_${Date.now()}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Generate appropriate filename
+        const timestamp = Date.now()
+        const extension = type === 'raw' ? 'raw' : 'jpg'
+        const filename = `image_${type}_${timestamp}.${extension}`
+
+        await selectionService.downloadImage(filePath, filename, true)
+
+        const toast = useToast()
+        toast.add({
+            title: 'Téléchargement lancé',
+            description: `Le téléchargement de l'image ${type.toUpperCase()} a commencé.`,
+            icon: 'i-lucide-download',
+            color: 'success'
+        })
     } catch (error) {
         console.error('Download failed:', error)
-        // Show error toast
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur de téléchargement',
+            description: error instanceof Error ? error.message : 'Erreur lors du téléchargement',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
     }
 }
 </script>

@@ -39,6 +39,38 @@ export interface ISelectionImageRepository {
   delete(id: string): Promise<void>;
   deleteMany(selectionId: string): Promise<void>;
   getPublicUrl(filePath: string): string;
+  getSignedUrl(filePath: string, expiresIn?: number): Promise<string>;
+  downloadImageBlob(
+    filePath: string,
+    options?: ImageDownloadOptions
+  ): Promise<Blob>;
+  subscribeToSelectionImages(
+    selectionId: string,
+    callback: (payload: SelectionImageRealtimePayload) => void
+  ): { unsubscribe: () => Promise<"ok" | "timed out" | "error"> };
+  updateConversionStatus(
+    imageIds: string[],
+    status:
+      | "pending"
+      | "queued"
+      | "processing"
+      | "completed"
+      | "failed"
+      | "retrying"
+      | "cancelled"
+  ): Promise<void>;
+  getImagesRequiringConversion(
+    selectionId: string,
+    statuses?: (
+      | "pending"
+      | "queued"
+      | "processing"
+      | "completed"
+      | "failed"
+      | "retrying"
+      | "cancelled"
+    )[]
+  ): Promise<SelectionImage[]>;
 }
 
 export interface IPagination {
@@ -178,4 +210,23 @@ export interface ImageSelectionResponse {
   selected: boolean;
   selectedCount: number;
   maxReached: boolean;
+}
+
+// Realtime types for selection images
+export interface SelectionImageRealtimePayload {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: SelectionImage;
+  old: SelectionImage;
+}
+
+export interface SelectionRealtimeSubscription {
+  subscribe: () => Promise<void>;
+  unsubscribe: () => Promise<void>;
+  isSubscribed: () => boolean;
+}
+
+// Image download types
+export interface ImageDownloadOptions {
+  filename?: string;
+  forceDownload?: boolean;
 }

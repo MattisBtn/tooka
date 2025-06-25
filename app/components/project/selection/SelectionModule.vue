@@ -5,7 +5,7 @@
                 <div class="flex items-center gap-3">
                     <UIcon name="i-lucide-mouse-pointer-click" class="w-5 h-5 text-orange-500" />
                     <div>
-                        <h3 class="font-semibold">Pré-sélection</h3>
+                        <h3 class="font-semibold">Sélection</h3>
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">Sélection d'images par le client</p>
                     </div>
                 </div>
@@ -42,7 +42,7 @@
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 {{ imageCount }} image{{ imageCount > 1 ? 's' : '' }} disponibles
                                 <span v-if="selectedCount > 0" class="text-orange-600 dark:text-orange-400">
-                                    • {{ selectedCount }} pré-sélectionnée{{ selectedCount > 1 ? 's' : '' }}
+                                    • {{ selectedCount }} sélectionnée{{ selectedCount > 1 ? 's' : '' }} par le client
                                 </span>
                             </p>
                             <p v-if="formattedExtraMediaPrice" class="text-sm text-neutral-600 dark:text-neutral-400">
@@ -64,11 +64,43 @@
                             color="error" label="Supprimer" :loading="isDeleting" @click="confirmDeleteSelection" />
                     </div>
 
+                    <!-- Conversion Controls -->
+                    <div v-if="needsConversion" class="space-y-3 mt-4">
+                        <div class="flex items-center justify-between">
+                            <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Conversions d'images
+                            </h5>
+                            <UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" color="primary"
+                                label="Relancer toutes les conversions" :loading="isConverting"
+                                @click="convertAllImages" />
+                        </div>
+
+                        <UAlert v-if="conversionSummary.failed > 0" color="error" variant="soft"
+                            icon="i-lucide-alert-circle"
+                            :title="`${conversionSummary.failed} conversion(s) échouée(s)`">
+                            <template #description>
+                                Certaines images RAW n'ont pas pu être converties. Vous pouvez relancer la conversion
+                                pour ces images.
+                            </template>
+                        </UAlert>
+
+                        <UAlert v-else-if="conversionSummary.pending > 0" color="warning" variant="soft"
+                            icon="i-lucide-clock" :title="`${conversionSummary.pending} conversion(s) en attente`">
+                            <template #description>
+                                Les conversions démarreront automatiquement. Vous pouvez relancer manuellement si
+                                nécessaire.
+                            </template>
+                        </UAlert>
+                    </div>
+
                     <!-- Image Grid Preview -->
                     <div v-if="hasImages" class="space-y-3 mt-4">
-                        <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Aperçu des images</h5>
+                        <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            Images et sélections du client
+                        </h5>
                         <ProjectSelectionImageGrid :images="Array.from(selectionData.images || [])" :max-preview="6"
-                            :can-delete="false" :can-toggle-selection="false" @image-click="handleImageClick" />
+                            :can-delete="false" :can-toggle-selection="false" :show-selection-state="true"
+                            @image-click="handleImageClick" />
                     </div>
 
                     <!-- Upload Progress -->
@@ -155,7 +187,8 @@
                                 <li>• <strong>Brouillon</strong> : Sauvegarde sans envoyer au client</li>
                                 <li>• <strong>Valider</strong> : Envoie la sélection au client</li>
                                 <li>• Proposez plus d'images que le nombre maximum sélectionnable</li>
-                                <li>• Le client choisira ses préférées selon vos paramètres</li>
+                                <li>• <strong>Sélection</strong> : Seul le client peut sélectionner ses images préférées
+                                </li>
                             </ul>
                         </template>
                     </UAlert>
@@ -214,6 +247,7 @@ const emit = defineEmits<Emits>()
 // Local state
 const showEditForm = ref(false)
 const isDeleting = ref(false)
+const isConverting = ref(false)
 
 // Computed properties
 const cannotDisableSelection = computed(() => {
@@ -224,6 +258,26 @@ const cannotDisableSelection = computed(() => {
 const canEditSelection = computed(() => {
     // La sélection reste toujours modifiable sauf si elle est complètement validée par le client
     return !props.selectionData || props.selectionData.status !== 'completed'
+})
+
+const needsConversion = computed(() => {
+    return props.selectionData?.images?.some(img => img.requires_conversion) || false
+})
+
+const conversionSummary = computed(() => {
+    if (!props.selectionData?.images) {
+        return { total: 0, completed: 0, processing: 0, pending: 0, failed: 0 }
+    }
+
+    const rawImages = props.selectionData.images.filter(img => img.requires_conversion)
+
+    return {
+        total: rawImages.length,
+        completed: rawImages.filter(img => img.conversion_status === 'completed').length,
+        processing: rawImages.filter(img => ['processing', 'queued'].includes(img.conversion_status || '')).length,
+        pending: rawImages.filter(img => img.conversion_status === 'pending').length,
+        failed: rawImages.filter(img => img.conversion_status === 'failed').length,
+    }
 })
 
 // Methods
@@ -265,6 +319,41 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
 const handleImageClick = (image: SelectionImage) => {
     // Handle image click (could open lightbox, etc.)
     console.log('Image clicked:', image)
+}
+
+const convertAllImages = async () => {
+    if (!props.selectionData) return
+
+    const toast = useToast()
+    isConverting.value = true
+
+    try {
+        // Use the composable method instead of direct service call
+        const { useSelection } = await import('~/composables/selections/user/useSelection')
+        const { convertAllImages: convertImages } = useSelection(props.projectId)
+
+        await convertImages()
+
+        toast.add({
+            title: 'Conversions lancées',
+            description: 'Les conversions d\'images ont été relancées avec succès.',
+            icon: 'i-lucide-refresh-cw',
+            color: 'success'
+        })
+
+        // No need to refresh - real-time will update automatically
+
+    } catch (err) {
+        console.error('Error converting images:', err)
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la conversion.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    } finally {
+        isConverting.value = false
+    }
 }
 
 const confirmDeleteSelection = async () => {

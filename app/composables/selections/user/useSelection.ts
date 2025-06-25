@@ -1,7 +1,8 @@
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { selectionService } from "~/services/selectionService";
 import type {
   SelectionFormData,
+  SelectionImageRealtimePayload,
   SelectionWithDetails,
 } from "~/types/selection";
 
@@ -10,6 +11,12 @@ export const useSelection = (projectId: string) => {
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const selection = ref<SelectionWithDetails | null>(null);
+  const isConversionInProgress = ref(false);
+
+  // Realtime subscription
+  let realtimeSubscription: {
+    unsubscribe: () => Promise<"ok" | "timed out" | "error">;
+  } | null = null;
 
   // Computed
   const imageCount = computed(() => selection.value?.imageCount || 0);
@@ -23,6 +30,42 @@ export const useSelection = (projectId: string) => {
     () => selection.value?.extra_media_price || 0
   );
 
+  // Conversion status tracking
+  const conversionSummary = computed(() => {
+    if (!selection.value?.images) {
+      return { total: 0, completed: 0, processing: 0, pending: 0, failed: 0 };
+    }
+
+    const rawImages = selection.value.images.filter(
+      (img) => img.requires_conversion
+    );
+
+    return {
+      total: rawImages.length,
+      completed: rawImages.filter(
+        (img) => img.conversion_status === "completed"
+      ).length,
+      processing: rawImages.filter((img) =>
+        ["processing", "queued"].includes(img.conversion_status || "")
+      ).length,
+      pending: rawImages.filter((img) => img.conversion_status === "pending")
+        .length,
+      failed: rawImages.filter((img) => img.conversion_status === "failed")
+        .length,
+    };
+  });
+
+  const hasConversionsInProgress = computed(() => {
+    return (
+      conversionSummary.value.processing > 0 ||
+      conversionSummary.value.pending > 0
+    );
+  });
+
+  const canPerformActions = computed(() => {
+    return !loading.value && !isConversionInProgress.value;
+  });
+
   // Format extra media price
   const formattedExtraMediaPrice = computed(() => {
     if (!extraMediaPrice.value) return null;
@@ -32,6 +75,115 @@ export const useSelection = (projectId: string) => {
     }).format(extraMediaPrice.value);
   });
 
+  // Real-time subscription management
+  const setupRealtimeSubscription = () => {
+    if (!selection.value?.id || realtimeSubscription) return;
+
+    realtimeSubscription = selectionService.subscribeToSelectionImages(
+      selection.value.id,
+      handleRealtimeUpdate
+    );
+  };
+
+  const cleanupRealtimeSubscription = async () => {
+    if (realtimeSubscription) {
+      await realtimeSubscription.unsubscribe();
+      realtimeSubscription = null;
+    }
+  };
+
+  const handleRealtimeUpdate = (payload: SelectionImageRealtimePayload) => {
+    if (!selection.value?.images) return;
+
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    switch (eventType) {
+      case "INSERT": {
+        // Add new image to local state
+        const currentImages = Array.from(selection.value.images);
+        currentImages.push(newRecord);
+        selection.value = {
+          ...selection.value,
+          images: currentImages,
+          imageCount: (selection.value.imageCount || 0) + 1,
+        };
+        break;
+      }
+
+      case "UPDATE": {
+        // Update existing image in local state
+        const currentImages = Array.from(selection.value.images);
+        const imageIndex = currentImages.findIndex(
+          (img) => img.id === newRecord.id
+        );
+        if (imageIndex !== -1) {
+          currentImages[imageIndex] = newRecord;
+
+          // Calculate selected count change
+          let selectedCountChange = 0;
+          if (oldRecord.is_selected !== newRecord.is_selected) {
+            selectedCountChange = newRecord.is_selected ? 1 : -1;
+          }
+
+          selection.value = {
+            ...selection.value,
+            images: currentImages,
+            selectedCount: Math.max(
+              0,
+              (selection.value.selectedCount || 0) + selectedCountChange
+            ),
+          };
+        }
+        break;
+      }
+
+      case "DELETE": {
+        // Remove image from local state
+        const currentImages = Array.from(selection.value.images);
+        const filteredImages = currentImages.filter(
+          (img) => img.id !== oldRecord.id
+        );
+
+        selection.value = {
+          ...selection.value,
+          images: filteredImages,
+          imageCount: Math.max(0, (selection.value.imageCount || 0) - 1),
+          selectedCount: oldRecord.is_selected
+            ? Math.max(0, (selection.value.selectedCount || 0) - 1)
+            : selection.value.selectedCount || 0,
+        };
+        break;
+      }
+    }
+
+    // Update conversion progress tracking
+    updateConversionProgress();
+  };
+
+  const updateConversionProgress = () => {
+    const wasInProgress = isConversionInProgress.value;
+    isConversionInProgress.value = hasConversionsInProgress.value;
+
+    // Show notification when all conversions complete
+    if (
+      wasInProgress &&
+      !isConversionInProgress.value &&
+      conversionSummary.value.total > 0
+    ) {
+      const toast = useToast();
+      toast.add({
+        title: "Conversions terminées",
+        description: `${conversionSummary.value.completed} image${
+          conversionSummary.value.completed > 1 ? "s" : ""
+        } convertie${
+          conversionSummary.value.completed > 1 ? "s" : ""
+        } avec succès.`,
+        icon: "i-lucide-check-circle",
+        color: "success",
+      });
+    }
+  };
+
   // Methods
   const fetchSelection = async () => {
     loading.value = true;
@@ -40,6 +192,12 @@ export const useSelection = (projectId: string) => {
     try {
       const data = await selectionService.getSelectionByProjectId(projectId);
       selection.value = data;
+
+      // Setup realtime subscription after loading selection
+      if (data?.id) {
+        await cleanupRealtimeSubscription();
+        setupRealtimeSubscription();
+      }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error("Unknown error");
       console.error("Error fetching selection:", err);
@@ -106,8 +264,8 @@ export const useSelection = (projectId: string) => {
         files
       );
 
-      // Refresh selection data to get updated image count
-      await fetchSelection();
+      // Note: Real-time subscription will automatically update local state
+      // No need to manually refresh selection data
 
       return uploadedImages;
     } catch (err) {
@@ -124,9 +282,7 @@ export const useSelection = (projectId: string) => {
 
     try {
       await selectionService.deleteImage(imageId);
-
-      // Refresh selection data
-      await fetchSelection();
+      // Real-time subscription will update local state automatically
     } catch (err) {
       error.value = err instanceof Error ? err : new Error("Unknown error");
       throw err;
@@ -145,9 +301,7 @@ export const useSelection = (projectId: string) => {
         selected
       );
 
-      // Refresh selection data to get updated counts
-      await fetchSelection();
-
+      // Real-time subscription will update local state automatically
       return result;
     } catch (err) {
       error.value = err instanceof Error ? err : new Error("Unknown error");
@@ -166,6 +320,7 @@ export const useSelection = (projectId: string) => {
     error.value = null;
 
     try {
+      await cleanupRealtimeSubscription();
       await selectionService.deleteSelection(selection.value.id);
       selection.value = null;
     } catch (err) {
@@ -176,15 +331,62 @@ export const useSelection = (projectId: string) => {
     }
   };
 
+  const downloadImage = async (
+    filePath: string,
+    filename?: string,
+    forceDownload = true
+  ) => {
+    try {
+      await selectionService.downloadImage(filePath, filename, forceDownload);
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error("Unknown error");
+      throw err;
+    }
+  };
+
+  const retryConversion = async (imageId: string) => {
+    try {
+      await selectionService.retryConversion(imageId);
+      // Real-time subscription will update the conversion status
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error("Unknown error");
+      throw err;
+    }
+  };
+
+  const convertAllImages = async () => {
+    if (!selection.value) {
+      throw new Error("No selection found");
+    }
+
+    try {
+      await selectionService.convertSelectionImages(selection.value.id);
+      // Real-time subscription will update the conversion statuses
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error("Unknown error");
+      throw err;
+    }
+  };
+
   const getStatusOptions = () => {
     return selectionService.getStatusOptions();
   };
+
+  // Lifecycle hooks
+  onMounted(() => {
+    fetchSelection();
+  });
+
+  onUnmounted(() => {
+    cleanupRealtimeSubscription();
+  });
 
   return {
     // State
     loading: readonly(loading),
     error: readonly(error),
     selection: readonly(selection),
+    isConversionInProgress: readonly(isConversionInProgress),
 
     // Computed
     imageCount,
@@ -194,6 +396,9 @@ export const useSelection = (projectId: string) => {
     maxMediaSelection,
     extraMediaPrice,
     formattedExtraMediaPrice,
+    conversionSummary,
+    hasConversionsInProgress,
+    canPerformActions,
 
     // Methods
     fetchSelection,
@@ -202,6 +407,9 @@ export const useSelection = (projectId: string) => {
     deleteImage,
     toggleImageSelection,
     deleteSelection,
+    downloadImage,
+    retryConversion,
+    convertAllImages,
     getStatusOptions,
   };
 };

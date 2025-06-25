@@ -43,7 +43,7 @@
                     class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
 
                     <!-- Image Preview -->
-                    <img :src="getFilePreview(file)" :alt="file.name" class="w-full h-full object-cover">
+                    <NuxtImg :src="getFilePreview(file)" :alt="file.name" class="w-full h-full object-cover" />
 
                     <!-- File Info Overlay -->
                     <div

@@ -1,6 +1,7 @@
 import type {
   ISelectionImageRepository,
   SelectionImage,
+  SelectionImageRealtimePayload,
 } from "~/types/selection";
 
 export const selectionImageRepository: ISelectionImageRepository = {
@@ -140,6 +141,7 @@ export const selectionImageRepository: ISelectionImageRepository = {
         `
         id,
         file_url,
+        source_file_url,
         selection:selections!inner(
           project:projects!inner(
             user_id
@@ -155,7 +157,7 @@ export const selectionImageRepository: ISelectionImageRepository = {
       throw new Error("Image non trouvée ou accès non autorisé");
     }
 
-    // Delete from database
+    // Delete from database first
     const { error } = await supabase
       .from("selection_images")
       .delete()
@@ -165,14 +167,41 @@ export const selectionImageRepository: ISelectionImageRepository = {
       throw new Error(`Failed to delete selection image: ${error.message}`);
     }
 
-    // Delete from storage
-    try {
-      await supabase.storage
-        .from("selection-images")
-        .remove([existingImage.data.file_url]);
-    } catch (storageError) {
-      console.warn("Failed to delete image from storage:", storageError);
-      // Don't throw error for storage deletion failure
+    // Collect all file paths to delete from storage
+    const filesToDelete = [];
+    const imageData = existingImage.data;
+
+    // Add main file URL
+    if (imageData.file_url) {
+      filesToDelete.push(imageData.file_url);
+    }
+
+    // Add source file URL if different from main file URL
+    if (
+      imageData.source_file_url &&
+      imageData.source_file_url !== imageData.file_url
+    ) {
+      filesToDelete.push(imageData.source_file_url);
+    }
+
+    // Delete all files from storage
+    if (filesToDelete.length > 0) {
+      try {
+        const { error: storageError } = await supabase.storage
+          .from("selection-images")
+          .remove(filesToDelete);
+
+        if (storageError) {
+          console.warn(
+            "Failed to delete some files from storage:",
+            storageError
+          );
+          // Don't throw error for storage deletion failure as DB deletion was successful
+        }
+      } catch (storageError) {
+        console.warn("Failed to delete files from storage:", storageError);
+        // Don't throw error for storage deletion failure
+      }
     }
   },
 
@@ -184,12 +213,12 @@ export const selectionImageRepository: ISelectionImageRepository = {
       throw new Error("Vous devez être connecté pour supprimer les images");
     }
 
-    // Get all images for the selection
+    // Get all images for the selection with their file URLs
     const images = await this.findBySelectionId(selectionId);
 
     if (images.length === 0) return;
 
-    // Delete from database
+    // Delete from database first
     const { error } = await supabase
       .from("selection_images")
       .delete()
@@ -199,13 +228,40 @@ export const selectionImageRepository: ISelectionImageRepository = {
       throw new Error(`Failed to delete selection images: ${error.message}`);
     }
 
-    // Delete from storage
-    try {
-      const filePaths = images.map((img) => img.file_url);
-      await supabase.storage.from("selection-images").remove(filePaths);
-    } catch (storageError) {
-      console.warn("Failed to delete images from storage:", storageError);
-      // Don't throw error for storage deletion failure
+    // Collect all unique file paths to delete from storage
+    const filesToDelete = new Set<string>();
+
+    images.forEach((img) => {
+      // Add main file URL
+      if (img.file_url) {
+        filesToDelete.add(img.file_url);
+      }
+
+      // Add source file URL if different from main file URL
+      if (img.source_file_url && img.source_file_url !== img.file_url) {
+        filesToDelete.add(img.source_file_url);
+      }
+    });
+
+    // Delete all files from storage
+    if (filesToDelete.size > 0) {
+      try {
+        const filePathsArray = Array.from(filesToDelete);
+        const { error: storageError } = await supabase.storage
+          .from("selection-images")
+          .remove(filePathsArray);
+
+        if (storageError) {
+          console.warn(
+            "Failed to delete some files from storage:",
+            storageError
+          );
+          // Don't throw error for storage deletion failure as DB deletion was successful
+        }
+      } catch (storageError) {
+        console.warn("Failed to delete files from storage:", storageError);
+        // Don't throw error for storage deletion failure
+      }
     }
   },
 
@@ -220,5 +276,176 @@ export const selectionImageRepository: ISelectionImageRepository = {
       .getPublicUrl(filePath);
 
     return data.publicUrl;
+  },
+
+  /**
+   * Get signed URL for secure download
+   */
+  async getSignedUrl(
+    filePath: string,
+    expiresIn: number = 3600
+  ): Promise<string> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder à l'image");
+    }
+
+    const { data, error } = await supabase.storage
+      .from("selection-images")
+      .createSignedUrl(filePath, expiresIn);
+
+    if (error) {
+      throw new Error(`Failed to generate signed URL: ${error.message}`);
+    }
+
+    return data.signedUrl;
+  },
+
+  /**
+   * Download image as blob for forced download
+   */
+  async downloadImageBlob(filePath: string): Promise<Blob> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour télécharger l'image");
+    }
+
+    const { data, error } = await supabase.storage
+      .from("selection-images")
+      .download(filePath);
+
+    if (error) {
+      throw new Error(`Failed to download image: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * Subscribe to real-time changes for selection images
+   */
+  subscribeToSelectionImages(
+    selectionId: string,
+    callback: (payload: SelectionImageRealtimePayload) => void
+  ) {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error(
+        "Vous devez être connecté pour s'abonner aux changements"
+      );
+    }
+
+    const subscription = supabase
+      .channel(`selection_images_${selectionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "selection_images",
+          filter: `selection_id=eq.${selectionId}`,
+        },
+        (payload) => {
+          callback({
+            eventType: payload.eventType as "INSERT" | "UPDATE" | "DELETE",
+            new: payload.new as SelectionImage,
+            old: payload.old as SelectionImage,
+          });
+        }
+      )
+      .subscribe();
+
+    return {
+      unsubscribe: () => {
+        return supabase.removeChannel(subscription);
+      },
+    };
+  },
+
+  /**
+   * Update conversion status for multiple images
+   */
+  async updateConversionStatus(
+    imageIds: string[],
+    status:
+      | "pending"
+      | "queued"
+      | "processing"
+      | "completed"
+      | "failed"
+      | "retrying"
+      | "cancelled"
+  ): Promise<void> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error(
+        "Vous devez être connecté pour modifier le statut de conversion"
+      );
+    }
+
+    const { error } = await supabase
+      .from("selection_images")
+      .update({ conversion_status: status })
+      .in("id", imageIds);
+
+    if (error) {
+      throw new Error(`Failed to update conversion status: ${error.message}`);
+    }
+  },
+
+  /**
+   * Get images that require conversion for a selection
+   */
+  async getImagesRequiringConversion(
+    selectionId: string,
+    statuses: (
+      | "pending"
+      | "queued"
+      | "processing"
+      | "completed"
+      | "failed"
+      | "retrying"
+      | "cancelled"
+    )[] = ["pending", "failed"]
+  ): Promise<SelectionImage[]> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder aux images");
+    }
+
+    const { data, error } = await supabase
+      .from("selection_images")
+      .select(
+        `
+        *,
+        selection:selections!inner(
+          project:projects!inner(
+            user_id
+          )
+        )
+      `
+      )
+      .eq("selection_id", selectionId)
+      .eq("requires_conversion", true)
+      .in("conversion_status", statuses)
+      .eq("selection.project.user_id", user.value.id);
+
+    if (error) {
+      throw new Error(
+        `Failed to fetch images requiring conversion: ${error.message}`
+      );
+    }
+
+    return data || [];
   },
 };

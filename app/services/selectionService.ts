@@ -320,6 +320,32 @@ export const selectionService = {
       console.warn("Some uploads failed:", errors);
     }
 
+    // Trigger conversion for RAW images
+    const rawImageIds = uploadedImages
+      .filter((img) => img.requires_conversion)
+      .map((img) => img.id);
+
+    if (rawImageIds.length > 0) {
+      // Queue images for conversion using repository
+      try {
+        await selectionImageRepository.updateConversionStatus(
+          rawImageIds,
+          "queued"
+        );
+
+        // Trigger conversion asynchronously (don't wait for completion)
+        const { conversionService } = await import(
+          "~/services/conversionService"
+        );
+        conversionService.convertImages(rawImageIds).catch((error) => {
+          console.error("Background conversion failed:", error);
+        });
+      } catch (error) {
+        console.warn("Failed to queue images for conversion:", error);
+        // Don't throw error as upload was successful
+      }
+    }
+
     return uploadedImages;
   },
 
@@ -330,22 +356,47 @@ export const selectionService = {
     filePath: string,
     expiresIn: number = 3600
   ): Promise<string> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
+    return await selectionImageRepository.getSignedUrl(filePath, expiresIn);
+  },
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à l'image");
+  /**
+   * Download image with proper browser download behavior
+   */
+  async downloadImage(
+    filePath: string,
+    filename?: string,
+    forceDownload: boolean = true
+  ): Promise<void> {
+    try {
+      if (forceDownload) {
+        // Use blob download for reliable file downloads
+        const blob = await selectionImageRepository.downloadImageBlob(filePath);
+
+        // Create download link with blob URL
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename || `image_${Date.now()}`;
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Cleanup blob URL
+        URL.revokeObjectURL(url);
+      } else {
+        // Use signed URL for preview/navigation
+        const signedUrl = await this.getImageSignedUrl(filePath);
+        window.open(signedUrl, "_blank");
+      }
+    } catch (error) {
+      throw new Error(
+        error instanceof Error
+          ? `Erreur lors du téléchargement: ${error.message}`
+          : "Erreur lors du téléchargement de l'image"
+      );
     }
-
-    const { data, error } = await supabase.storage
-      .from("selection-images")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      throw new Error(`Failed to generate signed URL: ${error.message}`);
-    }
-
-    return data.signedUrl;
   },
 
   /**
@@ -353,6 +404,48 @@ export const selectionService = {
    */
   async deleteImage(imageId: string): Promise<void> {
     await selectionImageRepository.delete(imageId);
+  },
+
+  /**
+   * Retry conversion for failed images
+   */
+  async retryConversion(imageId: string): Promise<void> {
+    // Update status to queued using repository
+    await selectionImageRepository.updateConversionStatus([imageId], "queued");
+
+    // Trigger conversion using conversion service
+    const { conversionService } = await import("~/services/conversionService");
+    await conversionService.convertImage(imageId);
+  },
+
+  /**
+   * Trigger conversion for all pending RAW images in a selection
+   */
+  async convertSelectionImages(selectionId: string): Promise<void> {
+    // Get images that need conversion from repository
+    const rawImages =
+      await selectionImageRepository.getImagesRequiringConversion(selectionId, [
+        "pending",
+        "failed",
+      ]);
+
+    if (!rawImages || rawImages.length === 0) {
+      throw new Error("Aucune image à convertir trouvée");
+    }
+
+    // Update status to queued
+    const imageIds = rawImages.map((img) => img.id);
+    await selectionImageRepository.updateConversionStatus(imageIds, "queued");
+
+    // Trigger conversion using conversion service
+    const { conversionService } = await import("~/services/conversionService");
+    const response = await conversionService.convertImages(imageIds);
+
+    if (response.summary.failed > 0) {
+      throw new Error(
+        `${response.summary.failed} conversion(s) ont échoué sur ${response.summary.total}`
+      );
+    }
   },
 
   /**
@@ -473,5 +566,20 @@ export const selectionService = {
         color: "success",
       },
     ];
+  },
+
+  /**
+   * Subscribe to real-time updates for selection images
+   */
+  subscribeToSelectionImages(
+    selectionId: string,
+    callback: (
+      payload: import("~/types/selection").SelectionImageRealtimePayload
+    ) => void
+  ) {
+    return selectionImageRepository.subscribeToSelectionImages(
+      selectionId,
+      callback
+    );
   },
 };
