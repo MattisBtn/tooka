@@ -243,17 +243,37 @@ export const selectionService = {
         }
 
         // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > 100 * 1024 * 1024) {
           errors.push(`${file.name}: Fichier trop volumineux (max 10MB)`);
           continue;
         }
 
         // Generate unique filename
-        const fileExt = file.name.split(".").pop();
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
         const fileName = `${Date.now()}_${Math.random()
           .toString(36)
           .substring(7)}.${fileExt}`;
         const filePath = `${user.value.id}/selections/${selectionId}/${fileName}`;
+
+        // Detect if file is RAW format
+        const rawFormats = [
+          "nef",
+          "dng",
+          "raw",
+          "cr2",
+          "arw",
+          "raf",
+          "orf",
+          "rw2",
+          "crw",
+          "pef",
+          "srw",
+          "x3f",
+        ];
+        const isRawFormat = rawFormats.includes(fileExt);
+
+        // Determine source format from file extension
+        const sourceFormat = fileExt || file.type.split("/")[1] || "unknown";
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
@@ -268,11 +288,19 @@ export const selectionService = {
           continue;
         }
 
-        // Create database record with is_selected = false by default
+        // Create database record with conversion info
         const imageData = {
           selection_id: selectionId,
           file_url: filePath,
           is_selected: false,
+          source_file_url: filePath, // For now, same as file_url (will be different after conversion)
+          source_filename: file.name,
+          source_format: sourceFormat,
+          target_format: isRawFormat ? "jpeg" : sourceFormat, // Convert RAW to JPEG, others keep original format
+          requires_conversion: isRawFormat,
+          conversion_status: (isRawFormat ? "pending" : "completed") as
+            | "pending"
+            | "completed", // RAW files need conversion, others are ready
         };
 
         const image = await selectionImageRepository.create(imageData);

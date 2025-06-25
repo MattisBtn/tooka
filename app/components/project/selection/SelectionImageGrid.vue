@@ -1,49 +1,102 @@
 <template>
-    <div class="space-y-3">
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <div v-for="(image, index) in displayImages" :key="image.id"
-                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden cursor-pointer"
-                :class="[
-                    image.is_selected ? 'ring-2 ring-orange-500 ring-offset-2' : '',
-                ]" @click="$emit('image-click', image)">
+    <div v-if="images.length > 0" class="space-y-4">
+        <!-- Images Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div v-for="image in images" :key="image.id"
+                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border-2 transition-all duration-200"
+                :class="getImageClasses(image)">
+                <!-- Image Display -->
+                <img v-if="image.conversion_status === 'completed' || !image.requires_conversion"
+                    :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
+                    class="w-full h-full object-cover" @error="handleImageError">
 
-                <!-- Image -->
-                <NuxtImg :src="getImageUrl(image.file_url)" :alt="`Image de sélection ${index + 1}`"
-                    class="w-full h-full object-cover" loading="lazy" />
-
-                <!-- Selection indicator -->
-                <div v-if="image.is_selected" class="absolute top-2 left-2">
-                    <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                        <UIcon name="i-lucide-check" class="w-4 h-4 text-white" />
+                <!-- Conversion Placeholder -->
+                <div v-else class="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                    <div class="text-center">
+                        <UIcon :name="getConversionIcon(image.conversion_status)"
+                            :class="getConversionIconClass(image.conversion_status)" class="w-8 h-8 mx-auto mb-2" />
+                        <p class="text-xs text-neutral-600 dark:text-neutral-400">
+                            {{ getConversionStatusText(image.conversion_status) }}
+                        </p>
                     </div>
                 </div>
 
-                <!-- Hover overlay with actions -->
-                <div
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div class="flex items-center gap-2">
-                        <UButton icon="i-lucide-eye" size="xs" color="primary" variant="solid" title="Voir l'image"
-                            @click.stop="$emit('image-click', image)" />
+                <!-- RAW Badge -->
+                <div v-if="image.requires_conversion"
+                    class="absolute top-2 left-2 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded shadow-lg">
+                    {{ (image.source_format || 'RAW').toUpperCase() }}
+                </div>
 
-                        <UButton v-if="canToggleSelection"
-                            :icon="image.is_selected ? 'i-lucide-circle-x' : 'i-lucide-circle-check'" size="xs"
-                            :color="image.is_selected ? 'warning' : 'success'" variant="solid"
-                            :title="image.is_selected ? 'Désélectionner' : 'Sélectionner'"
-                            @click.stop="$emit('toggle-selection', image.id, !image.is_selected)" />
+                <!-- Conversion Status Badge -->
+                <div v-if="image.requires_conversion && image.conversion_status !== 'completed'"
+                    class="absolute top-2 right-2 px-2 py-1 rounded shadow-lg text-xs font-medium"
+                    :class="getStatusBadgeClass(image.conversion_status)">
+                    {{ getConversionStatusText(image.conversion_status) }}
+                </div>
 
-                        <UButton v-if="canDelete" icon="i-lucide-trash-2" size="xs" color="error" variant="solid"
-                            title="Supprimer" @click.stop="$emit('delete-image', image.id)" />
-                    </div>
+                <!-- Selection Indicator -->
+                <div v-if="canToggleSelection && (image.conversion_status === 'completed' || !image.requires_conversion)"
+                    class="absolute bottom-2 left-2">
+                    <UButton :icon="image.is_selected ? 'i-lucide-check-circle' : 'i-lucide-circle'"
+                        :color="image.is_selected ? 'success' : 'neutral'"
+                        :variant="image.is_selected ? 'solid' : 'outline'" size="sm"
+                        @click="handleToggleSelection(image.id, !image.is_selected)" />
+                </div>
+
+                <!-- Action Menu -->
+                <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <UDropdown :items="getImageActions(image)">
+                        <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
+                    </UDropdown>
+                </div>
+
+                <!-- Loading Overlay -->
+                <div v-if="image.conversion_status === 'processing'"
+                    class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <UIcon name="i-lucide-loader-2" class="w-6 h-6 text-white animate-spin" />
                 </div>
             </div>
         </div>
 
-        <!-- Show more button if there are more images -->
-        <div v-if="images.length > maxPreview" class="text-center">
-            <UButton icon="i-lucide-plus" variant="outline" color="neutral"
-                :label="`Voir ${images.length - maxPreview} image${images.length - maxPreview > 1 ? 's' : ''} de sélection de plus`"
-                @click="showAll = !showAll" />
+        <!-- Conversion Summary -->
+        <div v-if="conversionSummary.total > 0" class="mt-6 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
+            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                Statut des conversions RAW
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                        {{ conversionSummary.completed }}
+                    </div>
+                    <div class="text-neutral-600 dark:text-neutral-400">Terminées</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-orange-600">
+                        {{ conversionSummary.processing }}
+                    </div>
+                    <div class="text-neutral-600 dark:text-neutral-400">En cours</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-neutral-500">
+                        {{ conversionSummary.pending }}
+                    </div>
+                    <div class="text-neutral-600 dark:text-neutral-400">En attente</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-red-600">
+                        {{ conversionSummary.failed }}
+                    </div>
+                    <div class="text-neutral-600 dark:text-neutral-400">Échouées</div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <div v-else class="text-center py-12">
+        <UIcon name="i-lucide-images" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+        <p class="text-neutral-600 dark:text-neutral-400">
+            Aucune image dans cette sélection
+        </p>
     </div>
 </template>
 
@@ -52,47 +105,214 @@ import type { SelectionImage } from '~/types/selection';
 
 interface Props {
     images: SelectionImage[]
-    maxPreview?: number
     canDelete?: boolean
     canToggleSelection?: boolean
 }
 
 interface Emits {
-    (e: 'image-click', image: SelectionImage): void
     (e: 'delete-image', imageId: string): void
     (e: 'toggle-selection', imageId: string, selected: boolean): void
+    (e: 'retry-conversion', imageId: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    maxPreview: 6,
     canDelete: false,
     canToggleSelection: false,
 })
 
-defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 
-// Local state
-const showAll = ref(false)
+// Computed properties
+const conversionSummary = computed(() => {
+    const rawImages = props.images.filter(img => img.requires_conversion)
 
-const displayImages = computed(() => {
-    if (showAll.value || props.images.length <= props.maxPreview) {
-        return props.images
+    return {
+        total: rawImages.length,
+        completed: rawImages.filter(img => img.conversion_status === 'completed').length,
+        processing: rawImages.filter(img => ['processing', 'queued'].includes(img.conversion_status || '')).length,
+        pending: rawImages.filter(img => img.conversion_status === 'pending').length,
+        failed: rawImages.filter(img => img.conversion_status === 'failed').length,
     }
-    return props.images.slice(0, props.maxPreview)
 })
 
-// Get real image URL using the selection repository
-const getImageUrl = (filePath: string) => {
+// Helper methods
+const getImageUrl = (image: SelectionImage): string => {
+    // For converted images, use the converted file URL
+    if (image.requires_conversion && image.conversion_status === 'completed') {
+        return getSignedUrl(image.file_url)
+    }
+    // For regular images, use file_url directly
+    return getSignedUrl(image.file_url)
+}
+
+const getSignedUrl = (filePath: string): string => {
+    // This should be implemented to get signed URLs from Supabase
+    const supabase = useSupabaseClient()
+    const { data } = supabase.storage
+        .from('selection-images')
+        .getPublicUrl(filePath)
+
+    return data.publicUrl
+}
+
+const getImageClasses = (image: SelectionImage): string => {
+    const classes = []
+
+    if (image.is_selected) {
+        classes.push('border-green-500 ring-2 ring-green-200')
+    } else {
+        classes.push('border-transparent hover:border-neutral-300')
+    }
+
+    if (image.conversion_status === 'failed') {
+        classes.push('border-red-500 bg-red-50 dark:bg-red-950')
+    }
+
+    return classes.join(' ')
+}
+
+const getConversionIcon = (status: string | null): string => {
+    switch (status) {
+        case 'pending':
+        case 'queued':
+            return 'i-lucide-clock'
+        case 'processing':
+            return 'i-lucide-loader-2'
+        case 'completed':
+            return 'i-lucide-check-circle'
+        case 'failed':
+            return 'i-lucide-alert-circle'
+        case 'retrying':
+            return 'i-lucide-refresh-cw'
+        case 'cancelled':
+            return 'i-lucide-x-circle'
+        default:
+            return 'i-lucide-help-circle'
+    }
+}
+
+const getConversionIconClass = (status: string | null): string => {
+    switch (status) {
+        case 'processing':
+        case 'retrying':
+            return 'animate-spin text-orange-500'
+        case 'completed':
+            return 'text-green-500'
+        case 'failed':
+            return 'text-red-500'
+        case 'cancelled':
+            return 'text-neutral-500'
+        default:
+            return 'text-neutral-400'
+    }
+}
+
+const getConversionStatusText = (status: string | null): string => {
+    switch (status) {
+        case 'pending':
+            return 'En attente'
+        case 'queued':
+            return 'En file'
+        case 'processing':
+            return 'Conversion...'
+        case 'completed':
+            return 'Terminé'
+        case 'failed':
+            return 'Échec'
+        case 'retrying':
+            return 'Nouvelle tentative'
+        case 'cancelled':
+            return 'Annulé'
+        default:
+            return 'Inconnu'
+    }
+}
+
+const getStatusBadgeClass = (status: string | null): string => {
+    switch (status) {
+        case 'pending':
+        case 'queued':
+            return 'bg-neutral-500 text-white'
+        case 'processing':
+        case 'retrying':
+            return 'bg-orange-500 text-white'
+        case 'failed':
+            return 'bg-red-500 text-white'
+        case 'cancelled':
+            return 'bg-neutral-400 text-white'
+        default:
+            return 'bg-neutral-500 text-white'
+    }
+}
+
+const getImageActions = (image: SelectionImage) => {
+    const actions = []
+
+    // Download actions
+    if (image.conversion_status === 'completed' || !image.requires_conversion) {
+        actions.push({
+            label: 'Télécharger JPEG',
+            icon: 'i-lucide-download',
+            click: () => downloadImage(image.file_url, 'jpeg')
+        })
+    }
+
+    if (image.requires_conversion && image.source_file_url) {
+        actions.push({
+            label: `Télécharger ${(image.source_format || 'RAW').toUpperCase()} original`,
+            icon: 'i-lucide-camera',
+            click: () => downloadImage(image.source_file_url!, 'raw')
+        })
+    }
+
+    // Retry conversion
+    if (image.conversion_status === 'failed') {
+        actions.push({
+            label: 'Relancer la conversion',
+            icon: 'i-lucide-refresh-cw',
+            click: () => emit('retry-conversion', image.id)
+        })
+    }
+
+    // Delete action
+    if (props.canDelete) {
+        actions.push({
+            label: 'Supprimer',
+            icon: 'i-lucide-trash-2',
+            click: () => emit('delete-image', image.id)
+        })
+    }
+
+    return actions
+}
+
+// Event handlers
+const handleToggleSelection = (imageId: string, selected: boolean) => {
+    if (props.canToggleSelection) {
+        emit('toggle-selection', imageId, selected)
+    }
+}
+
+const handleImageError = (event: Event) => {
+    console.error('Failed to load image:', event)
+    // Could implement fallback image here
+}
+
+const downloadImage = async (filePath: string, type: 'jpeg' | 'raw') => {
     try {
-        // Use the public URL method from Supabase directly for selection images
-        const supabase = useSupabaseClient()
-        const { data } = supabase.storage
-            .from('selection-images')
-            .getPublicUrl(filePath)
-        return data.publicUrl
+        const { selectionService } = await import('~/services/selectionService')
+        const signedUrl = await selectionService.getImageSignedUrl(filePath)
+
+        // Create download link
+        const link = document.createElement('a')
+        link.href = signedUrl
+        link.download = `image_${type}_${Date.now()}`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
     } catch (error) {
-        console.error('Error getting selection image URL:', error)
-        return `https://via.placeholder.com/300x300?text=Error+Loading+Image`
+        console.error('Download failed:', error)
+        // Show error toast
     }
 }
 </script>

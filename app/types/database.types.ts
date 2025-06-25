@@ -471,25 +471,49 @@ export type Database = {
       }
       selection_images: {
         Row: {
+          conversion_status:
+            | Database["public"]["Enums"]["conversion_status_enum"]
+            | null
           created_at: string
           file_url: string
           id: string
           is_selected: boolean
+          requires_conversion: boolean | null
           selection_id: string
+          source_file_url: string | null
+          source_filename: string | null
+          source_format: string | null
+          target_format: string | null
         }
         Insert: {
+          conversion_status?:
+            | Database["public"]["Enums"]["conversion_status_enum"]
+            | null
           created_at?: string
           file_url: string
           id?: string
           is_selected?: boolean
+          requires_conversion?: boolean | null
           selection_id: string
+          source_file_url?: string | null
+          source_filename?: string | null
+          source_format?: string | null
+          target_format?: string | null
         }
         Update: {
+          conversion_status?:
+            | Database["public"]["Enums"]["conversion_status_enum"]
+            | null
           created_at?: string
           file_url?: string
           id?: string
           is_selected?: boolean
+          requires_conversion?: boolean | null
           selection_id?: string
+          source_file_url?: string | null
+          source_filename?: string | null
+          source_format?: string | null
+          target_format?: string | null
         }
         Relationships: [
           {
@@ -548,6 +572,14 @@ export type Database = {
     }
     Enums: {
       client_type: "individual" | "company"
+      conversion_status_enum:
+        | "pending"
+        | "queued"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "retrying"
+        | "cancelled"
       project_status: "draft" | "in_progress" | "completed"
       reaction_type: "love" | "like" | "dislike"
       status_enum:
@@ -671,6 +703,15 @@ export const Constants = {
   public: {
     Enums: {
       client_type: ["individual", "company"],
+      conversion_status_enum: [
+        "pending",
+        "queued",
+        "processing",
+        "completed",
+        "failed",
+        "retrying",
+        "cancelled",
+      ],
       project_status: ["draft", "in_progress", "completed"],
       reaction_type: ["love", "like", "dislike"],
       status_enum: [

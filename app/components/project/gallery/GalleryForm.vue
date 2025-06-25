@@ -122,7 +122,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images</template>
                 </h3>
-                <UiImageUploadField v-model="selectedFiles" :max-files="200" :config="galleryUploadConfig" />
+                <ProjectGalleryImageUploadField v-model="selectedFiles" :max-files="200" />
             </div>
 
             <!-- Upload Progress -->
@@ -234,17 +234,6 @@ const selectedFiles = computed({
         addFiles(files);
     }
 });
-
-// Gallery upload configuration
-const galleryUploadConfig = {
-    theme: 'primary' as const,
-    mainIcon: 'i-lucide-upload-cloud',
-    buttonIcon: 'i-lucide-folder-open',
-    buttonLabel: 'Sélectionner des images',
-    title: 'Glissez-déposez vos images ici',
-    filesLabel: 'Images sélectionnées'
-    // No indicator or tips for gallery - keep it simple
-};
 
 // Local loading state for form submission
 const isSubmitting = ref(false);

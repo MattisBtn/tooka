@@ -90,7 +90,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images d'inspiration</template>
                 </h3>
-                <UiImageUploadField v-model="selectedFiles" :max-files="50" :config="moodboardUploadConfig" />
+                <ProjectMoodboardImageUploadField v-model="selectedFiles" :max-files="50" />
             </div>
 
             <!-- Upload Progress -->
@@ -241,28 +241,6 @@ const schema = moodboardFormSchema;
 // Local loading state for form submission
 const isSubmitting = ref(false);
 const submitAsDraft = ref(false);
-
-// Moodboard upload configuration
-const moodboardUploadConfig = {
-    theme: 'pink' as const,
-    mainIcon: 'i-lucide-image-plus',
-    buttonIcon: 'i-lucide-palette',
-    buttonLabel: 'Ajouter des images d\'inspiration',
-    title: 'Glissez-déposez vos images d\'inspiration ici',
-    filesLabel: 'Images d\'inspiration sélectionnées',
-    indicator: {
-        icon: 'i-lucide-lightbulb',
-        class: 'w-4 h-4 text-yellow-400 drop-shadow-sm'
-    },
-    tips: {
-        title: 'Conseils pour vos images d\'inspiration',
-        items: [
-            'Choisissez des images qui représentent l\'ambiance et le style souhaités',
-            'Incluez des références de couleurs, lumière et composition',
-            'Variez les sources : portraits, paysages, détails, textures'
-        ]
-    }
-};
 
 // Computed
 const isEditMode = computed(() => !!props.moodboard);
