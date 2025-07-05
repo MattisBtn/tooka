@@ -14,7 +14,7 @@ export default defineEventHandler(
     if (!moodboardId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "ID de moodboard requis",
+        message: "ID de moodboard requis",
       });
     }
 
@@ -43,7 +43,7 @@ export default defineEventHandler(
         if (error.code === "PGRST116") {
           throw createError({
             statusCode: 404,
-            statusMessage: "Moodboard non trouvé",
+            message: "Moodboard non trouvé",
           });
         }
         throw new Error(`Failed to fetch moodboard: ${error.message}`);
@@ -57,7 +57,7 @@ export default defineEventHandler(
       ) {
         throw createError({
           statusCode: 403,
-          statusMessage: "Moodboard non accessible",
+          message: "Moodboard non accessible",
         });
       }
 
@@ -140,7 +140,7 @@ export default defineEventHandler(
 
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur serveur",
+        message: "Erreur serveur",
       });
     }
   }

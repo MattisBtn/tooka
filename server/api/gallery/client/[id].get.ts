@@ -14,7 +14,7 @@ export default defineEventHandler(
     if (!galleryId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "ID de galerie requis",
+        message: "ID de galerie requis",
       });
     }
 
@@ -43,7 +43,7 @@ export default defineEventHandler(
         if (error.code === "PGRST116") {
           throw createError({
             statusCode: 404,
-            statusMessage: "Galerie non trouvée",
+            message: "Galerie non trouvée",
           });
         }
         throw new Error(`Failed to fetch gallery: ${error.message}`);
@@ -57,7 +57,7 @@ export default defineEventHandler(
       ) {
         throw createError({
           statusCode: 403,
-          statusMessage: "Galerie non accessible",
+          message: "Galerie non accessible",
         });
       }
 
@@ -127,7 +127,7 @@ export default defineEventHandler(
       // Handle unknown errors
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur serveur",
+        message: "Erreur serveur",
       });
     }
   }

@@ -189,7 +189,7 @@ useHead({
 if (error.value) {
     throw createError({
         statusCode: 404,
-        statusMessage: 'Moodboard non trouvé',
+        message: 'Moodboard non trouvé',
     })
 }
 </script>

@@ -407,6 +407,71 @@ export const selectionService = {
   },
 
   /**
+   * Download selected images in original format as ZIP
+   */
+  async downloadSelectedImages(selectionId: string): Promise<void> {
+    const selectionWithImages = await this.getSelectionByProjectId(
+      // We need to get project ID from selection ID
+      (await this.getSelectionById(selectionId)).project_id
+    );
+
+    if (!selectionWithImages) {
+      throw new Error("Sélection non trouvée");
+    }
+
+    // Filter only selected images
+    const selectedImages = (selectionWithImages.images || []).filter(img => img.is_selected);
+
+    if (selectedImages.length === 0) {
+      throw new Error("Aucune image sélectionnée par le client");
+    }
+
+    // For now, download images one by one
+    // In the future, we could implement a ZIP download service
+    const toast = useToast();
+    let downloadCount = 0;
+    let errorCount = 0;
+
+    toast.add({
+      title: 'Téléchargement en cours',
+      description: `Téléchargement de ${selectedImages.length} image(s) sélectionnée(s)...`,
+      icon: 'i-lucide-download',
+      color: 'info'
+    });
+
+    for (const image of selectedImages) {
+      try {
+        // Use source file for original format, fallback to converted file
+        const fileUrl = image.source_file_url || image.file_url;
+        const filename = image.source_filename || `selection_${image.id}.${image.source_format || 'jpg'}`;
+        
+        await this.downloadImage(fileUrl, filename, true);
+        downloadCount++;
+      } catch (error) {
+        console.error(`Failed to download image ${image.id}:`, error);
+        errorCount++;
+      }
+    }
+
+    // Show final result
+    if (errorCount === 0) {
+      toast.add({
+        title: 'Téléchargement terminé',
+        description: `${downloadCount} image(s) téléchargée(s) avec succès`,
+        icon: 'i-lucide-check-circle',
+        color: 'success'
+      });
+    } else {
+      toast.add({
+        title: 'Téléchargement partiellement réussi',
+        description: `${downloadCount} réussie(s), ${errorCount} échouée(s)`,
+        icon: 'i-lucide-alert-triangle',
+        color: 'warning'
+      });
+    }
+  },
+
+  /**
    * Retry conversion for failed images
    */
   async retryConversion(imageId: string): Promise<void> {
@@ -448,89 +513,7 @@ export const selectionService = {
     }
   },
 
-  /**
-   * Toggle image selection status
-   */
-  async toggleImageSelection(
-    imageId: string,
-    selected: boolean
-  ): Promise<{
-    success: boolean;
-    selectedCount: number;
-    maxReached?: boolean;
-  }> {
-    // Get the image to verify it exists and get selection info
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté");
-    }
-
-    // Get image with selection info
-    const { data: imageData, error: imageError } = await supabase
-      .from("selection_images")
-      .select(
-        `
-        *,
-        selection:selections!inner(
-          id,
-          max_media_selection,
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
-      .eq("id", imageId)
-      .eq("selection.project.user_id", user.value.id)
-      .single();
-
-    if (imageError || !imageData) {
-      throw new Error("Image non trouvée ou accès non autorisé");
-    }
-
-    const selection = Array.isArray(imageData.selection)
-      ? imageData.selection[0]
-      : imageData.selection;
-
-    // If trying to select, check if max is reached
-    if (selected && !imageData.is_selected) {
-      // Count currently selected images
-      const { data: selectedImages, error: countError } = await supabase
-        .from("selection_images")
-        .select("id")
-        .eq("selection_id", selection.id)
-        .eq("is_selected", true);
-
-      if (countError) {
-        throw new Error("Erreur lors du comptage des images sélectionnées");
-      }
-
-      if (selectedImages.length >= selection.max_media_selection) {
-        return {
-          success: false,
-          selectedCount: selectedImages.length,
-          maxReached: true,
-        };
-      }
-    }
-
-    // Update the image selection status
-    await selectionImageRepository.update(imageId, { is_selected: selected });
-
-    // Get updated count
-    const { data: updatedSelectedImages } = await supabase
-      .from("selection_images")
-      .select("id")
-      .eq("selection_id", selection.id)
-      .eq("is_selected", true);
-
-    return {
-      success: true,
-      selectedCount: updatedSelectedImages?.length || 0,
-    };
-  },
+  // toggleImageSelection removed - selections are now handled client-side until validation
 
   /**
    * Get selection status options for UI

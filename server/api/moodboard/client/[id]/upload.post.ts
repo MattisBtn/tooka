@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!moodboardId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de moodboard requis",
+      message: "ID de moodboard requis",
     });
   }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       if (moodboardError.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Moodboard non trouvé",
+          message: "Moodboard non trouvé",
         });
       }
       throw new Error(`Failed to fetch moodboard: ${moodboardError.message}`);
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Ajout d'images non autorisé pour ce moodboard",
+        message: "Ajout d'images non autorisé pour ce moodboard",
       });
     }
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     if (!formData || formData.length === 0) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Aucun fichier fourni",
+        message: "Aucun fichier fourni",
       });
     }
 
@@ -137,7 +137,7 @@ export default defineEventHandler(async (event) => {
     if (errors.length > 0 && uploadedImages.length === 0) {
       throw createError({
         statusCode: 400,
-        statusMessage: `Échec de l'upload: ${errors.join(", ")}`,
+        message: `Échec de l'upload: ${errors.join(", ")}`,
       });
     }
 
@@ -159,7 +159,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur lors de l'upload",
+      message: "Erreur serveur lors de l'upload",
     });
   }
 });

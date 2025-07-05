@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   if (!moodboardId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de moodboard requis",
+      message: "ID de moodboard requis",
     });
   }
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     if (moodboardError || !moodboard) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Moodboard non trouvé",
+        message: "Moodboard non trouvé",
       });
     }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Moodboard non accessible",
+        message: "Moodboard non accessible",
       });
     }
 
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
     if (reactionsError) {
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur lors de la récupération des réactions",
+        message: "Erreur lors de la récupération des réactions",
       });
     }
 
@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

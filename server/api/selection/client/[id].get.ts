@@ -14,7 +14,7 @@ export default defineEventHandler(
     if (!selectionId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "ID de sélection requis",
+        message: "ID de sélection requis",
       });
     }
 
@@ -43,7 +43,7 @@ export default defineEventHandler(
         if (error.code === "PGRST116") {
           throw createError({
             statusCode: 404,
-            statusMessage: "Sélection non trouvée",
+            message: "Sélection non trouvée",
           });
         }
         throw new Error(`Failed to fetch selection: ${error.message}`);
@@ -57,7 +57,7 @@ export default defineEventHandler(
       ) {
         throw createError({
           statusCode: 403,
-          statusMessage: "Sélection non accessible",
+          message: "Sélection non accessible",
         });
       }
 
@@ -113,7 +113,7 @@ export default defineEventHandler(
 
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur serveur",
+        message: "Erreur serveur",
       });
     }
   }

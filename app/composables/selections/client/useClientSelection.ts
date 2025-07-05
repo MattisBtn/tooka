@@ -118,11 +118,19 @@ export const useClientSelection = async (selectionId: string) => {
 
   // Helper function to enhance images with user selections
   const enhanceImagesWithSelections = (
-    imagesList: readonly SelectionImage[]
+    imagesList: readonly SelectionImage[],
+    selectionStatus?: string
   ): SelectionImageWithSelection[] => {
+    const currentStatus = selectionStatus || selection.value?.status;
+    
     return imagesList.map((image) => ({
       ...image,
-      userSelected: getUserSelection(image.id),
+      // For completed/revision_requested selections, use database state
+      // For draft/awaiting_client, prioritize localStorage over database
+      userSelected: 
+        currentStatus === "completed" || currentStatus === "revision_requested"
+          ? image.is_selected // Use database state for finalized selections
+          : getUserSelection(image.id) || image.is_selected, // Use localStorage first, fallback to database
     }));
   };
 
@@ -153,9 +161,17 @@ export const useClientSelection = async (selectionId: string) => {
   if (data.value) {
     selectionData.value = data.value;
 
+    // Clear localStorage if selection is finalized (to avoid conflicts with DB state)
+    if (data.value.selection.status === "completed" || data.value.selection.status === "revision_requested") {
+      if (import.meta.client) {
+        localStorage.removeItem(USER_SELECTIONS_KEY);
+      }
+    }
+
     if (data.value.selection.images && data.value.selection.images.length > 0) {
       const enhancedImages = enhanceImagesWithSelections(
-        Array.from(data.value.selection.images)
+        Array.from(data.value.selection.images),
+        data.value.selection.status
       );
       images.value = enhancedImages;
     } else {
@@ -200,8 +216,14 @@ export const useClientSelection = async (selectionId: string) => {
       );
 
       if (response.selection.images && response.selection.images.length > 0) {
+        // Update selection status first in case it changed
+        if (response.selection) {
+          selectionData.value = { ...selectionData.value!, selection: response.selection };
+        }
+        
         const enhancedNewImages = enhanceImagesWithSelections(
-          Array.from(response.selection.images)
+          Array.from(response.selection.images),
+          response.selection.status
         );
 
         images.value = [...images.value, ...enhancedNewImages];
@@ -234,7 +256,6 @@ export const useClientSelection = async (selectionId: string) => {
   // Action states
   const validatingSelection = ref(false);
   const requestingRevisions = ref(false);
-  const updatingImageId = ref<string | null>(null);
 
   // Modal states
   const showValidateDialog = ref(false);
@@ -243,7 +264,7 @@ export const useClientSelection = async (selectionId: string) => {
   // Form state
   const revisionComment = ref("");
 
-  // Toggle image selection
+  // Toggle image selection (client-side only)
   const toggleImageSelection = async (imageId: string) => {
     if (!canInteract.value) return;
 
@@ -253,52 +274,9 @@ export const useClientSelection = async (selectionId: string) => {
     const currentlySelected = images.value[imageIndex]!.userSelected;
     const newSelectedState = !currentlySelected;
 
-    try {
-      updatingImageId.value = imageId;
-
-      // Optimistically update UI
-      images.value[imageIndex]!.userSelected = newSelectedState;
-      saveUserSelection(imageId, newSelectedState);
-
-      // Send to server
-      const response = await $fetch<{ success: boolean }>(
-        `/api/selection/client/${selectionId}/select`,
-        {
-          method: "POST",
-          body: { imageId, selected: newSelectedState },
-        }
-      );
-
-      if (!response.success) {
-        // Revert on failure
-        images.value[imageIndex]!.userSelected = currentlySelected;
-        saveUserSelection(imageId, currentlySelected || false);
-
-        const toast = useToast();
-        toast.add({
-          title: "Erreur",
-          description: "Impossible de modifier la sélection",
-          icon: "i-lucide-alert-circle",
-          color: "error",
-        });
-      }
-    } catch (err) {
-      console.error("Error toggling selection:", err);
-
-      // Revert on error
-      images.value[imageIndex]!.userSelected = currentlySelected;
-      saveUserSelection(imageId, currentlySelected || false);
-
-      const toast = useToast();
-      toast.add({
-        title: "Erreur",
-        description: "Impossible de modifier la sélection",
-        icon: "i-lucide-alert-circle",
-        color: "error",
-      });
-    } finally {
-      updatingImageId.value = null;
-    }
+    // Update UI and localStorage immediately (no HTTP request)
+    images.value[imageIndex]!.userSelected = newSelectedState;
+    saveUserSelection(imageId, newSelectedState);
   };
 
   // Client action methods
@@ -387,7 +365,6 @@ export const useClientSelection = async (selectionId: string) => {
     // Action states
     validatingSelection: readonly(validatingSelection),
     requestingRevisions: readonly(requestingRevisions),
-    updatingImageId: readonly(updatingImageId),
 
     // Modal states
     showValidateDialog,

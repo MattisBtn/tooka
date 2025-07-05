@@ -7,14 +7,14 @@ export default defineEventHandler(async (event) => {
   if (!moodboardId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de moodboard requis",
+      message: "ID de moodboard requis",
     });
   }
 
   if (!filepath) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Chemin du fichier requis",
+      message: "Chemin du fichier requis",
     });
   }
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       if (moodboardError.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Moodboard non trouvé",
+          message: "Moodboard non trouvé",
         });
       }
       throw new Error(`Failed to fetch moodboard: ${moodboardError.message}`);
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Moodboard non accessible",
+        message: "Moodboard non accessible",
       });
     }
 
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
       if (imageError.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Image non trouvée",
+          message: "Image non trouvée",
         });
       }
       throw new Error(`Failed to verify image: ${imageError.message}`);
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
     if (signedUrlError) {
       throw createError({
         statusCode: 500,
-        statusMessage: `Erreur génération URL: ${signedUrlError.message}`,
+        message: `Erreur génération URL: ${signedUrlError.message}`,
       });
     }
 
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur lors de la génération de l'URL",
+      message: "Erreur lors de la génération de l'URL",
     });
   }
 });

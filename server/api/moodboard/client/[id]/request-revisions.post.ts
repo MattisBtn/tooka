@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!moodboardId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de moodboard requis",
+      message: "ID de moodboard requis",
     });
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
       if (moodboardError.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Moodboard non trouvé",
+          message: "Moodboard non trouvé",
         });
       }
       throw new Error(`Failed to fetch moodboard: ${moodboardError.message}`);
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur lors de la demande de révision",
+      message: "Erreur lors de la demande de révision",
     });
   }
 });

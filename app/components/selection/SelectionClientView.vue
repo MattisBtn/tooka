@@ -41,7 +41,8 @@
                         </div>
 
                         <!-- Extra count -->
-                        <div v-if="extraCount > 0"
+                        <div
+v-if="extraCount > 0"
                             class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
                             <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                                 <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-white" />
@@ -57,7 +58,8 @@
                         </div>
 
                         <!-- Extra price -->
-                        <div v-if="extraPrice > 0"
+                        <div
+v-if="extraPrice > 0"
                             class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
                             <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
                                 <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
@@ -78,7 +80,17 @@
                         <div class="flex items-center gap-3 justify-center">
                             <UIcon name="i-lucide-info" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
                             <p class="text-sm text-amber-700 dark:text-amber-300">
-                                Cliquez sur les images pour les sélectionner ou les désélectionner
+                                Cliquez sur les images pour les sélectionner. Vos choix sont sauvegardés localement.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Selection status indicator -->
+                    <div v-if="canInteract && selectedCount > 0" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                        <div class="flex items-center gap-3 justify-center">
+                            <UIcon name="i-lucide-save" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                Vos sélections sont temporaires. Cliquez sur "Valider ma sélection" pour les confirmer.
                             </p>
                         </div>
                     </div>
@@ -102,9 +114,9 @@
             </div>
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <SelectionImageCard v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
-                    :can-interact="canInteract" :updating-image-id="updatingImageId"
-                    @toggle-selection="$emit('toggle-selection', image.id)" />
+                <SelectionImageCard
+v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
+                    :can-interact="canInteract" @toggle-selection="$emit('toggle-selection', image.id)" />
             </div>
 
             <!-- Loading indicator -->
@@ -146,7 +158,6 @@ interface Props {
     maxAllowed: number
     extraCount: number
     extraPrice: number
-    updatingImageId: string | null
 }
 
 interface Emits {

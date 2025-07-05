@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   if (!galleryId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de galerie requis",
+      message: "ID de galerie requis",
     });
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     if (galleryError || !gallery) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Galerie non trouvée",
+        message: "Galerie non trouvée",
       });
     }
 
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     if (!gallery.payment_required) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Cette galerie ne nécessite pas de paiement",
+        message: "Cette galerie ne nécessite pas de paiement",
       });
     }
 
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
     if (updateError) {
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur lors de la validation de la galerie",
+        message: "Erreur lors de la validation de la galerie",
       });
     }
 
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

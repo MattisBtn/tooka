@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!moodboardId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de moodboard requis",
+      message: "ID de moodboard requis",
     });
   }
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   if (!validation.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Données invalides",
+      message: "Données invalides",
     });
   }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     if (moodboardError || !moodboard) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Moodboard non trouvé",
+        message: "Moodboard non trouvé",
       });
     }
 
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Réactions non autorisées sur ce moodboard",
+        message: "Réactions non autorisées sur ce moodboard",
       });
     }
 
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
     if (imageError || !image) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Image non trouvée",
+        message: "Image non trouvée",
       });
     }
 
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
       console.error("Database insert error:", insertError);
       throw createError({
         statusCode: 500,
-        statusMessage: `Erreur lors de la création de la réaction: ${insertError.message}`,
+        message: `Erreur lors de la création de la réaction: ${insertError.message}`,
       });
     }
 
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

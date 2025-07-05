@@ -8,14 +8,14 @@ export default defineEventHandler(async (event) => {
   if (!selectionId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de sélection requis",
+      message: "ID de sélection requis",
     });
   }
 
   if (!body?.password) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Mot de passe requis",
+      message: "Mot de passe requis",
     });
   }
 
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       if (error.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Sélection non trouvée",
+          message: "Sélection non trouvée",
         });
       }
       throw new Error(`Failed to fetch selection: ${error.message}`);
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Sélection non accessible",
+        message: "Sélection non accessible",
       });
     }
 
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur de vérification",
+      message: "Erreur de vérification",
     });
   }
 });

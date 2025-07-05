@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!galleryId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de galerie requis",
+      message: "ID de galerie requis",
     });
   }
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     if (galleryError || !gallery) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Galerie non trouvée",
+        message: "Galerie non trouvée",
       });
     }
 
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
     if (updateError) {
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur lors de la demande de retouches",
+        message: "Erreur lors de la demande de retouches",
       });
     }
 
@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

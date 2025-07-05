@@ -157,7 +157,7 @@ useHead({
 if (error.value) {
   throw createError({
     statusCode: 404,
-    statusMessage: "Galerie non trouvée",
+    message: "Galerie non trouvée",
   });
 }
 </script>

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   if (!galleryId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de galerie requis",
+      message: "ID de galerie requis",
     });
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
     if (galleryError || !gallery) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Galerie non trouvée",
+        message: "Galerie non trouvée",
       });
     }
 
@@ -55,14 +55,14 @@ export default defineEventHandler(async (event) => {
     if (imagesError) {
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur lors de la récupération des images",
+        message: "Erreur lors de la récupération des images",
       });
     }
 
     if (!images || images.length === 0) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Aucune image trouvée dans cette galerie",
+        message: "Aucune image trouvée dans cette galerie",
       });
     }
 
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

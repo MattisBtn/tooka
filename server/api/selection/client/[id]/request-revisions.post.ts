@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!selectionId) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de sélection requis",
+      message: "ID de sélection requis",
     });
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
       if (selectionError.code === "PGRST116") {
         throw createError({
           statusCode: 404,
-          statusMessage: "Sélection non trouvée",
+          message: "Sélection non trouvée",
         });
       }
       throw new Error(`Failed to fetch selection: ${selectionError.message}`);
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur lors de la demande de révision",
+      message: "Erreur lors de la demande de révision",
     });
   }
 });

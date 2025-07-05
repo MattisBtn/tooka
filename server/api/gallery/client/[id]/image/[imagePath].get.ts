@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!galleryId || !imagePath) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ID de galerie et chemin d'image requis",
+      message: "ID de galerie et chemin d'image requis",
     });
   }
 
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     if (galleryError || !gallery) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Galerie non trouvée",
+        message: "Galerie non trouvée",
       });
     }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     ) {
       throw createError({
         statusCode: 403,
-        statusMessage: "Galerie non accessible",
+        message: "Galerie non accessible",
       });
     }
 
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     if (imageError || !image) {
       throw createError({
         statusCode: 404,
-        statusMessage: "Image non trouvée",
+        message: "Image non trouvée",
       });
     }
 
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
     if (error) {
       throw createError({
         statusCode: 500,
-        statusMessage: "Erreur génération URL",
+        message: "Erreur génération URL",
       });
     }
 
@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
     // Handle unknown errors
     throw createError({
       statusCode: 500,
-      statusMessage: "Erreur serveur",
+      message: "Erreur serveur",
     });
   }
 });

@@ -10,8 +10,7 @@
 
             <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="'Image de sélection'"
                 class="w-full h-full object-cover transition-all duration-300" :class="[
-                    image.userSelected ? 'brightness-75' : '',
-                    isUpdating ? 'opacity-50' : ''
+                    image.userSelected ? 'brightness-75' : ''
                 ]" loading="lazy" />
 
             <div v-else-if="loading" class="w-full h-full flex items-center justify-center">
@@ -38,10 +37,7 @@
                 </div>
             </div>
 
-            <!-- Update indicator -->
-            <div v-if="isUpdating" class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-white animate-spin" />
-            </div>
+            <!-- Update indicator removed - selections are now instant -->
 
             <!-- Action buttons overlay -->
             <div class="absolute top-2 right-2 flex gap-2">
@@ -102,7 +98,7 @@
 
                     <UButton :color="image.userSelected ? 'warning' : 'warning'"
                         :variant="image.userSelected ? 'outline' : 'solid'" size="sm"
-                        :icon="image.userSelected ? 'i-lucide-x' : 'i-lucide-check'" :loading="isUpdating"
+                        :icon="image.userSelected ? 'i-lucide-x' : 'i-lucide-check'"
                         @click="handleToggleFromModal">
                         {{ image.userSelected ? 'Désélectionner' : 'Sélectionner' }}
                     </UButton>
@@ -119,7 +115,6 @@ interface Props {
     image: SelectionImageWithSelection
     selectionId: string
     canInteract: boolean
-    updatingImageId: string | null
 }
 
 interface Emits {
@@ -137,10 +132,7 @@ const error = ref(false)
 // Modal state
 const showImageModal = ref(false)
 
-// Computed to check if this specific image is being updated
-const isUpdating = computed(() => {
-    return props.updatingImageId === props.image.id
-})
+// No longer need updating state since selections are purely local
 
 // Load image URL on mount
 onMounted(async () => {
@@ -160,7 +152,7 @@ onMounted(async () => {
 
 // Handle image click for selection
 const handleImageClick = () => {
-    if (props.canInteract && !isUpdating.value) {
+    if (props.canInteract) {
         emit('toggle-selection')
     }
 }

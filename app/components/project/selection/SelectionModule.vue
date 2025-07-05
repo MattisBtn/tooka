@@ -11,13 +11,16 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <!-- Status indicator for existing selections -->
-                    <UBadge v-if="selectionData" :color="selectionStatusInfo?.color as any" variant="subtle"
+                    <UBadge
+v-if="selectionData" :color="selectionStatusInfo?.color as any" variant="subtle"
                         :label="selectionStatusInfo?.label" :icon="selectionStatusInfo?.icon" />
                     <!-- Toggle switch with tooltip wrapper -->
                     <div class="relative">
-                        <USwitch :model-value="enabled" color="primary" size="md"
+                        <USwitch
+:model-value="enabled" color="primary" size="md"
                             :disabled="cannotDisableSelection ?? undefined" @update:model-value="handleToggle" />
-                        <UTooltip v-if="cannotDisableSelection" text="Impossible de désactiver : une sélection existe"
+                        <UTooltip
+v-if="cannotDisableSelection" text="Impossible de désactiver : une sélection existe"
                             :content="{ side: 'left' }">
                             <!-- Invisible overlay to capture hover -->
                             <div class="absolute inset-0 cursor-not-allowed" />
@@ -52,15 +55,24 @@
                     </div>
 
                     <div class="flex items-center gap-2 mb-4">
-                        <UButton icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
+                        <UButton
+icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
                             :disabled="!canEditSelection" @click="editSelection" />
 
                         <!-- Client preview button -->
-                        <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                        <UButton
+icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                             label="Aperçu client" :to="`/selection/${selectionData.id}`" target="_blank" />
 
+                        <!-- Download selected images button -->
+                        <UButton
+v-if="selectedCount > 0" icon="i-lucide-download" size="sm" variant="outline"
+                            color="success" label="Télécharger sélection" :loading="isDownloading"
+                            @click="downloadSelectedImages" />
+
                         <!-- Delete button for draft and revision requested selections -->
-                        <UButton v-if="canEditSelection" icon="i-lucide-trash-2" size="sm" variant="outline"
+                        <UButton
+v-if="canEditSelection" icon="i-lucide-trash-2" size="sm" variant="outline"
                             color="error" label="Supprimer" :loading="isDeleting" @click="confirmDeleteSelection" />
                     </div>
 
@@ -70,12 +82,14 @@
                             <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                 Conversions d'images
                             </h5>
-                            <UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" color="primary"
+                            <UButton
+icon="i-lucide-refresh-cw" size="sm" variant="outline" color="primary"
                                 label="Relancer toutes les conversions" :loading="isConverting"
                                 @click="convertAllImages" />
                         </div>
 
-                        <UAlert v-if="conversionSummary.failed > 0" color="error" variant="soft"
+                        <UAlert
+v-if="conversionSummary.failed > 0" color="error" variant="soft"
                             icon="i-lucide-alert-circle"
                             :title="`${conversionSummary.failed} conversion(s) échouée(s)`">
                             <template #description>
@@ -84,7 +98,8 @@
                             </template>
                         </UAlert>
 
-                        <UAlert v-else-if="conversionSummary.pending > 0" color="warning" variant="soft"
+                        <UAlert
+v-else-if="conversionSummary.pending > 0" color="warning" variant="soft"
                             icon="i-lucide-clock" :title="`${conversionSummary.pending} conversion(s) en attente`">
                             <template #description>
                                 Les conversions démarreront automatiquement. Vous pouvez relancer manuellement si
@@ -98,13 +113,15 @@
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             Images et sélections du client
                         </h5>
-                        <ProjectSelectionImageGrid :images="Array.from(selectionData.images || [])" :max-preview="6"
+                        <ProjectSelectionImageGrid
+:images="Array.from(selectionData.images || [])" :max-preview="6"
                             :can-delete="false" :can-toggle-selection="false" :show-selection-state="true"
                             @image-click="handleImageClick" />
                     </div>
 
                     <!-- Upload Progress -->
-                    <div v-if="isUploading"
+                    <div
+v-if="isUploading"
                         class="space-y-3 mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                         <div class="flex items-center gap-3">
                             <UIcon name="i-lucide-upload" class="w-5 h-5 text-orange-500 animate-pulse" />
@@ -115,7 +132,8 @@
                                     <span>{{ Math.round(uploadProgress || 0) }}%</span>
                                 </div>
                                 <div class="mt-2 w-full bg-orange-200 dark:bg-orange-800 rounded-full h-2">
-                                    <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                                    <div
+class="bg-orange-600 h-2 rounded-full transition-all duration-300"
                                         :style="{ width: `${uploadProgress || 0}%` }" />
                                 </div>
                                 <p class="text-xs text-orange-700 dark:text-orange-300 mt-1">
@@ -126,7 +144,8 @@
                     </div>
 
                     <!-- Warning for validated selections -->
-                    <UAlert v-if="!canEditSelection" color="warning" variant="soft" icon="i-lucide-info"
+                    <UAlert
+v-if="!canEditSelection" color="warning" variant="soft" icon="i-lucide-info"
                         title="Sélection validée par le client" class="mt-4">
                         <template #description>
                             Cette sélection a été validée par le client et ne peut plus être modifiée ni supprimée.
@@ -135,7 +154,8 @@
                     </UAlert>
 
                     <!-- Info for revision requested selections -->
-                    <UAlert v-else-if="selectionData.status === 'revision_requested'" color="warning" variant="soft"
+                    <UAlert
+v-else-if="selectionData.status === 'revision_requested'" color="warning" variant="soft"
                         icon="i-lucide-edit" title="Révisions demandées par le client" class="mt-4">
                         <template #description>
                             Le client a demandé des révisions sur cette sélection. Vous pouvez la modifier librement,
@@ -144,7 +164,8 @@
                     </UAlert>
 
                     <!-- Info for awaiting client selections -->
-                    <UAlert v-else-if="selectionData.status === 'awaiting_client'" color="info" variant="soft"
+                    <UAlert
+v-else-if="selectionData.status === 'awaiting_client'" color="info" variant="soft"
                         icon="i-lucide-clock" title="Envoyée au client" class="mt-4">
                         <template #description>
                             Cette sélection a été envoyée au client pour validation. Vous pouvez continuer à la modifier
@@ -153,7 +174,8 @@
                     </UAlert>
 
                     <!-- Info for draft selections -->
-                    <UAlert v-else-if="selectionData.status === 'draft'" color="info" variant="soft"
+                    <UAlert
+v-else-if="selectionData.status === 'draft'" color="info" variant="soft"
                         icon="i-lucide-file-edit" title="Sélection en brouillon" class="mt-4">
                         <template #description>
                             Cette sélection est en brouillon. Vous pouvez la modifier librement et l'envoyer au client
@@ -194,7 +216,8 @@
                     </UAlert>
                 </div>
 
-                <ProjectSelectionForm :selection="showEditForm ? (selectionData || undefined) : undefined"
+                <ProjectSelectionForm
+:selection="showEditForm ? (selectionData || undefined) : undefined"
                     :project-id="projectId"
                     :existing-images="showEditForm && selectionData?.images ? Array.from(selectionData.images) : undefined"
                     @selection-saved="handleSelectionSaved" @cancel="handleCancel" />
@@ -248,6 +271,7 @@ const emit = defineEmits<Emits>()
 const showEditForm = ref(false)
 const isDeleting = ref(false)
 const isConverting = ref(false)
+const isDownloading = ref(false)
 
 // Computed properties
 const cannotDisableSelection = computed(() => {
@@ -353,6 +377,32 @@ const convertAllImages = async () => {
         })
     } finally {
         isConverting.value = false
+    }
+}
+
+const downloadSelectedImages = async () => {
+    if (!props.selectionData) return
+
+    const toast = useToast()
+    isDownloading.value = true
+
+    try {
+        // Import the selection service
+        const { selectionService } = await import('~/services/selectionService')
+
+        // Download selected images
+        await selectionService.downloadSelectedImages(props.selectionData.id)
+
+    } catch (err) {
+        console.error('Error downloading selected images:', err)
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors du téléchargement.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    } finally {
+        isDownloading.value = false
     }
 }
 
