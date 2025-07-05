@@ -59,14 +59,15 @@ v-if="cannotDisableSelection" text="Impossible de désactiver : une sélection e
 icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
                             :disabled="!canEditSelection" @click="editSelection" />
 
-                        <!-- Client preview button -->
+                        <!-- Client preview button - Show for all statuses except draft -->
                         <UButton
-icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+v-if="selectionData.status !== 'draft'" icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                             label="Aperçu client" :to="`/selection/${selectionData.id}`" target="_blank" />
 
-                        <!-- Download selected images button -->
+                        <!-- Download selected images button - Show when selection is revision_requested or completed -->
                         <UButton
-v-if="selectedCount > 0" icon="i-lucide-download" size="sm" variant="outline"
+v-if="selectedCount > 0 && (selectionData.status === 'revision_requested' || selectionData.status === 'completed')" 
+                            icon="i-lucide-download" size="sm" variant="outline"
                             color="success" label="Télécharger sélection" :loading="isDownloading"
                             @click="downloadSelectedImages" />
 
