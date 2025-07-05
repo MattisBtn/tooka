@@ -11,13 +11,16 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <!-- Status indicator for existing proposals -->
-                    <UBadge v-if="proposalData" :color="proposalStatusInfo?.color as any" variant="subtle"
+                    <UBadge
+v-if="proposalData" :color="proposalStatusInfo?.color as any" variant="subtle"
                         :label="proposalStatusInfo?.label" :icon="proposalStatusInfo?.icon" />
                     <!-- Toggle switch with tooltip wrapper -->
                     <div class="relative">
-                        <USwitch :model-value="enabled" color="primary" size="md"
+                        <USwitch
+:model-value="enabled" color="primary" size="md"
                             :disabled="cannotDisableProposal ?? undefined" @update:model-value="handleToggle" />
-                        <UTooltip v-if="cannotDisableProposal" text="Impossible de désactiver : une proposition existe"
+                        <UTooltip
+v-if="cannotDisableProposal" text="Impossible de désactiver : une proposition existe"
                             :content="{ side: 'left' }">
                             <!-- Invisible overlay to capture hover -->
                             <div class="absolute inset-0 cursor-not-allowed" />
@@ -60,11 +63,13 @@
                     </div>
 
                     <div class="flex items-center gap-2 mb-4">
-                        <UButton icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
+                        <UButton
+icon="i-lucide-edit" size="sm" variant="outline" color="primary" label="Modifier"
                             :disabled="!canEditProposal" @click="editProposal" />
 
                         <!-- Delete button for draft proposals -->
-                        <UButton v-if="proposalData.status === 'draft'" icon="i-lucide-trash-2" size="sm"
+                        <UButton
+v-if="proposalData.status === 'draft'" icon="i-lucide-trash-2" size="sm"
                             variant="outline" color="error" label="Supprimer" :loading="isDeleting"
                             @click="confirmDeleteProposal" />
                     </div>
@@ -73,15 +78,18 @@
                     <div v-if="proposalData.contract_url || proposalData.quote_url" class="space-y-3 mt-4">
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Documents attachés</h5>
 
-                        <ProjectProposalFileViewer v-if="proposalData.contract_url"
+                        <ProjectProposalFileViewer
+v-if="proposalData.contract_url"
                             :file-path="proposalData.contract_url" @error="handleFileError" />
 
-                        <ProjectProposalFileViewer v-if="proposalData.quote_url" :file-path="proposalData.quote_url"
+                        <ProjectProposalFileViewer
+v-if="proposalData.quote_url" :file-path="proposalData.quote_url"
                             @error="handleFileError" />
                     </div>
 
                     <!-- Warning for validated proposals -->
-                    <UAlert v-if="!canEditProposal" color="warning" variant="soft" icon="i-lucide-info"
+                    <UAlert
+v-if="!canEditProposal" color="warning" variant="soft" icon="i-lucide-info"
                         title="Proposition validée" class="mt-4">
                         <template #description>
                             Cette proposition a été envoyée au client et ne peut plus être modifiée ni supprimée.
@@ -90,7 +98,8 @@
                     </UAlert>
 
                     <!-- Info for draft proposals -->
-                    <UAlert v-else-if="proposalData.status === 'draft'" color="info" variant="soft" icon="i-lucide-info"
+                    <UAlert
+v-else-if="proposalData.status === 'draft'" color="info" variant="soft" icon="i-lucide-info"
                         title="Proposition en brouillon" class="mt-4">
                         <template #description>
                             Cette proposition est encore en brouillon. Vous pouvez la modifier ou la supprimer.
@@ -130,7 +139,8 @@
                     </UAlert>
                 </div>
 
-                <ProjectProposalForm :proposal="showEditForm ? (proposalData || undefined) : undefined"
+                <ProjectProposalForm
+:proposal="showEditForm ? (proposalData || undefined) : undefined"
                     :project-id="projectId" :project-initial-price="projectInitialPrice"
                     @proposal-saved="handleProposalSaved" @cancel="handleCancel" />
             </div>
