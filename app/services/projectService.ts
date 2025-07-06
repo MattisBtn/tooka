@@ -41,13 +41,20 @@ export const projectService = {
   },
 
   /**
-   * Create new project with validation and secure link generation
+   * Create new project with validation and conditional password generation
    */
   async createProject(
     projectData: Omit<
       Project,
-      "id" | "created_at" | "updated_at" | "user_id" | "password_hash"
-    >
+      | "id"
+      | "created_at"
+      | "updated_at"
+      | "user_id"
+      | "password_hash"
+      | "password_expires_at"
+    > & {
+      require_password?: boolean;
+    }
   ): Promise<ProjectWithClient> {
     // Get current user from Supabase
     const user = useSupabaseUser();
@@ -60,14 +67,18 @@ export const projectService = {
       throw new Error("Client is required");
     }
 
-    // Generate secure password
-    const passwordHash = this.generatePassword();
+    // Extract require_password from projectData
+    const { require_password, ...dbProjectData } = projectData;
+
+    // Generate password only if required
+    const passwordHash = require_password ? this.generatePassword() : "";
 
     // Add user_id and generated fields
     const dataWithUserAndSecurity = {
-      ...projectData,
+      ...dbProjectData,
       user_id: user.value.id,
       password_hash: passwordHash,
+      password_expires_at: null, // Always null now since expiration is removed
     };
 
     return await projectRepository.create(dataWithUserAndSecurity);
@@ -76,13 +87,29 @@ export const projectService = {
   /**
    * Update project with business rules
    */
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  async updateProject(
+    id: string,
+    updates: Partial<Project> & { require_password?: boolean }
+  ): Promise<Project> {
     const existingProject = await this.getProjectById(id);
+
+    // Handle password logic for updates
+    const { require_password, ...dbUpdates } = updates;
+
+    if (require_password !== undefined) {
+      if (require_password && !existingProject.password_hash) {
+        // Generate password if now required and doesn't exist
+        dbUpdates.password_hash = this.generatePassword();
+      } else if (!require_password && existingProject.password_hash) {
+        // Remove password if no longer required
+        dbUpdates.password_hash = "";
+      }
+    }
 
     // Business rule: can't change client once project is in progress
     if (
-      updates.client_id &&
-      updates.client_id !== existingProject.client_id &&
+      dbUpdates.client_id &&
+      dbUpdates.client_id !== existingProject.client_id &&
       existingProject.status !== "draft"
     ) {
       throw new Error("Cannot change client once project is in progress");
@@ -91,13 +118,13 @@ export const projectService = {
     // Business rule: can't go back from completed to other statuses
     if (
       existingProject.status === "completed" &&
-      updates.status &&
-      updates.status !== "completed"
+      dbUpdates.status &&
+      dbUpdates.status !== "completed"
     ) {
       throw new Error("Cannot change status of completed project");
     }
 
-    return await projectRepository.update(id, updates);
+    return await projectRepository.update(id, dbUpdates);
   },
 
   /**

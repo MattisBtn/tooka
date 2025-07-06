@@ -14,15 +14,7 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
     client_id: initialProject?.client_id || "",
     status: initialProject?.status || "draft",
     initial_price: initialProject?.initial_price || null,
-    password_expires_at: initialProject?.password_expires_at
-      ? new Date(initialProject.password_expires_at).toISOString().slice(0, 16)
-      : (() => {
-          // Default to +30 days
-          const defaultExpiration = new Date();
-          defaultExpiration.setDate(defaultExpiration.getDate() + 30);
-          return defaultExpiration.toISOString().slice(0, 16);
-        })(),
-    // password_hash est généré automatiquement par le service
+    require_password: initialProject?.password_hash ? true : false,
   });
 
   // Client management
@@ -63,17 +55,13 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
 
   // Reset form state
   const resetForm = () => {
-    // Set default expiration date to +30 days
-    const defaultExpiration = new Date();
-    defaultExpiration.setDate(defaultExpiration.getDate() + 30);
-
     Object.assign(state, {
       title: "",
       description: "",
       client_id: "",
       status: "draft",
       initial_price: null,
-      password_expires_at: defaultExpiration.toISOString().slice(0, 16),
+      require_password: false,
     });
   };
 
@@ -83,13 +71,6 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
   ): Promise<ProjectWithClient | null> => {
     try {
       const formData = { ...data };
-
-      // Convert datetime-local to ISO string if provided
-      if (formData.password_expires_at) {
-        formData.password_expires_at = new Date(
-          formData.password_expires_at
-        ).toISOString();
-      }
 
       // Convert initial_price to number if it's a string
       if (typeof formData.initial_price === "string") {
@@ -105,8 +86,7 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
         status: formData.status,
         description: formData.description || null,
         initial_price: formData.initial_price || null,
-        password_expires_at: formData.password_expires_at || null,
-        // password_hash sont générés automatiquement par le service
+        require_password: formData.require_password || false,
       };
 
       let result: ProjectWithClient;

@@ -60,35 +60,9 @@
 
         <USeparator />
 
-        <!-- Access Settings -->
+        <!-- Security Settings -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
-                <div
-                    class="w-8 h-8 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-link" class="w-4 h-4 text-white" />
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Accès client</h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Paramètres de partage et d'accès sécurisé
-                    </p>
-                </div>
-            </div>
-
-            <UFormField label="Expiration du lien d'accès" name="password_expires_at"
-                help="Date limite pour l'accès du client aux galeries">
-                <UInput v-model="state.password_expires_at" type="datetime-local" icon="i-heroicons-calendar" />
-            </UFormField>
-
-            <!-- Info box about project status -->
-            <UAlert color="info" variant="soft" icon="i-heroicons-information-circle" title="Statut du projet"
-                description="Le projet sera créé en brouillon. Vous pourrez le faire passer en 'En cours' puis 'Terminé' depuis la liste des projets." />
-        </div>
-
-        <USeparator />
-
-        <!-- Security Info -->
-        <div class="space-y-4">
-            <div class="flex items-center gap-3 mb-4">
                 <div
                     class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
                     <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-white" />
@@ -99,8 +73,21 @@
                 </div>
             </div>
 
-            <UAlert color="warning" variant="soft" icon="i-heroicons-key" title="Accès automatique"
-                description="Un lien sécurisé et un mot de passe seront générés automatiquement pour permettre au client d'accéder à ses galeries en toute sécurité." />
+            <div class="space-y-4">
+                <UFormField label="Mot de passe requis" name="require_password"
+                    help="Définir si un mot de passe est nécessaire pour accéder aux galeries">
+                    <USwitch v-model="state.require_password" />
+                </UFormField>
+
+                <UAlert :color="state.require_password ? 'warning' : 'info'" variant="soft"
+                    :icon="state.require_password ? 'i-heroicons-key' : 'i-heroicons-information-circle'"
+                    :title="state.require_password ? 'Accès protégé' : 'Accès libre'"
+                    :description="state.require_password ? 'Un mot de passe sera généré automatiquement pour protéger l\'accès aux galeries.' : 'Le client pourra accéder aux galeries sans mot de passe.'" />
+            </div>
+
+            <!-- Info box about project status -->
+            <UAlert color="info" variant="soft" icon="i-heroicons-information-circle" title="Statut du projet"
+                description="Le projet sera créé en brouillon." />
         </div>
 
         <!-- Action Buttons -->

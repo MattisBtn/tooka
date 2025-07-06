@@ -217,16 +217,6 @@ export const useProject = (projectId: string) => {
     }).format(new Date(project.value.created_at));
   });
 
-  const formattedExpiresAt = computed(() => {
-    if (!project.value?.password_expires_at) return "Aucune expiration";
-
-    return new Intl.DateTimeFormat("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(new Date(project.value.password_expires_at));
-  });
-
   return {
     // State
     loading: readonly(loading),
@@ -239,7 +229,6 @@ export const useProject = (projectId: string) => {
     statusInfo,
     formattedPrice,
     formattedCreatedAt,
-    formattedExpiresAt,
 
     // Actions
     fetchProject,

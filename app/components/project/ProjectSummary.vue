@@ -47,39 +47,32 @@
                 <p class="text-neutral-900 dark:text-neutral-100">{{ formattedCreatedAt }}</p>
             </div>
 
-            <!-- Link Expiration -->
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-link" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Lien expire le</span>
-                </div>
-                <p class="text-neutral-900 dark:text-neutral-100">{{ formattedExpiresAt }}</p>
-            </div>
-
             <!-- Password Hash -->
-            <div class="space-y-2">
+            <div v-if="project.password_hash" class="space-y-2">
                 <div class="flex items-center gap-2">
                     <UIcon name="i-lucide-key" class="w-4 h-4 text-neutral-500" />
                     <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Mot de passe</span>
                 </div>
-                <UInput :model-value="project.password_hash" :type="showPassword ? 'text' : 'password'" readonly
-                    size="sm" variant="outline" :ui="{ trailing: 'pe-1' }">
-                    <template #trailing>
-                        <div class="flex items-center gap-1">
-                            <UTooltip :text="showPassword ? 'Masquer' : 'Afficher'" :content="{ side: 'top' }">
-                                <UButton color="neutral" variant="link" size="sm"
-                                    :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                                    :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
-                                    @click="showPassword = !showPassword" />
-                            </UTooltip>
-                            <UTooltip text="Copier le mot de passe" :content="{ side: 'top' }">
-                                <UButton :color="passwordCopied ? 'success' : 'neutral'" variant="link" size="sm"
-                                    :icon="passwordCopied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
-                                    aria-label="Copier le mot de passe" @click="copyPassword" />
-                            </UTooltip>
-                        </div>
-                    </template>
-                </UInput>
+                <div>
+                    <UInput :model-value="project.password_hash" :type="showPassword ? 'text' : 'password'" readonly
+                        size="sm" variant="outline" :ui="{ trailing: 'pe-1' }">
+                        <template #trailing>
+                            <div class="flex items-center gap-1">
+                                <UTooltip :text="showPassword ? 'Masquer' : 'Afficher'" :content="{ side: 'top' }">
+                                    <UButton color="neutral" variant="link" size="sm"
+                                        :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                                        :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                                        @click="showPassword = !showPassword" />
+                                </UTooltip>
+                                <UTooltip text="Copier le mot de passe" :content="{ side: 'top' }">
+                                    <UButton :color="passwordCopied ? 'success' : 'neutral'" variant="link" size="sm"
+                                        :icon="passwordCopied ? 'i-lucide-copy-check' : 'i-lucide-copy'"
+                                        aria-label="Copier le mot de passe" @click="copyPassword" />
+                                </UTooltip>
+                            </div>
+                        </template>
+                    </UInput>
+                </div>
             </div>
 
             <!-- Description -->
@@ -90,6 +83,11 @@
                 </div>
                 <p class="text-neutral-900 dark:text-neutral-100">{{ project.description }}</p>
             </div>
+        </div>
+
+        <div v-if="!project.password_hash" class="mt-4">
+            <UAlert color="info" variant="soft" icon="i-lucide-info" title="Accès libre"
+                description="Aucun mot de passe requis pour ce projet" />
         </div>
     </UCard>
 </template>
@@ -103,7 +101,6 @@ interface Props {
     statusInfo: ProjectStatusItem | null
     formattedPrice: string
     formattedCreatedAt: string
-    formattedExpiresAt: string
 }
 
 const props = defineProps<Props>()

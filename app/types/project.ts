@@ -47,8 +47,8 @@ export const projectFormSchema = z.object({
     .min(0, "Le prix doit être positif")
     .optional()
     .nullable(),
-  password_expires_at: z.string().optional().nullable(),
-  // password_hash et secure_link sont générés automatiquement par le service
+  require_password: z.boolean().default(false),
+  // password_hash est généré seulement si require_password est true
 });
 
 export type ProjectFormData = z.infer<typeof projectFormSchema>;

@@ -85,8 +85,15 @@ export const useProjects = () => {
   const createProject = async (
     projectData: Omit<
       Project,
-      "id" | "created_at" | "updated_at" | "user_id" | "password_hash"
-    >
+      | "id"
+      | "created_at"
+      | "updated_at"
+      | "user_id"
+      | "password_hash"
+      | "password_expires_at"
+    > & {
+      require_password?: boolean;
+    }
   ): Promise<ProjectWithClient> => {
     loading.value = true;
     error.value = null;

@@ -12,13 +12,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!body?.password) {
-    throw createError({
-      statusCode: 400,
-      message: "Mot de passe requis",
-    });
-  }
-
   try {
     const supabase = await serverSupabaseClient(event);
 
@@ -70,9 +63,17 @@ export default defineEventHandler(async (event) => {
       status: string;
     };
 
-    // If no password hash exists, consider it valid
+    // If no password hash exists, consider it valid (no password required)
     if (!projectData.password_hash) {
       return { valid: true };
+    }
+
+    // If password hash exists, password is required
+    if (!body?.password) {
+      throw createError({
+        statusCode: 400,
+        message: "Mot de passe requis",
+      });
     }
 
     const valid = body.password === projectData.password_hash;
