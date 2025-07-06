@@ -12,6 +12,7 @@ export const useSelection = (projectId: string) => {
   const error = ref<Error | null>(null);
   const selection = ref<SelectionWithDetails | null>(null);
   const isConversionInProgress = ref(false);
+  const isInitialized = ref(false); // Cache flag to avoid redundant calls
 
   // Realtime subscription
   let realtimeSubscription: {
@@ -192,6 +193,7 @@ export const useSelection = (projectId: string) => {
     try {
       const data = await selectionService.getSelectionByProjectId(projectId);
       selection.value = data;
+      isInitialized.value = true; // Mark as initialized
 
       // Setup realtime subscription after loading selection
       if (data?.id) {
@@ -203,6 +205,13 @@ export const useSelection = (projectId: string) => {
       console.error("Error fetching selection:", err);
     } finally {
       loading.value = false;
+    }
+  };
+
+  // New method to ensure data is loaded only when needed
+  const ensureInitialized = async () => {
+    if (!isInitialized.value && !loading.value) {
+      await fetchSelection();
     }
   };
 
@@ -372,9 +381,10 @@ export const useSelection = (projectId: string) => {
     return selectionService.getStatusOptions();
   };
 
-  // Lifecycle hooks
+  // Lifecycle hooks - Remove automatic fetch on mount
   onMounted(() => {
-    fetchSelection();
+    // Don't fetch automatically - let parent components control when to load
+    // This prevents redundant calls when multiple watchers are involved
   });
 
   onUnmounted(() => {
@@ -387,6 +397,7 @@ export const useSelection = (projectId: string) => {
     error: readonly(error),
     selection: readonly(selection),
     isConversionInProgress: readonly(isConversionInProgress),
+    isInitialized: readonly(isInitialized),
 
     // Computed
     imageCount,
@@ -402,6 +413,7 @@ export const useSelection = (projectId: string) => {
 
     // Methods
     fetchSelection,
+    ensureInitialized, // New method for controlled initialization
     saveSelection,
     uploadImages,
     deleteImage,

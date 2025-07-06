@@ -157,7 +157,8 @@ const {
     selectedCount: selectionSelectedCount,
     hasImages: hasSelectionImages,
     formattedExtraMediaPrice,
-    fetchSelection,
+    isInitialized: isSelectionInitialized,
+    ensureInitialized: ensureSelectionInitialized,
     saveSelection,
     uploadImages: uploadSelectionImages,
     getStatusOptions: getSelectionStatusOptions,
@@ -534,8 +535,7 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
             await fetchProject()
         }
 
-        // Refresh selection data
-        await fetchSelection()
+        // Selection data is already updated by saveSelection - no need to refetch
     } catch (err) {
         console.error('Error saving selection:', err)
         const toast = useToast()
@@ -548,40 +548,26 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
     }
 }
 
-// Initialize
+// Initialize - Simplified initialization logic
 onMounted(async () => {
     try {
         await fetchProject()
-        // Sync proposal data from project if it exists
-        if (project.value?.proposal && !proposalData.value) {
-            await fetchProposal()
-        }
-        // Sync moodboard data from project if it exists
-        if (project.value?.moodboard && !moodboardData.value) {
-            await fetchMoodboard()
-        }
-        // Sync selection data from project if it exists
-        if (project.value?.selection && !selectionData.value) {
-            await fetchSelection()
-        }
+        // Let each module initialize when needed via module enabled watchers
+        // This prevents redundant API calls
     } catch (err) {
         console.error('Error loading project:', err)
     }
 })
 
-// Watch for proposal module changes and project changes
+// Simplified watchers - only watch for module enabled changes
+// This prevents redundant API calls from multiple triggers
+
+// Watch for proposal module changes
 watch(() => modules.value.proposal.enabled, async (enabled) => {
     if (enabled && !proposalData.value) {
         await fetchProposal()
     }
 })
-
-// Watch for project changes to sync proposal data
-watch(() => project.value?.proposal, async (newProposal) => {
-    if (newProposal && !proposalData.value) {
-        await fetchProposal()
-    }
-}, { immediate: true })
 
 // Watch for moodboard module changes
 watch(() => modules.value.moodboard.enabled, async (enabled) => {
@@ -590,26 +576,12 @@ watch(() => modules.value.moodboard.enabled, async (enabled) => {
     }
 })
 
-// Watch for project changes to sync moodboard data
-watch(() => project.value?.moodboard, async (newMoodboard) => {
-    if (newMoodboard && !moodboardData.value) {
-        await fetchMoodboard()
-    }
-}, { immediate: true })
-
 // Watch for selection module changes
 watch(() => modules.value.selection.enabled, async (enabled) => {
-    if (enabled && !selectionData.value) {
-        await fetchSelection()
+    if (enabled && !isSelectionInitialized.value) {
+        await ensureSelectionInitialized()
     }
 })
-
-// Watch for project changes to sync selection data
-watch(() => project.value?.selection, async (newSelection) => {
-    if (newSelection && !selectionData.value) {
-        await fetchSelection()
-    }
-}, { immediate: true })
 
 // Watch for gallery module changes
 watch(() => modules.value.gallery.enabled, async (enabled) => {

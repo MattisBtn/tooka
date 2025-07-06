@@ -8,6 +8,13 @@ import type {
   SelectionWithDetails,
 } from "~/types/selection";
 
+// Simple cache to avoid redundant API calls
+const selectionCache = new Map<
+  string,
+  { data: SelectionWithDetails | null; timestamp: number }
+>();
+const CACHE_DURATION = 5000; // 5 seconds cache
+
 export const selectionService = {
   /**
    * Fetch selections with pagination and filtering
@@ -48,7 +55,7 @@ export const selectionService = {
   },
 
   /**
-   * Get selection by project ID with images
+   * Get selection by project ID with images - with simple caching
    */
   async getSelectionByProjectId(
     projectId: string
@@ -57,9 +64,17 @@ export const selectionService = {
       throw new Error("Project ID is required");
     }
 
+    // Check cache first
+    const cached = selectionCache.get(projectId);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+
     const selection = await selectionRepository.findByProjectId(projectId);
 
     if (!selection) {
+      // Cache the null result
+      selectionCache.set(projectId, { data: null, timestamp: Date.now() });
       return null;
     }
 
@@ -71,12 +86,17 @@ export const selectionService = {
     // Count selected images
     const selectedCount = images.filter((img) => img.is_selected).length;
 
-    return {
+    const result = {
       ...selection,
       images,
       imageCount: images.length,
       selectedCount,
     };
+
+    // Cache the result
+    selectionCache.set(projectId, { data: result, timestamp: Date.now() });
+
+    return result;
   },
 
   /**
@@ -115,6 +135,9 @@ export const selectionService = {
 
     // Create selection
     const selection = await selectionRepository.create(finalSelectionData);
+
+    // Clear cache for this project
+    selectionCache.delete(selectionData.project_id);
 
     // For now, we don't update project status automatically
     // This could be added later if needed
@@ -184,6 +207,9 @@ export const selectionService = {
     // Update selection
     const selection = await selectionRepository.update(id, finalUpdates);
 
+    // Clear cache for this project
+    selectionCache.delete(existingSelection.project_id);
+
     // Project is considered updated when selection is sent to client
     const projectUpdated = finalUpdates.status === "awaiting_client";
 
@@ -208,6 +234,9 @@ export const selectionService = {
 
     // Delete selection
     await selectionRepository.delete(id);
+
+    // Clear cache for this project
+    selectionCache.delete(selection.project_id);
   },
 
   /**
@@ -412,7 +441,9 @@ export const selectionService = {
   async downloadSelectedImages(selectionId: string): Promise<void> {
     const selectionWithImages = await this.getSelectionByProjectId(
       // We need to get project ID from selection ID
-      (await this.getSelectionById(selectionId)).project_id
+      (
+        await this.getSelectionById(selectionId)
+      ).project_id
     );
 
     if (!selectionWithImages) {
@@ -420,7 +451,9 @@ export const selectionService = {
     }
 
     // Filter only selected images
-    const selectedImages = (selectionWithImages.images || []).filter(img => img.is_selected);
+    const selectedImages = (selectionWithImages.images || []).filter(
+      (img) => img.is_selected
+    );
 
     if (selectedImages.length === 0) {
       throw new Error("Aucune image sélectionnée par le client");
@@ -433,18 +466,20 @@ export const selectionService = {
     let errorCount = 0;
 
     toast.add({
-      title: 'Téléchargement en cours',
+      title: "Téléchargement en cours",
       description: `Téléchargement de ${selectedImages.length} image(s) sélectionnée(s)...`,
-      icon: 'i-lucide-download',
-      color: 'info'
+      icon: "i-lucide-download",
+      color: "info",
     });
 
     for (const image of selectedImages) {
       try {
         // Use source file for original format, fallback to converted file
         const fileUrl = image.source_file_url || image.file_url;
-        const filename = image.source_filename || `selection_${image.id}.${image.source_format || 'jpg'}`;
-        
+        const filename =
+          image.source_filename ||
+          `selection_${image.id}.${image.source_format || "jpg"}`;
+
         await this.downloadImage(fileUrl, filename, true);
         downloadCount++;
       } catch (error) {
@@ -456,17 +491,17 @@ export const selectionService = {
     // Show final result
     if (errorCount === 0) {
       toast.add({
-        title: 'Téléchargement terminé',
+        title: "Téléchargement terminé",
         description: `${downloadCount} image(s) téléchargée(s) avec succès`,
-        icon: 'i-lucide-check-circle',
-        color: 'success'
+        icon: "i-lucide-check-circle",
+        color: "success",
       });
     } else {
       toast.add({
-        title: 'Téléchargement partiellement réussi',
+        title: "Téléchargement partiellement réussi",
         description: `${downloadCount} réussie(s), ${errorCount} échouée(s)`,
-        icon: 'i-lucide-alert-triangle',
-        color: 'warning'
+        icon: "i-lucide-alert-triangle",
+        color: "warning",
       });
     }
   },
