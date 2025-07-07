@@ -1,5 +1,39 @@
 <template>
     <div v-if="images.length > 0" class="space-y-4">
+        <!-- Conversion Status Summary -->
+        <div v-if="conversionSummary.total > 0" class="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    État des conversions
+                </h4>
+                <div class="text-xs text-neutral-600 dark:text-neutral-400">
+                    {{ conversionSummary.completed }}/{{ conversionSummary.total }} terminées
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mb-2">
+                <div class="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    :style="{ width: `${(conversionSummary.completed / conversionSummary.total) * 100}%` }" />
+            </div>
+
+            <!-- Status breakdown -->
+            <div class="flex items-center gap-4 text-xs">
+                <div v-if="conversionSummary.processing > 0" class="flex items-center gap-1 text-orange-600">
+                    <UIcon name="i-lucide-loader-2" class="w-3 h-3 animate-spin" />
+                    {{ conversionSummary.processing }} en cours
+                </div>
+                <div v-if="conversionSummary.pending > 0" class="flex items-center gap-1 text-neutral-600">
+                    <UIcon name="i-lucide-clock" class="w-3 h-3" />
+                    {{ conversionSummary.pending }} en attente
+                </div>
+                <div v-if="conversionSummary.failed > 0" class="flex items-center gap-1 text-red-600">
+                    <UIcon name="i-lucide-alert-circle" class="w-3 h-3" />
+                    {{ conversionSummary.failed }} échouées
+                </div>
+            </div>
+        </div>
+
         <!-- Images Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div v-for="image in images" :key="image.id"
@@ -25,13 +59,6 @@
                 <div v-if="image.requires_conversion"
                     class="absolute top-2 left-2 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded shadow-lg">
                     {{ (image.source_format || 'RAW').toUpperCase() }}
-                </div>
-
-                <!-- Conversion Status Badge -->
-                <div v-if="image.requires_conversion && image.conversion_status !== 'completed'"
-                    class="absolute top-2 right-2 px-2 py-1 rounded shadow-lg text-xs font-medium"
-                    :class="getStatusBadgeClass(image.conversion_status)">
-                    {{ getConversionStatusText(image.conversion_status) }}
                 </div>
 
                 <!-- Selection Indicator -->
@@ -60,45 +87,6 @@
                         <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
                     </UDropdownMenu>
                 </div>
-
-                <!-- Loading Overlay -->
-                <div v-if="image.conversion_status === 'processing'"
-                    class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <UIcon name="i-lucide-loader-2" class="w-6 h-6 text-white animate-spin" />
-                </div>
-            </div>
-        </div>
-
-        <!-- Conversion Summary -->
-        <div v-if="conversionSummary.total > 0" class="mt-6 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
-            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                Statut des conversions RAW
-            </h4>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                <div class="text-center">
-                    <div class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                        {{ conversionSummary.completed }}
-                    </div>
-                    <div class="text-neutral-600 dark:text-neutral-400">Terminées</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-lg font-semibold text-orange-600">
-                        {{ conversionSummary.processing }}
-                    </div>
-                    <div class="text-neutral-600 dark:text-neutral-400">En cours</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-lg font-semibold text-neutral-500">
-                        {{ conversionSummary.pending }}
-                    </div>
-                    <div class="text-neutral-600 dark:text-neutral-400">En attente</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-lg font-semibold text-red-600">
-                        {{ conversionSummary.failed }}
-                    </div>
-                    <div class="text-neutral-600 dark:text-neutral-400">Échouées</div>
-                </div>
             </div>
         </div>
     </div>
@@ -112,6 +100,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useConversionSummary } from '~/composables/selections/user/useSelection';
 import type { SelectionImage } from '~/types/selection';
 
 interface Props {
@@ -135,17 +124,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 // Computed properties
-const conversionSummary = computed(() => {
-    const rawImages = props.images.filter(img => img.requires_conversion)
-
-    return {
-        total: rawImages.length,
-        completed: rawImages.filter(img => img.conversion_status === 'completed').length,
-        processing: rawImages.filter(img => ['processing', 'queued'].includes(img.conversion_status || '')).length,
-        pending: rawImages.filter(img => img.conversion_status === 'pending').length,
-        failed: rawImages.filter(img => img.conversion_status === 'failed').length,
-    }
-})
+const conversionSummary = useConversionSummary(computed(() => props.images))
 
 // Helper methods
 const getImageUrl = (image: SelectionImage): string => {
@@ -237,23 +216,6 @@ const getConversionStatusText = (status: string | null): string => {
             return 'Annulé'
         default:
             return 'Inconnu'
-    }
-}
-
-const getStatusBadgeClass = (status: string | null): string => {
-    switch (status) {
-        case 'pending':
-        case 'queued':
-            return 'bg-neutral-500 text-white'
-        case 'processing':
-        case 'retrying':
-            return 'bg-orange-500 text-white'
-        case 'failed':
-            return 'bg-red-500 text-white'
-        case 'cancelled':
-            return 'bg-neutral-400 text-white'
-        default:
-            return 'bg-neutral-500 text-white'
     }
 }
 

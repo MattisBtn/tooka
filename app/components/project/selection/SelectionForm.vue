@@ -11,6 +11,14 @@
             </div>
         </div>
 
+        <!-- Warning for completed selections -->
+        <UAlert v-if="!canEditSelection" color="error" variant="soft" icon="i-lucide-lock" title="Sélection verrouillée"
+            class="mb-6">
+            <template #description>
+                Cette sélection a été validée par le client et ne peut plus être modifiée.
+            </template>
+        </UAlert>
+
         <!-- Selection Configuration -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
@@ -32,12 +40,12 @@
                 <UFormField label="Nombre maximum de médias sélectionnables" name="max_media_selection" required
                     class="w-full">
                     <UInput v-model="state.max_media_selection" type="number" :min="1" :max="1000" placeholder="Ex: 30"
-                        class="w-full" />
+                        :disabled="isFormDisabled" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Prix d'un média supplémentaire (€)" name="extra_media_price" class="w-full">
                     <UInput v-model="state.extra_media_price" type="number" :min="0" step="0.01" placeholder="Ex: 15.00"
-                        class="w-full" />
+                        :disabled="isFormDisabled" class="w-full" />
                 </UFormField>
             </div>
 
@@ -83,8 +91,9 @@
                     </h3>
                 </div>
 
-                <ProjectSelectionImageGrid :images="Array.from(images)" :can-delete="true" :can-toggle-selection="false"
-                    :show-selection-state="true" @delete-image="handleDeleteExistingImage" />
+                <ProjectSelectionImageGrid :images="Array.from(images)" :can-delete="canEditSelection"
+                    :can-toggle-selection="false" :show-selection-state="true"
+                    @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
             </div>
@@ -95,7 +104,13 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images pour la sélection</template>
                 </h3>
-                <ProjectSelectionImageUploadField v-model="selectedFiles" :max-files="200" />
+                <div v-if="!canEditSelection" class="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-center">
+                    <UIcon name="i-lucide-lock" class="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                        Upload désactivé - sélection verrouillée
+                    </p>
+                </div>
+                <ProjectSelectionImageUploadField v-else v-model="selectedFiles" :max-files="200" />
             </div>
 
             <!-- Upload Progress -->
@@ -187,7 +202,7 @@
 
                 <!-- Boutons pour sélection déjà envoyée au client -->
                 <template
-                    v-if="isEditMode && (props.selection?.status === 'awaiting_client' || props.selection?.status === 'revision_requested')">
+                    v-if="canEditSelection && isEditMode && (props.selection?.status === 'awaiting_client' || props.selection?.status === 'revision_requested')">
                     <UButton type="submit" variant="outline" color="neutral"
                         :loading="(isSubmitting && submitAsDraft) || uploading"
                         :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-file-edit"
@@ -199,7 +214,7 @@
                 </template>
 
                 <!-- Boutons pour nouvelle sélection ou brouillon -->
-                <template v-else>
+                <template v-else-if="canEditSelection">
                     <UButton type="submit" variant="outline" color="neutral"
                         :loading="(isSubmitting && submitAsDraft) || uploading"
                         :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-save"
@@ -265,6 +280,16 @@ const hasExistingImages = computed(() => images.value.length > 0);
 const totalImageCount = computed(() => images.value.length + selectedFiles.value.length);
 const selectedCount = computed(() => images.value.filter(img => img.is_selected).length);
 
+// Permission check - prevent editing completed selections
+const canEditSelection = computed(() => {
+    return !props.selection || props.selection.status !== 'completed'
+});
+
+// Prevent any action if selection is completed
+const isFormDisabled = computed(() => {
+    return !canEditSelection.value || isSubmitting.value || uploading.value
+});
+
 // Handle existing image deletion
 const handleDeleteExistingImage = async (imageId: string) => {
     const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.');
@@ -327,6 +352,29 @@ const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
         isSubmitting.value = false;
     }
 };
+
+// Watch for file changes to clean up old object URLs
+watch(() => selectedFiles.value, (newFiles, oldFiles) => {
+    if (oldFiles) {
+        // Clean up removed files
+        oldFiles.forEach(oldFile => {
+            if (!newFiles.some(newFile => newFile === oldFile)) {
+                // File was removed, clean up its object URL
+                const url = URL.createObjectURL(oldFile);
+                URL.revokeObjectURL(url);
+            }
+        });
+    }
+}, { deep: true });
+
+// Cleanup on unmount
+onUnmounted(() => {
+    // Clean up all object URLs
+    selectedFiles.value.forEach(file => {
+        const url = URL.createObjectURL(file);
+        URL.revokeObjectURL(url);
+    });
+});
 </script>
 
 <style scoped>

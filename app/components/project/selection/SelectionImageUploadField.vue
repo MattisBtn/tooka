@@ -2,10 +2,10 @@
     <div class="space-y-4">
         <!-- File Input -->
         <div class="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-6 text-center hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors"
-            :class="{ 'border-orange-500 bg-orange-50 dark:bg-orange-900/20': isDragOver }"
+            :class="{ 'border-primary-500 bg-primary-50 dark:bg-primary-900/20': isDragOver }"
             @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop">
 
-            <UIcon name="i-lucide-mouse-pointer-click" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+            <UIcon name="i-lucide-upload-cloud" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
 
             <div class="space-y-2">
                 <p class="text-lg font-medium text-neutral-900 dark:text-neutral-100">
@@ -32,7 +32,7 @@
         <div v-if="selectedFiles.length > 0" class="space-y-3">
             <div class="flex items-center justify-between">
                 <h4 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    Images de sélection sélectionnées ({{ selectedFiles.length }})
+                    Images sélectionnées ({{ selectedFiles.length }})
                 </h4>
                 <UButton icon="i-lucide-x" size="xs" variant="ghost" color="error" label="Tout supprimer"
                     @click="clearFiles" />
@@ -42,27 +42,33 @@
                 <div v-for="(file, index) in selectedFiles" :key="index"
                     class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
 
-                    <!-- Image Preview -->
-                    <NuxtImg :src="getFilePreview(file)" :alt="file.name" class="w-full h-full object-cover" />
+                    <UPopover mode="hover" :open-delay="300" :close-delay="100">
+                        <!-- Image Preview for web-supported formats -->
+                        <NuxtImg v-if="isWebSupportedFormat(file)" :src="getFilePreview(file)" :alt="file.name"
+                            class="w-full h-full object-cover" />
 
-                    <!-- File Info Overlay -->
-                    <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-2">
-                        <div class="text-center text-white text-xs">
-                            <p class="font-medium truncate max-w-full">{{ file.name }}</p>
-                            <p class="text-neutral-300">{{ formatFileSize(file.size) }}</p>
+                        <!-- Placeholder for RAW/non-web formats -->
+                        <div v-else
+                            class="w-full h-full flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400 p-3">
+                            <UIcon name="i-lucide-camera" class="w-8 h-8 mb-2" />
+                            <p class="text-xs text-center font-medium">Format RAW</p>
+                            <p class="text-xs text-center opacity-75">{{ getFileExtension(file.name) }}</p>
                         </div>
-                    </div>
+
+                        <template #content>
+                            <div class="p-3 max-w-xs">
+                                <p class="font-medium text-sm text-neutral-900 dark:text-neutral-100 break-all">{{
+                                    file.name }}</p>
+                                <p class="text-xs text-neutral-600 dark:text-neutral-400 mt-1">{{
+                                    formatFileSize(file.size) }}</p>
+                            </div>
+                        </template>
+                    </UPopover>
 
                     <!-- Remove Button -->
                     <UButton icon="i-lucide-x" size="xs" color="error" variant="solid"
                         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                         @click="removeFile(index)" />
-
-                    <!-- Selection indicator -->
-                    <div class="absolute bottom-1 left-1 opacity-75 group-hover:opacity-100 transition-opacity">
-                        <UIcon name="i-lucide-mouse-pointer-click" class="w-4 h-4 text-orange-400 drop-shadow-sm" />
-                    </div>
                 </div>
             </div>
 
@@ -80,6 +86,10 @@
 
         <!-- Error Messages -->
         <div v-if="errors.length > 0" class="space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-red-600 dark:text-red-400">Erreurs de validation</span>
+                <UButton icon="i-lucide-x" size="xs" variant="ghost" color="error" @click="errors = []" />
+            </div>
             <UAlert v-for="(error, index) in errors" :key="index" color="error" variant="soft" :title="error"
                 class="text-sm" />
         </div>
@@ -208,7 +218,11 @@ const clearFiles = () => {
 
 // Utility methods
 const getFilePreview = (file: File): string => {
-    return URL.createObjectURL(file)
+    // Only create object URL for web-supported formats
+    if (isWebSupportedFormat(file)) {
+        return URL.createObjectURL(file)
+    }
+    return ''
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -219,10 +233,24 @@ const formatFileSize = (bytes: number): string => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
+const isWebSupportedFormat = (file: File): boolean => {
+    const webSupportedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    return webSupportedTypes.includes(file.type)
+}
+
+const getFileExtension = (fileName: string): string => {
+    return fileName.split('.').pop() || ''
+}
+
 // Cleanup object URLs on unmount
 onUnmounted(() => {
     selectedFiles.value.forEach(file => {
-        URL.revokeObjectURL(getFilePreview(file))
+        if (isWebSupportedFormat(file)) {
+            const preview = getFilePreview(file)
+            if (preview) {
+                URL.revokeObjectURL(preview)
+            }
+        }
     })
 })
 </script>

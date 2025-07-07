@@ -1,18 +1,63 @@
+import type { ComputedRef, Ref } from "vue";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { selectionService } from "~/services/selectionService";
 import type {
   SelectionFormData,
+  SelectionImage,
   SelectionImageRealtimePayload,
   SelectionWithDetails,
 } from "~/types/selection";
+
+// Utility function to calculate conversion summary
+export const useConversionSummary = (
+  images:
+    | Ref<readonly SelectionImage[] | undefined>
+    | ComputedRef<readonly SelectionImage[] | undefined>
+) => {
+  return computed(() => {
+    if (!images.value) {
+      return { total: 0, completed: 0, processing: 0, pending: 0, failed: 0 };
+    }
+
+    const summary = {
+      total: 0,
+      completed: 0,
+      processing: 0,
+      pending: 0,
+      failed: 0,
+    };
+
+    images.value.forEach((image) => {
+      if (image.requires_conversion) {
+        summary.total++;
+        switch (image.conversion_status) {
+          case "completed":
+            summary.completed++;
+            break;
+          case "processing":
+          case "queued":
+            summary.processing++;
+            break;
+          case "pending":
+            summary.pending++;
+            break;
+          case "failed":
+            summary.failed++;
+            break;
+        }
+      }
+    });
+
+    return summary;
+  });
+};
 
 export const useSelection = (projectId: string) => {
   // State
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const selection = ref<SelectionWithDetails | null>(null);
-  const isConversionInProgress = ref(false);
-  const isInitialized = ref(false); // Cache flag to avoid redundant calls
+  const isInitialized = ref(false);
 
   // Realtime subscription
   let realtimeSubscription: {
@@ -32,29 +77,9 @@ export const useSelection = (projectId: string) => {
   );
 
   // Conversion status tracking
-  const conversionSummary = computed(() => {
-    if (!selection.value?.images) {
-      return { total: 0, completed: 0, processing: 0, pending: 0, failed: 0 };
-    }
-
-    const rawImages = selection.value.images.filter(
-      (img) => img.requires_conversion
-    );
-
-    return {
-      total: rawImages.length,
-      completed: rawImages.filter(
-        (img) => img.conversion_status === "completed"
-      ).length,
-      processing: rawImages.filter((img) =>
-        ["processing", "queued"].includes(img.conversion_status || "")
-      ).length,
-      pending: rawImages.filter((img) => img.conversion_status === "pending")
-        .length,
-      failed: rawImages.filter((img) => img.conversion_status === "failed")
-        .length,
-    };
-  });
+  const conversionSummary = useConversionSummary(
+    computed(() => selection.value?.images)
+  );
 
   const hasConversionsInProgress = computed(() => {
     return (
@@ -64,7 +89,7 @@ export const useSelection = (projectId: string) => {
   });
 
   const canPerformActions = computed(() => {
-    return !loading.value && !isConversionInProgress.value;
+    return !loading.value && !hasConversionsInProgress.value;
   });
 
   // Format extra media price
@@ -77,19 +102,19 @@ export const useSelection = (projectId: string) => {
   });
 
   // Real-time subscription management
-  const setupRealtimeSubscription = () => {
-    if (!selection.value?.id || realtimeSubscription) return;
-
-    realtimeSubscription = selectionService.subscribeToSelectionImages(
-      selection.value.id,
-      handleRealtimeUpdate
-    );
-  };
-
-  const cleanupRealtimeSubscription = async () => {
+  const manageRealtimeSubscription = async (selectionId?: string) => {
+    // Cleanup existing subscription
     if (realtimeSubscription) {
       await realtimeSubscription.unsubscribe();
       realtimeSubscription = null;
+    }
+
+    // Setup new subscription if selectionId provided
+    if (selectionId) {
+      realtimeSubscription = selectionService.subscribeToSelectionImages(
+        selectionId,
+        handleRealtimeUpdate
+      );
     }
   };
 
@@ -156,50 +181,22 @@ export const useSelection = (projectId: string) => {
         break;
       }
     }
-
-    // Update conversion progress tracking
-    updateConversionProgress();
-  };
-
-  const updateConversionProgress = () => {
-    const wasInProgress = isConversionInProgress.value;
-    isConversionInProgress.value = hasConversionsInProgress.value;
-
-    // Show notification when all conversions complete
-    if (
-      wasInProgress &&
-      !isConversionInProgress.value &&
-      conversionSummary.value.total > 0
-    ) {
-      const toast = useToast();
-      toast.add({
-        title: "Conversions terminées",
-        description: `${conversionSummary.value.completed} image${
-          conversionSummary.value.completed > 1 ? "s" : ""
-        } convertie${
-          conversionSummary.value.completed > 1 ? "s" : ""
-        } avec succès.`,
-        icon: "i-lucide-check-circle",
-        color: "success",
-      });
-    }
   };
 
   // Methods
   const fetchSelection = async () => {
+    if (loading.value) return; // Prevent concurrent fetches
+
     loading.value = true;
     error.value = null;
 
     try {
       const data = await selectionService.getSelectionByProjectId(projectId);
       selection.value = data;
-      isInitialized.value = true; // Mark as initialized
+      isInitialized.value = true;
 
-      // Setup realtime subscription after loading selection
-      if (data?.id) {
-        await cleanupRealtimeSubscription();
-        setupRealtimeSubscription();
-      }
+      // Setup realtime subscription if selection exists
+      await manageRealtimeSubscription(data?.id);
     } catch (err) {
       error.value = err instanceof Error ? err : new Error("Unknown error");
       console.error("Error fetching selection:", err);
@@ -208,9 +205,9 @@ export const useSelection = (projectId: string) => {
     }
   };
 
-  // New method to ensure data is loaded only when needed
+  // Ensure data is loaded only when needed
   const ensureInitialized = async () => {
-    if (!isInitialized.value && !loading.value) {
+    if (!isInitialized.value) {
       await fetchSelection();
     }
   };
@@ -300,26 +297,6 @@ export const useSelection = (projectId: string) => {
     }
   };
 
-  const toggleImageSelection = async (imageId: string, selected: boolean) => {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const result = await selectionService.toggleImageSelection(
-        imageId,
-        selected
-      );
-
-      // Real-time subscription will update local state automatically
-      return result;
-    } catch (err) {
-      error.value = err instanceof Error ? err : new Error("Unknown error");
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
   const deleteSelection = async () => {
     if (!selection.value) {
       throw new Error("No selection found");
@@ -329,7 +306,7 @@ export const useSelection = (projectId: string) => {
     error.value = null;
 
     try {
-      await cleanupRealtimeSubscription();
+      await manageRealtimeSubscription(); // Cleanup realtime subscription
       await selectionService.deleteSelection(selection.value.id);
       selection.value = null;
     } catch (err) {
@@ -388,7 +365,7 @@ export const useSelection = (projectId: string) => {
   });
 
   onUnmounted(() => {
-    cleanupRealtimeSubscription();
+    manageRealtimeSubscription(); // Cleanup realtime subscription on unmount
   });
 
   return {
@@ -396,7 +373,6 @@ export const useSelection = (projectId: string) => {
     loading: readonly(loading),
     error: readonly(error),
     selection: readonly(selection),
-    isConversionInProgress: readonly(isConversionInProgress),
     isInitialized: readonly(isInitialized),
 
     // Computed
@@ -417,7 +393,6 @@ export const useSelection = (projectId: string) => {
     saveSelection,
     uploadImages,
     deleteImage,
-    toggleImageSelection,
     deleteSelection,
     downloadImage,
     retryConversion,
