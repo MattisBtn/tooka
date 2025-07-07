@@ -225,7 +225,6 @@ const emit = defineEmits<Emits>()
 // Local state
 const showEditForm = ref(false)
 const isDeleting = ref(false)
-const isConverting = ref(false)
 const isDownloading = ref(false)
 
 // Computed properties

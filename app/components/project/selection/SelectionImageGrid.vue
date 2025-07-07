@@ -71,11 +71,9 @@
                         :variant="image.is_selected ? 'solid' : 'outline'" size="sm"
                         @click="handleToggleSelection(image.id, !image.is_selected)" />
                     <!-- Read-only indicator for photographers -->
-                    <div v-else-if="showSelectionState"
-                        class="flex items-center justify-center w-8 h-8 rounded-full shadow-lg"
-                        :class="image.is_selected ? 'bg-green-500' : 'bg-neutral-500 bg-opacity-70'">
-                        <UIcon :name="image.is_selected ? 'i-lucide-check' : 'i-lucide-circle'"
-                            :class="image.is_selected ? 'text-white' : 'text-neutral-300'" class="w-4 h-4" />
+                    <div v-else-if="showSelectionState && image.is_selected"
+                        class="flex items-center justify-center w-8 h-8 rounded-full shadow-lg bg-green-500">
+                        <UIcon name="i-lucide-check" class="w-4 h-4 text-white" />
                     </div>
                 </div>
 
