@@ -16,14 +16,11 @@
                 </div>
             </div>
 
-            <UFormField label="Titre de la proposition" name="title" required>
-                <UInput v-model="state.title" placeholder="Ex: Proposition shooting mariage Sarah & Thomas"
-                    icon="i-lucide-file-text" />
-            </UFormField>
-
-            <UFormField label="Description" name="description" class="w-full">
-                <UTextarea v-model="state.description" autoresize
-                    placeholder="Décrivez les prestations incluses, les conditions, etc..." :rows="3" class="w-full" />
+            <!-- Proposition Content Builder -->
+            <UFormField label="Contenu de la proposition" name="content" required>
+                <ProjectProposalContentBuilder :title="state.title" :description="state.description"
+                    :status="state.status" @update:title="state.title = $event"
+                    @update:description="state.description = $event" />
             </UFormField>
         </div>
 
@@ -135,6 +132,8 @@
                     @click="submitAsDraft = false" />
             </div>
         </div>
+
+
     </UForm>
 </template>
 
