@@ -1,3 +1,4 @@
+import type { ProposalComponent } from "~/composables/proposals/useProposalContentBuilder";
 import {
   proposalFormSchema,
   type Proposal,
@@ -19,14 +20,15 @@ export const useProposalForm = (
 
   // Form state
   const state = reactive<ProposalFormData>({
-    title: proposal?.title || "",
-    description: proposal?.description || "",
+    content_json: (Array.isArray(proposal?.content_json)
+      ? proposal.content_json
+      : []) as unknown as ProposalComponent[],
+    content_html: proposal?.content_html || "",
     price: proposal?.price || projectInitialPrice || 0,
     deposit_required: proposal?.deposit_required || false,
     deposit_amount: proposal?.deposit_amount || null,
     contract_url: proposal?.contract_url || null,
     quote_url: proposal?.quote_url || null,
-    template_id: proposal?.template_id || null,
     status: proposal?.status || "draft",
   });
 

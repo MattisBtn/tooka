@@ -38,14 +38,13 @@ export const useProposal = (projectId: string) => {
     try {
       const proposalData = {
         project_id: projectId,
-        title: formData.title,
-        description: formData.description || null,
+        content_json: formData.content_json,
+        content_html: formData.content_html,
         price: formData.price,
         deposit_required: formData.deposit_required,
         deposit_amount: formData.deposit_amount || null,
         contract_url: formData.contract_url || null,
         quote_url: formData.quote_url || null,
-        template_id: formData.template_id || null,
         status: formData.status,
       };
 

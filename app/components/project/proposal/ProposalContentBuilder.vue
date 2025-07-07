@@ -2,7 +2,7 @@
     <div>
         <!-- Trigger Button -->
         <UButton icon="i-lucide-file-text" size="lg" variant="outline" color="primary" :label="contentPreview"
-            class="w-full justify-start text-left" :class="{ 'text-neutral-500': !title }" @click="openModal" />
+            class="w-full justify-start text-left" @click="openModal" />
 
         <!-- Fullscreen Modal -->
         <UModal v-model:open="isOpen" :fullscreen="true" :transition="true">
@@ -21,13 +21,9 @@
                             </p>
                         </div>
 
-                        <!-- Metadata Fields -->
+                        <!-- Status Display -->
                         <div class="p-4 border-b border-neutral-200 dark:border-neutral-700">
                             <div class="space-y-3">
-                                <UFormField label="Titre de la proposition" name="title" required>
-                                    <UInput v-model="tempTitle"
-                                        placeholder="Ex: Proposition shooting mariage Sarah & Thomas" size="sm" />
-                                </UFormField>
                                 <UFormField label="Status" name="status">
                                     <UBadge :color="statusColor" variant="subtle" :label="statusLabel" />
                                 </UFormField>
@@ -280,7 +276,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useProposalContentBuilder, type ButtonComponent, type ListComponent, type ParagraphComponent, type SeparatorComponent, type TitleComponent } from '~/composables/proposals/useProposalContentBuilder';
+import { useProposalContentBuilder, type ButtonComponent, type ListComponent, type ParagraphComponent, type ProposalComponent, type SeparatorComponent, type TitleComponent } from '~/composables/proposals/useProposalContentBuilder';
 import ButtonBuilder from './builder/ButtonBuilder.vue';
 import ComponentRenderer from './builder/ComponentRenderer.vue';
 import ListBuilder from './builder/ListBuilder.vue';
@@ -289,13 +285,14 @@ import SeparatorBuilder from './builder/SeparatorBuilder.vue';
 import TitleBuilder from './builder/TitleBuilder.vue';
 
 interface Props {
-    title: string;
-    description?: string | null;
+    content_json?: ProposalComponent[] | null;
+    content_html?: string | null;
     status: 'draft' | 'awaiting_client' | 'revision_requested' | 'completed';
 }
 
 interface Emits {
-    (e: 'update:title' | 'update:description', value: string): void;
+    (e: 'update:content_json', value: ProposalComponent[]): void;
+    (e: 'update:content_html', value: string): void;
 }
 
 const props = defineProps<Props>();
@@ -304,7 +301,6 @@ const emit = defineEmits<Emits>();
 // Use the composable
 const {
     isOpen,
-    tempTitle,
     sortedComponents,
     selectedComponentId,
     selectedComponent,
@@ -326,14 +322,14 @@ const {
     togglePreviewMode,
 } = useProposalContentBuilder(
     {
-        title: props.title,
-        description: props.description,
+        content_json: props.content_json,
+        content_html: props.content_html,
         status: props.status,
     },
     {
-        onSave: (title: string, description: string) => {
-            emit('update:title', title);
-            emit('update:description', description);
+        onSave: (content_json: ProposalComponent[], content_html: string) => {
+            emit('update:content_json', content_json);
+            emit('update:content_html', content_html);
         },
     }
 );

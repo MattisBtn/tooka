@@ -45,13 +45,13 @@ type ProposalComponent =
   | SeparatorComponent;
 
 interface ProposalContentBuilderProps {
-  title: string;
-  description?: string | null;
+  content_json?: ProposalComponent[] | null;
+  content_html?: string | null;
   status: "draft" | "awaiting_client" | "revision_requested" | "completed";
 }
 
 interface ProposalContentBuilderCallbacks {
-  onSave: (title: string, description: string) => void;
+  onSave: (content_json: ProposalComponent[], content_html: string) => void;
 }
 
 export const useProposalContentBuilder = (
@@ -60,7 +60,6 @@ export const useProposalContentBuilder = (
 ) => {
   // Modal state
   const isOpen = ref(false);
-  const tempTitle = ref(props.title);
 
   // Components state
   const components = ref<ProposalComponent[]>([]);
@@ -71,33 +70,17 @@ export const useProposalContentBuilder = (
   const configDrawerOpen = ref(false);
   const isPreviewMode = ref(false);
 
-  // Initialize components from description if exists
+  // Initialize components from content_json if exists
   const initializeComponents = () => {
-    if (props.description) {
-      try {
-        const parsed = JSON.parse(props.description);
-        if (Array.isArray(parsed)) {
-          components.value = parsed;
-          const maxId = Math.max(
-            ...parsed.map((c) => parseInt(c?.id || "0")),
-            0
-          );
-          nextId.value = maxId + 1;
-          return;
-        }
-      } catch {
-        // If parsing fails, create a paragraph with the description
-        components.value = [
-          {
-            id: "1",
-            type: "paragraph",
-            content: props.description,
-            order: 1,
-          } as ParagraphComponent,
-        ];
-        nextId.value = 2;
-        return;
-      }
+    if (props.content_json && Array.isArray(props.content_json)) {
+      // Create a deep copy to avoid reference issues
+      components.value = JSON.parse(JSON.stringify(props.content_json));
+      const maxId = Math.max(
+        ...props.content_json.map((c) => parseInt(c?.id || "0")),
+        0
+      );
+      nextId.value = maxId + 1;
+      return;
     }
 
     // Initialize empty
@@ -106,21 +89,7 @@ export const useProposalContentBuilder = (
   };
 
   // Watch for changes in props to update values
-  watch(
-    () => props.title,
-    (newTitle) => {
-      tempTitle.value = newTitle;
-    }
-  );
-
-  watch(
-    () => props.description,
-    (newDescription) => {
-      if (newDescription !== null) {
-        initializeComponents();
-      }
-    }
-  );
+  watch(() => props.content_json, initializeComponents, { immediate: true });
 
   // Available component types
   const availableComponents = [
@@ -158,22 +127,27 @@ export const useProposalContentBuilder = (
 
   // Computed for content preview on button
   const contentPreview = computed(() => {
-    if (!props.title && components.value.length === 0) {
+    if (components.value.length === 0) {
       return "Créer le contenu de la proposition";
     }
 
-    if (!props.title) {
-      return "Titre requis - Cliquez pour éditer";
+    const firstTitle = components.value.find(
+      (c) => c.type === "title"
+    )?.content;
+    if (firstTitle) {
+      return firstTitle.length > 50
+        ? firstTitle.substring(0, 50) + "..."
+        : firstTitle;
     }
 
-    const firstText =
-      components.value.find((c) => c.type === "paragraph")?.content ||
-      components.value.find((c) => c.type === "title")?.content ||
-      "";
-
-    return `${props.title}${
-      firstText ? " - " + firstText.substring(0, 50) + "..." : ""
-    }`;
+    const firstText = components.value.find(
+      (c) => c.type === "paragraph"
+    )?.content;
+    return firstText
+      ? firstText.length > 80
+        ? firstText.substring(0, 80) + "..."
+        : firstText
+      : "Contenu de la proposition";
   });
 
   // Computed for status display
@@ -275,7 +249,7 @@ export const useProposalContentBuilder = (
         alignment: "center",
       };
     } else {
-      return; // Type non supporté
+      return;
     }
 
     components.value.push(newComponent);
@@ -363,25 +337,26 @@ export const useProposalContentBuilder = (
 
   const moveComponent = (id: string, direction: "up" | "down") => {
     const currentIndex = components.value.findIndex((c) => c.id === id);
-    if (currentIndex === -1) return;
-
     const targetIndex =
       direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= components.value.length) return;
 
-    // Swap the components in the array
-    const currentComponent = components.value[currentIndex];
-    const targetComponent = components.value[targetIndex];
-
-    if (currentComponent && targetComponent) {
-      components.value[currentIndex] = targetComponent;
-      components.value[targetIndex] = currentComponent;
-
-      // Update the order values
-      components.value.forEach((comp, idx) => {
-        comp.order = idx + 1;
-      });
+    if (
+      currentIndex === -1 ||
+      targetIndex < 0 ||
+      targetIndex >= components.value.length
+    ) {
+      return;
     }
+
+    // Swap components
+    const temp = components.value[currentIndex]!;
+    components.value[currentIndex] = components.value[targetIndex]!;
+    components.value[targetIndex] = temp;
+
+    // Update order values
+    components.value.forEach((comp, idx) => {
+      comp.order = idx + 1;
+    });
   };
 
   // Selection methods
@@ -395,10 +370,79 @@ export const useProposalContentBuilder = (
     configDrawerOpen.value = false;
   };
 
+  // Generate HTML from components
+  const generateHtml = (components: ProposalComponent[]): string => {
+    return components
+      .sort((a, b) => a.order - b.order)
+      .map((component) => {
+        const alignmentClass =
+          component.alignment === "center"
+            ? ' style="text-align: center;"'
+            : component.alignment === "right"
+            ? ' style="text-align: right;"'
+            : "";
+
+        switch (component.type) {
+          case "title": {
+            const titleComp = component as TitleComponent;
+            const tag = `h${titleComp.level}`;
+            return `<${tag}${alignmentClass}>${titleComp.content}</${tag}>`;
+          }
+
+          case "paragraph": {
+            const paraComp = component as ParagraphComponent;
+            return `<p${alignmentClass}>${paraComp.content}</p>`;
+          }
+
+          case "list": {
+            const listComp = component as ListComponent;
+            const listTag = listComp.listType === "numbered" ? "ol" : "ul";
+            const items = listComp.items
+              .map((item) => `<li>${item}</li>`)
+              .join("");
+            return `<${listTag}${alignmentClass}>${items}</${listTag}>`;
+          }
+
+          case "button": {
+            const buttonComp = component as ButtonComponent;
+            const href = buttonComp.link ? ` href="${buttonComp.link}"` : "";
+            const target = buttonComp.link ? ' target="_blank"' : "";
+            return `<div${alignmentClass}><a${href}${target} class="button button-${buttonComp.variant} button-${buttonComp.size}">${buttonComp.text}</a></div>`;
+          }
+
+          case "separator": {
+            const sepComp = component as SeparatorComponent;
+            const spacingClass =
+              sepComp.spacing === "small"
+                ? "separator-small"
+                : sepComp.spacing === "large"
+                ? "separator-large"
+                : "separator-medium";
+
+            if (sepComp.style === "space") {
+              return `<div class="${spacingClass}"></div>`;
+            } else if (sepComp.style === "ornament") {
+              return `<div class="${spacingClass}" style="text-align: center;"><span class="separator-ornament">• • •</span></div>`;
+            } else {
+              const borderStyle =
+                sepComp.style === "dashed"
+                  ? "dashed"
+                  : sepComp.style === "dotted"
+                  ? "dotted"
+                  : "solid";
+              return `<hr class="${spacingClass}" style="border-style: ${borderStyle};">`;
+            }
+          }
+
+          default:
+            return "";
+        }
+      })
+      .join("");
+  };
+
   // Modal methods
   const openModal = () => {
-    // Initialize temp values with current props
-    tempTitle.value = props.title;
     initializeComponents();
     isOpen.value = true;
   };
@@ -411,11 +455,11 @@ export const useProposalContentBuilder = (
   };
 
   const saveAndClose = () => {
-    // Serialize components to JSON for storage
-    const serializedComponents = JSON.stringify(components.value);
+    // Generate HTML from components
+    const htmlContent = generateHtml(components.value);
 
     // Call the callback with the updated values
-    callbacks.onSave(tempTitle.value, serializedComponents);
+    callbacks.onSave(components.value, htmlContent);
 
     // Close modal
     closeModal();
@@ -443,7 +487,6 @@ export const useProposalContentBuilder = (
   return {
     // State
     isOpen: readonly(isOpen),
-    tempTitle,
     components: readonly(components),
     sortedComponents,
     selectedComponentId: readonly(selectedComponentId),

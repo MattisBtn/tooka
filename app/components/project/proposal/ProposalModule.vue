@@ -35,10 +35,10 @@
 
                     <!-- Proposal Content Viewer -->
                     <div class="flex items-start justify-between mb-3">
-                        <ProjectProposalContentBuilder :title="proposalData.title"
-                            :description="proposalData.description" :status="proposalData.status"
-                            @update:title="handleContentUpdate('title', $event)"
-                            @update:description="handleContentUpdate('description', $event)" />
+                        <ProjectProposalContentBuilder :content_json="contentJsonComponents"
+                            :content_html="proposalData.content_html" :status="proposalData.status"
+                            @update:content_json="handleContentUpdate('content_json', $event)"
+                            @update:content_html="handleContentUpdate('content_html', $event)" />
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -53,7 +53,7 @@
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
                                 formattedDepositAmount
-                            }}
+                                }}
                             </p>
                         </div>
                     </div>
@@ -156,7 +156,8 @@
 </template>
 
 <script lang="ts" setup>
-import type { Proposal } from '~/types/proposal';
+import type { ProposalComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { Proposal, ProposalFormData } from '~/types/proposal';
 
 interface Props {
     enabled: boolean
@@ -170,7 +171,7 @@ interface Props {
 
 interface Emits {
     (e: 'update:enabled', value: boolean): void
-    (e: 'proposal-saved', data: { proposal: Proposal; projectUpdated: boolean }): void
+    (e: 'proposal-saved', data: { proposal: Proposal | ProposalFormData; projectUpdated: boolean }): void
 }
 
 const props = defineProps<Props>()
@@ -188,6 +189,16 @@ const cannotDisableProposal = computed(() => {
 
 const canEditProposal = computed(() => {
     return !props.proposalData || props.proposalData.status === 'draft'
+})
+
+// Convert Json content_json to ProposalComponent[] for the content builder
+const contentJsonComponents = computed(() => {
+    if (!props.proposalData?.content_json || !Array.isArray(props.proposalData.content_json)) {
+        return null
+    }
+
+    // Create a deep copy to ensure proper reactivity
+    return JSON.parse(JSON.stringify(props.proposalData.content_json)) as ProposalComponent[]
 })
 
 // Methods
@@ -218,12 +229,16 @@ const handleCancel = () => {
     showEditForm.value = false
 }
 
-const handleProposalSaved = (data: { proposal: Proposal; projectUpdated: boolean }) => {
+const handleProposalSaved = (data: { proposal: ProposalFormData; projectUpdated: boolean }) => {
     showEditForm.value = false
-    emit('proposal-saved', data)
+    // Convert ProposalFormData to Proposal format for parent component
+    emit('proposal-saved', {
+        proposal: data.proposal as unknown as Proposal,
+        projectUpdated: data.projectUpdated
+    })
 }
 
-const handleContentUpdate = async (field: 'title' | 'description', value: string) => {
+const handleContentUpdate = async (field: 'content_json' | 'content_html', value: ProposalComponent[] | string) => {
     if (!props.proposalData) return
 
     try {
@@ -234,7 +249,16 @@ const handleContentUpdate = async (field: 'title' | 'description', value: string
         const updateData = { [field]: value }
         const result = await proposalService.updateProposal(props.proposalData.id, updateData)
 
-        // Emit the update to parent
+        // Show success message
+        const toast = useToast()
+        toast.add({
+            title: 'Contenu mis à jour',
+            description: 'Le contenu de la proposition a été sauvegardé.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
+
+        // Emit the update to parent with the fresh proposal data
         emit('proposal-saved', result)
 
     } catch (err) {

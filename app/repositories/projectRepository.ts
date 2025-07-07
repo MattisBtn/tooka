@@ -33,7 +33,8 @@ export const projectRepository: IProjectRepository = {
         ),
         proposal:proposals(
           id,
-          title,
+          content_json,
+          content_html,
           status,
           price,
           deposit_required,
@@ -161,7 +162,8 @@ export const projectRepository: IProjectRepository = {
         ),
         proposal:proposals(
           id,
-          title,
+          content_json,
+          content_html,
           status,
           price,
           deposit_required,

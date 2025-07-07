@@ -18,9 +18,9 @@
 
             <!-- Proposition Content Builder -->
             <UFormField label="Contenu de la proposition" name="content" required>
-                <ProjectProposalContentBuilder :title="state.title" :description="state.description"
-                    :status="state.status" @update:title="state.title = $event"
-                    @update:description="state.description = $event" />
+                <ProjectProposalContentBuilder :content_json="state.content_json" :content_html="state.content_html"
+                    :status="state.status" @update:content_json="state.content_json = $event"
+                    @update:content_html="state.content_html = $event" />
             </UFormField>
         </div>
 
@@ -149,7 +149,7 @@ interface Props {
 }
 
 interface Emits {
-    (e: "proposal-saved", data: { proposal: Proposal; projectUpdated: boolean }): void;
+    (e: "proposal-saved", data: { proposal: ProposalFormData; projectUpdated: boolean }): void;
     (e: "cancel"): void;
 }
 
@@ -191,7 +191,7 @@ const handleSubmit = async (event: FormSubmitEvent<ProposalFormData>) => {
 
         // Emit the form data to parent component for handling
         emit("proposal-saved", {
-            proposal: event.data as Proposal, // Cast to Proposal type
+            proposal: event.data, // Let parent handle the conversion
             projectUpdated: shouldValidate
         });
     } finally {

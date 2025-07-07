@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Tables } from "~/types/database.types";
+import type { Json, Tables } from "~/types/database.types";
 
 export type Project = Tables<"projects">;
 
@@ -65,7 +65,8 @@ export interface ProjectWithClient extends Project {
   };
   proposal?: {
     id: string;
-    title: string;
+    content_json: Json;
+    content_html: string;
     status: "draft" | "awaiting_client" | "revision_requested" | "completed";
     price: number;
     deposit_required: boolean;

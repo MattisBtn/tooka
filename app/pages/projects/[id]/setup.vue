@@ -23,7 +23,7 @@
             <!-- Project Summary -->
             <ProjectSummary :project="project" :client-display-name="clientDisplayName"
                 :status-info="statusInfo || null" :formatted-price="formattedPrice"
-                :formatted-created-at="formattedCreatedAt" :formatted-expires-at="formattedExpiresAt" />
+                :formatted-created-at="formattedCreatedAt" />
 
             <!-- Module Configuration -->
             <div class="space-y-4">
@@ -109,7 +109,6 @@ const {
     statusInfo,
     formattedPrice,
     formattedCreatedAt,
-    formattedExpiresAt,
     fetchProject,
     toggleModule: _toggleModule,
     updateModuleState,
@@ -218,42 +217,45 @@ const selectionStatusInfo = computed(() => {
     return statusOptions.find((s) => s.value === selectionData.value!.status)
 })
 
+// Helper function to extract title from proposal content_json
+const extractProposalTitle = (content_json: unknown): string => {
+    if (!content_json || !Array.isArray(content_json)) return "Proposition";
+
+    const titleComponent = content_json.find((comp: unknown) => {
+        const component = comp as { type?: string; content?: string };
+        return component.type === "title";
+    });
+
+    const component = titleComponent as { content?: string } | undefined;
+    return component?.content || "Proposition";
+};
+
 // Handle proposal saved
-const handleProposalSaved = async (data: { proposal: Proposal; projectUpdated: boolean }) => {
+const handleProposalSaved = async (data: { proposal: Proposal | ProposalFormData; projectUpdated: boolean }) => {
     try {
-        // Save the proposal using the composable
-        await saveProposal(data.proposal as ProposalFormData, data.projectUpdated)
+        // If it's a ProposalFormData (new/edit from form), save it
+        // If it's a Proposal (update from content builder), it's already saved
+        const isNewOrEdit = !('id' in data.proposal && data.proposal.id)
+
+        if (isNewOrEdit) {
+            await saveProposal(data.proposal as ProposalFormData, data.projectUpdated)
+        }
+
+        // Extract title from content_json for display
+        const proposalTitle = extractProposalTitle((data.proposal as { content_json?: unknown }).content_json);
 
         // Update module state
         updateModuleState('proposal', {
             completed: true,
-            summary: `Proposition "${data.proposal.title}" créée`
+            summary: `Proposition "${proposalTitle}" ${isNewOrEdit ? 'créée' : 'mise à jour'}`
         })
-
-        // Show success notification
-        const toast = useToast()
-        if (data.projectUpdated) {
-            toast.add({
-                title: 'Proposition validée !',
-                description: 'La proposition a été envoyée au client et le projet est maintenant en cours.',
-                icon: 'i-lucide-check-circle',
-                color: 'success'
-            })
-        } else {
-            toast.add({
-                title: 'Brouillon sauvegardé',
-                description: 'Votre proposition a été sauvegardée en brouillon.',
-                icon: 'i-lucide-save',
-                color: 'info'
-            })
-        }
 
         // Refresh project data if needed
         if (data.projectUpdated) {
             await fetchProject()
         }
 
-        // Refresh proposal data
+        // Always refresh proposal data to ensure consistency
         await fetchProposal()
     } catch (err) {
         console.error('Error saving proposal:', err)

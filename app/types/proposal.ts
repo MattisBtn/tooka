@@ -45,8 +45,8 @@ export interface ProposalStatusItem {
 // Validation schema for proposal form
 export const proposalFormSchema = z
   .object({
-    title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
-    description: z.string().optional().nullable(),
+    content_json: z.array(z.any()).default([]),
+    content_html: z.string().default(""),
     price: z
       .number()
       .min(0, "Le prix doit être positif")
@@ -59,7 +59,6 @@ export const proposalFormSchema = z
       .nullable(),
     contract_url: z.string().optional().nullable(),
     quote_url: z.string().optional().nullable(),
-    template_id: z.string().optional().nullable(),
     status: z
       .enum(["draft", "awaiting_client", "revision_requested", "completed"])
       .default("draft"),

@@ -1,4 +1,5 @@
 import { projectService } from "~/services/projectService";
+import type { Json } from "~/types/database.types";
 import type { ProjectWithClient } from "~/types/project";
 
 export const useProject = (projectId: string) => {
@@ -54,6 +55,19 @@ export const useProject = (projectId: string) => {
     }
   };
 
+  // Helper function to extract title from proposal content_json
+  const extractProposalTitle = (content_json: Json): string => {
+    if (!content_json || !Array.isArray(content_json)) return "Proposition";
+
+    const titleComponent = content_json.find((comp: unknown) => {
+      const component = comp as { type?: string; content?: string };
+      return component.type === "title";
+    });
+
+    const component = titleComponent as { content?: string } | undefined;
+    return component?.content || "Proposition";
+  };
+
   // Update module states based on project data
   const updateModuleStatesFromProject = async (
     projectData: ProjectWithClient
@@ -62,9 +76,12 @@ export const useProject = (projectId: string) => {
     if (projectData.proposal) {
       modules.value.proposal.enabled = true;
       modules.value.proposal.completed = true;
-      modules.value.proposal.summary = `Proposition "${
-        projectData.proposal.title
-      }" (${getProposalStatusLabel(projectData.proposal.status)})`;
+      const proposalTitle = extractProposalTitle(
+        projectData.proposal.content_json
+      );
+      modules.value.proposal.summary = `Proposition "${proposalTitle}" (${getProposalStatusLabel(
+        projectData.proposal.status
+      )})`;
     } else {
       // Keep enabled state but mark as not completed if no proposal exists
       modules.value.proposal.completed = false;

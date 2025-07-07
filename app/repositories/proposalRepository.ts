@@ -46,9 +46,7 @@ export const proposalRepository: IProposalRepository = {
     }
 
     if (filters.search) {
-      query = query.or(
-        `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-      );
+      query = query.or(`content_html.ilike.%${filters.search}%`);
     }
 
     const { data, error } = await query;
