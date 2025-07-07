@@ -1,15 +1,41 @@
 <template>
     <div>
-        <!-- Trigger Button -->
-        <UButton icon="i-lucide-file-text" size="lg" variant="outline" color="primary" :label="contentPreview"
+        <!-- Readonly Mode - Display content directly -->
+        <div v-if="props.readonly" class="space-y-4">
+            <!-- Display content HTML directly with height limit -->
+            <div v-if="previewHtml" class="relative">
+                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-600 scrollbar-track-transparent"
+                    v-html="previewHtml" />
+
+                <!-- Fade overlay to indicate more content -->
+                <div
+                    class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-neutral-800 to-transparent pointer-events-none rounded-b-lg" />
+
+                <!-- Expand button for long content -->
+                <div class="absolute bottom-2 right-2">
+                    <UButton icon="i-lucide-maximize-2" size="xs" variant="outline" color="neutral"
+                        class="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm" @click="openPreviewModal" />
+                </div>
+            </div>
+
+            <!-- Empty state for readonly -->
+            <div v-else
+                class="text-center py-8 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700">
+                <UIcon name="i-lucide-file-text" class="w-12 h-12 text-neutral-400 mx-auto mb-3" />
+                <p class="text-neutral-600 dark:text-neutral-400">Aucun contenu défini</p>
+            </div>
+        </div>
+
+        <!-- Editable Mode - Show builder trigger button -->
+        <UButton v-else icon="i-lucide-file-text" size="lg" variant="outline" color="primary" :label="contentPreview"
             class="w-full justify-start text-left" @click="openModal" />
 
         <!-- Fullscreen Modal -->
         <UModal v-model:open="isOpen" :fullscreen="true" :transition="true">
             <template #content>
                 <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                    <!-- Left Sidebar - Components Palette -->
-                    <div
+                    <!-- Left Sidebar - Components Palette (hidden in readonly mode) -->
+                    <div v-if="!props.readonly"
                         class="w-80 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex flex-col">
                         <div class="p-4 border-b border-neutral-200 dark:border-neutral-700">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
@@ -71,13 +97,15 @@
                             class="p-4 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
-                                    <UIcon name="i-lucide-monitor" class="w-5 h-5 text-neutral-500" />
+                                    <UIcon :name="props.readonly ? 'i-lucide-eye' : 'i-lucide-monitor'"
+                                        class="w-5 h-5 text-neutral-500" />
                                     <div>
                                         <h2 class="font-semibold text-neutral-900 dark:text-neutral-100">
-                                            Canvas de construction
+                                            {{ props.readonly ? 'Aperçu du contenu' : 'Canvas de construction' }}
                                         </h2>
                                         <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                            Cliquez sur un élément pour le configurer
+                                            {{ props.readonly ? 'Visualisation complète de la proposition'
+                                                : 'Cliquez sur un élément pour le configurer' }}
                                         </p>
                                     </div>
                                 </div>
@@ -86,9 +114,13 @@
                                         {{ sortedComponents.length }} élément{{ sortedComponents.length > 1 ? 's' : ''
                                         }}
                                     </div>
-                                    <UButton :icon="isPreviewMode ? 'i-lucide-edit' : 'i-lucide-eye'"
+                                    <!-- Hide preview toggle in readonly mode -->
+                                    <UButton v-if="!props.readonly"
+                                        :icon="isPreviewMode ? 'i-lucide-edit' : 'i-lucide-eye'"
                                         :label="isPreviewMode ? 'Éditer' : 'Aperçu'" size="sm" variant="outline"
                                         @click="togglePreviewMode" />
+                                    <UButton icon="i-lucide-x" size="sm" variant="outline" color="neutral"
+                                        label="Fermer" @click="closeModal" />
                                 </div>
                             </div>
                         </div>
@@ -103,110 +135,28 @@
                                         <UIcon name="i-lucide-layout-template" class="w-12 h-12 text-neutral-400" />
                                     </div>
                                     <h3 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                                        Commencez votre proposition
+                                        {{ props.readonly ? 'Contenu vide' : 'Commencez votre proposition' }}
                                     </h3>
                                     <p class="text-neutral-600 dark:text-neutral-400 mb-6 max-w-md mx-auto">
-                                        Ajoutez des éléments depuis la palette de gauche pour construire votre contenu
+                                        {{ props.readonly ? 'Aucun contenu n\'a été défini pour cette proposition.' :
+                                            'Ajoutez des éléments depuis la palette de gauche pour construire votre contenu'
+                                        }}
                                     </p>
-                                    <UButton icon="i-lucide-plus" label="Ajouter un titre" size="lg" variant="outline"
-                                        @click="addComponent('title')" />
+                                    <UButton v-if="!props.readonly" icon="i-lucide-plus" label="Ajouter un titre"
+                                        size="lg" variant="outline" @click="addComponent('title')" />
                                 </div>
 
                                 <!-- Components in Canvas -->
                                 <div v-else class="space-y-4">
-                                    <!-- Preview Mode -->
-                                    <div v-if="isPreviewMode"
+                                    <!-- Preview Mode - Use generated HTML (always shown in readonly mode) -->
+                                    <div v-if="isPreviewMode || props.readonly"
                                         class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-8">
-                                        <div class="prose prose-lg max-w-none dark:prose-invert">
-                                            <div v-for="component in sortedComponents" :key="component.id" class="mb-6"
-                                                :class="getAlignmentClass(component.alignment)">
-                                                <!-- Title Component -->
-                                                <div v-if="component.type === 'title'">
-                                                    <h1 v-if="(component as TitleComponent).level === 1"
-                                                        class="text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">
-                                                        {{ component.content }}
-                                                    </h1>
-                                                    <h2 v-else-if="(component as TitleComponent).level === 2"
-                                                        class="text-3xl font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
-                                                        {{ component.content }}
-                                                    </h2>
-                                                    <h3 v-else
-                                                        class="text-2xl font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                                                        {{ component.content }}
-                                                    </h3>
-                                                </div>
-
-                                                <!-- Paragraph Component -->
-                                                <div v-else-if="component.type === 'paragraph'">
-                                                    <p
-                                                        class="text-neutral-700 dark:text-neutral-300 leading-relaxed text-lg">
-                                                        {{ component.content }}
-                                                    </p>
-                                                </div>
-
-                                                <!-- List Component -->
-                                                <div v-else-if="component.type === 'list'">
-                                                    <ul v-if="(component as ListComponent).listType === 'bulleted'"
-                                                        class="list-disc list-inside space-y-2 text-neutral-700 dark:text-neutral-300 text-lg">
-                                                        <li v-for="item in (component as ListComponent).items"
-                                                            :key="item">
-                                                            {{ item }}
-                                                        </li>
-                                                    </ul>
-                                                    <ol v-else
-                                                        class="list-decimal list-inside space-y-2 text-neutral-700 dark:text-neutral-300 text-lg">
-                                                        <li v-for="item in (component as ListComponent).items"
-                                                            :key="item">
-                                                            {{ item }}
-                                                        </li>
-                                                    </ol>
-                                                </div>
-
-                                                <!-- Button Component -->
-                                                <div v-else-if="component.type === 'button'" class="my-6">
-                                                    <UButton :label="(component as ButtonComponent).text"
-                                                        :variant="(component as ButtonComponent).variant"
-                                                        :size="(component as ButtonComponent).size"
-                                                        :to="(component as ButtonComponent).link"
-                                                        :disabled="!(component as ButtonComponent).link"
-                                                        class="inline-flex" />
-                                                </div>
-
-                                                <!-- Separator Component -->
-                                                <div v-else-if="component.type === 'separator'"
-                                                    :class="getSeparatorSpacingClass((component as SeparatorComponent).spacing)">
-                                                    <!-- Line separator -->
-                                                    <hr v-if="(component as SeparatorComponent).style === 'line'"
-                                                        class="border-neutral-300 dark:border-neutral-600">
-
-                                                    <!-- Dashed separator -->
-                                                    <hr v-else-if="(component as SeparatorComponent).style === 'dashed'"
-                                                        class="border-neutral-300 dark:border-neutral-600 border-dashed">
-
-                                                    <!-- Dotted separator -->
-                                                    <hr v-else-if="(component as SeparatorComponent).style === 'dotted'"
-                                                        class="border-neutral-300 dark:border-neutral-600 border-dotted border-2">
-
-                                                    <!-- Space separator -->
-                                                    <div v-else-if="(component as SeparatorComponent).style === 'space'"
-                                                        class="w-full" />
-
-                                                    <!-- Ornament separator -->
-                                                    <div v-else-if="(component as SeparatorComponent).style === 'ornament'"
-                                                        class="flex items-center justify-center">
-                                                        <div class="flex items-center space-x-2 text-neutral-400">
-                                                            <div class="w-2 h-2 bg-current rounded-full" />
-                                                            <div class="w-2 h-2 bg-current rounded-full" />
-                                                            <div class="w-2 h-2 bg-current rounded-full" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <!-- Display the exact same HTML that will be generated for clients -->
+                                        <div v-html="previewHtml" />
                                     </div>
 
-                                    <!-- Edit Mode -->
-                                    <template v-else>
+                                    <!-- Edit Mode (hidden in readonly mode) -->
+                                    <template v-else-if="!props.readonly">
                                         <!-- Canvas Component -->
                                         <ComponentRenderer v-for="component in sortedComponents" :key="component.id"
                                             :component="component" :is-selected="selectedComponentId === component.id"
@@ -222,8 +172,8 @@
                     </div>
                 </div>
 
-                <!-- Configuration Drawer -->
-                <UDrawer v-model:open="configDrawerOpen" direction="right" :overlay="false">
+                <!-- Configuration Drawer (hidden in readonly mode) -->
+                <UDrawer v-if="!props.readonly" v-model:open="configDrawerOpen" direction="right" :overlay="false">
                     <template #content>
                         <div
                             class="w-80 h-full bg-white dark:bg-neutral-800 border-l border-neutral-200 dark:border-neutral-700">
@@ -285,9 +235,10 @@ import SeparatorBuilder from './builder/SeparatorBuilder.vue';
 import TitleBuilder from './builder/TitleBuilder.vue';
 
 interface Props {
-    content_json?: ProposalComponent[] | null;
-    content_html?: string | null;
-    status: 'draft' | 'awaiting_client' | 'revision_requested' | 'completed';
+    content_json: ProposalComponent[] | null
+    content_html?: string
+    status?: 'draft' | 'awaiting_client' | 'revision_requested' | 'completed'
+    readonly?: boolean
 }
 
 interface Emits {
@@ -295,7 +246,13 @@ interface Emits {
     (e: 'update:content_html', value: string): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    content_json: null,
+    content_html: '',
+    status: 'draft',
+    readonly: false
+})
+
 const emit = defineEmits<Emits>();
 
 // Use the composable
@@ -306,6 +263,7 @@ const {
     selectedComponent,
     configDrawerOpen,
     contentPreview,
+    previewHtml,
     statusColor,
     statusLabel,
     availableComponents,
@@ -339,6 +297,20 @@ const saveAndClose = () => {
     baseSaveAndClose();
 };
 
+// Method to open modal in readonly preview mode
+const openPreviewModal = () => {
+    if (props.readonly) {
+        // Open modal and force preview mode for readonly
+        openModal();
+        // Force preview mode when opening in readonly
+        nextTick(() => {
+            if (!isPreviewMode.value) {
+                togglePreviewMode();
+            }
+        });
+    }
+};
+
 // Helper functions for drawer header
 const getComponentIcon = (type?: string) => {
     switch (type) {
@@ -362,20 +334,5 @@ const getComponentLabel = (type?: string) => {
     }
 };
 
-// Helper function for alignment (also used in preview)
-const getAlignmentClass = (alignment: 'left' | 'center' | 'right') => {
-    switch (alignment) {
-        case 'center': return 'text-center';
-        case 'right': return 'text-right';
-        default: return 'text-left';
-    }
-};
-
-const getSeparatorSpacingClass = (spacing: 'small' | 'medium' | 'large') => {
-    switch (spacing) {
-        case 'small': return 'py-2';
-        case 'large': return 'py-8';
-        default: return 'py-4';
-    }
-};
+// Helper functions no longer needed since we use generated HTML for preview
 </script>

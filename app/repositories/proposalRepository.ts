@@ -183,9 +183,15 @@ export const proposalRepository: IProposalRepository = {
       throw new Error("Proposition non trouvée ou accès non autorisé");
     }
 
+    // Ensure updated_at is set
+    const updateData = {
+      ...proposalData,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from("proposals")
-      .update(proposalData)
+      .update(updateData)
       .eq("id", id)
       .select(
         `

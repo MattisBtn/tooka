@@ -43,11 +43,12 @@
                 </div>
 
                 <!-- Proposal Module -->
-                <ProjectProposalModule v-model:enabled="modules.proposal.enabled" :proposal-data="proposalData"
-                    :proposal-status-info="proposalStatusInfo || null" :formatted-price="formattedProposalPrice"
-                    :formatted-deposit-amount="formattedProposalDeposit" :project-id="projectId"
-                    :project-initial-price="project?.initial_price || undefined"
-                    @proposal-saved="handleProposalSaved" />
+                <ProjectProposalModule
+                    :key="`proposal-${proposalData?.id || 'empty'}-${proposalData?.updated_at || 'none'}`"
+                    :proposal-data="proposalData" :proposal-status-info="proposalStatusInfo || null"
+                    :formatted-price="formattedProposalPrice" :formatted-deposit-amount="formattedProposalDeposit"
+                    :project-id="projectId" :project-initial-price="project?.initial_price || undefined"
+                    @proposal-saved="handleProposalSaved" @delete-proposal="handleDeleteProposal" />
 
                 <!-- Moodboard Module -->
                 <ProjectMoodboardModule v-model:enabled="modules.moodboard.enabled" :moodboard-data="moodboardData"
@@ -121,6 +122,7 @@ const {
     formattedDepositAmount: formattedProposalDeposit,
     fetchProposal,
     saveProposal,
+    deleteProposal,
     getStatusOptions: getProposalStatusOptions,
 } = useProposal(projectId)
 
@@ -233,11 +235,11 @@ const extractProposalTitle = (content_json: unknown): string => {
 // Handle proposal saved
 const handleProposalSaved = async (data: { proposal: Proposal | ProposalFormData; projectUpdated: boolean }) => {
     try {
-        // If it's a ProposalFormData (new/edit from form), save it
-        // If it's a Proposal (update from content builder), it's already saved
-        const isNewOrEdit = !('id' in data.proposal && data.proposal.id)
+        // Check if data comes from form submission (ProposalFormData) or direct update (Proposal with id)
+        const isFormSubmission = !('id' in data.proposal) || !data.proposal.id
 
-        if (isNewOrEdit) {
+        // Always save form submissions (new or edit), skip direct updates (already saved)
+        if (isFormSubmission) {
             await saveProposal(data.proposal as ProposalFormData, data.projectUpdated)
         }
 
@@ -247,8 +249,10 @@ const handleProposalSaved = async (data: { proposal: Proposal | ProposalFormData
         // Update module state
         updateModuleState('proposal', {
             completed: true,
-            summary: `Proposition "${proposalTitle}" ${isNewOrEdit ? 'créée' : 'mise à jour'}`
+            summary: `Proposition "${proposalTitle}" ${isFormSubmission ? 'sauvegardée' : 'mise à jour'}`
         })
+
+
 
         // Refresh project data if needed
         if (data.projectUpdated) {
@@ -263,6 +267,41 @@ const handleProposalSaved = async (data: { proposal: Proposal | ProposalFormData
         toast.add({
             title: 'Erreur',
             description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
+// Handle proposal deletion
+const handleDeleteProposal = async (_proposalId: string) => {
+    try {
+        // Use the composable to delete proposal (this will update the reactive state)
+        await deleteProposal()
+
+        // Reset module state since proposal no longer exists
+        updateModuleState('proposal', {
+            completed: false,
+            summary: undefined
+        })
+
+        // Refresh project data in case project status was affected
+        await fetchProject()
+
+        // Show success message
+        const toast = useToast()
+        toast.add({
+            title: 'Proposition supprimée',
+            description: 'La proposition a été supprimée avec succès.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
+    } catch (err) {
+        console.error('Error deleting proposal:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la suppression.',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })
@@ -554,23 +593,15 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
 onMounted(async () => {
     try {
         await fetchProject()
-        // Let each module initialize when needed via module enabled watchers
-        // This prevents redundant API calls
+        // Proposal is always available, so fetch it immediately
+        await fetchProposal()
+        // Other modules initialize when enabled via watchers
     } catch (err) {
         console.error('Error loading project:', err)
     }
 })
 
-// Simplified watchers - only watch for module enabled changes
-// This prevents redundant API calls from multiple triggers
-
-// Watch for proposal module changes
-watch(() => modules.value.proposal.enabled, async (enabled) => {
-    if (enabled && !proposalData.value) {
-        await fetchProposal()
-    }
-})
-
+// Module watchers - initialize modules when enabled
 // Watch for moodboard module changes
 watch(() => modules.value.moodboard.enabled, async (enabled) => {
     if (enabled && !moodboardData.value) {

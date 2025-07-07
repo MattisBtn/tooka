@@ -18,8 +18,9 @@
 
             <!-- Proposition Content Builder -->
             <UFormField label="Contenu de la proposition" name="content" required>
-                <ProjectProposalContentBuilder :content_json="state.content_json" :content_html="state.content_html"
-                    :status="state.status" @update:content_json="state.content_json = $event"
+                <ProjectProposalContentBuilder :key="`form-builder-${state.content_json?.length || 0}`"
+                    :content_json="state.content_json" :content_html="state.content_html" :status="state.status"
+                    :readonly="false" @update:content_json="state.content_json = $event"
                     @update:content_html="state.content_html = $event" />
             </UFormField>
         </div>
