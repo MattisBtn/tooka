@@ -310,6 +310,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          bank_transfer_reference: string | null
           client_id: string
           created_at: string
           description: string | null
@@ -317,12 +318,23 @@ export type Database = {
           initial_price: number | null
           password_expires_at: string | null
           password_hash: string
+          payment_completed_at: string | null
+          payment_method:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
+          payment_status:
+            | Database["public"]["Enums"]["payment_status_enum"]
+            | null
+          remaining_amount: number | null
           status: Database["public"]["Enums"]["project_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          bank_transfer_reference?: string | null
           client_id: string
           created_at?: string
           description?: string | null
@@ -330,12 +342,23 @@ export type Database = {
           initial_price?: number | null
           password_expires_at?: string | null
           password_hash: string
+          payment_completed_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
+          payment_status?:
+            | Database["public"]["Enums"]["payment_status_enum"]
+            | null
+          remaining_amount?: number | null
           status?: Database["public"]["Enums"]["project_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          bank_transfer_reference?: string | null
           client_id?: string
           created_at?: string
           description?: string | null
@@ -343,7 +366,17 @@ export type Database = {
           initial_price?: number | null
           password_expires_at?: string | null
           password_hash?: string
+          payment_completed_at?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
+          payment_status?:
+            | Database["public"]["Enums"]["payment_status_enum"]
+            | null
+          remaining_amount?: number | null
           status?: Database["public"]["Enums"]["project_status"]
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -539,7 +572,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_remaining_amount: {
+        Args: { project_id_param: string }
+        Returns: number
+      }
     }
     Enums: {
       client_type: "individual" | "company"
@@ -551,6 +587,13 @@ export type Database = {
         | "failed"
         | "retrying"
         | "cancelled"
+      payment_method_enum: "stripe" | "bank_transfer"
+      payment_status_enum:
+        | "not_initiated"
+        | "initiated"
+        | "pending"
+        | "completed"
+        | "failed"
       project_status: "draft" | "in_progress" | "completed"
       reaction_type: "love" | "like" | "dislike"
       status_enum:
@@ -694,6 +737,14 @@ export const Constants = {
         "failed",
         "retrying",
         "cancelled",
+      ],
+      payment_method_enum: ["stripe", "bank_transfer"],
+      payment_status_enum: [
+        "not_initiated",
+        "initiated",
+        "pending",
+        "completed",
+        "failed",
       ],
       project_status: ["draft", "in_progress", "completed"],
       reaction_type: ["love", "like", "dislike"],
