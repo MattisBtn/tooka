@@ -235,8 +235,8 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
 
         // Handle file uploads if there are selected files
         if (data.selectedFiles && data.selectedFiles.length > 0) {
-            // Get the selection ID from the result or existing selection data
-            const selectionId = result.selection.id || selection.value?.id
+            // Get the selection ID from the result
+            const selectionId = result.selection.id
 
             if (selectionId) {
                 isUploading.value = true
@@ -250,7 +250,8 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
                         }
                     }, 300)
 
-                    await uploadImages(data.selectedFiles)
+                    // Pass the selection ID directly to avoid race condition
+                    await uploadImages(data.selectedFiles, selectionId)
 
                     clearInterval(progressInterval)
                     uploadProgress.value = 100
@@ -282,8 +283,13 @@ const handleSelectionSaved = async (data: { selection: SelectionFormData; projec
                     isUploading.value = false
                     uploadProgress.value = 0
                 }
+            } else {
+                throw new Error('ID de sélection manquant après sauvegarde')
             }
         }
+
+        // Always refresh selection data after save (whether files were uploaded or not)
+        await fetchSelection()
 
         // Close the edit form
         showEditForm.value = false

@@ -220,21 +220,17 @@ export const useSelection = (projectId: string) => {
     error.value = null;
 
     try {
+      let result;
       if (selection.value) {
         // Update existing selection
-        const result = await selectionService.updateSelection(
+        result = await selectionService.updateSelection(
           selection.value.id,
           selectionData,
           projectUpdated
         );
-
-        // Refresh selection data
-        await fetchSelection();
-
-        return result;
       } else {
         // Create new selection
-        const result = await selectionService.createSelection(
+        result = await selectionService.createSelection(
           {
             project_id: projectId,
             ...selectionData,
@@ -242,12 +238,12 @@ export const useSelection = (projectId: string) => {
           },
           projectUpdated
         );
-
-        // Refresh selection data
-        await fetchSelection();
-
-        return result;
       }
+
+      // Refresh selection data
+      await fetchSelection();
+
+      return result;
     } catch (err) {
       error.value = err instanceof Error ? err : new Error("Unknown error");
       throw err;
@@ -256,8 +252,10 @@ export const useSelection = (projectId: string) => {
     }
   };
 
-  const uploadImages = async (files: File[]) => {
-    if (!selection.value) {
+  const uploadImages = async (files: File[], selectionId?: string) => {
+    const targetSelectionId = selectionId || selection.value?.id;
+
+    if (!targetSelectionId) {
       throw new Error("No selection found");
     }
 
@@ -266,7 +264,7 @@ export const useSelection = (projectId: string) => {
 
     try {
       const uploadedImages = await selectionService.uploadImages(
-        selection.value.id,
+        targetSelectionId,
         files
       );
 
