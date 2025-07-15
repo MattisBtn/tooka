@@ -10,35 +10,34 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <!-- Status indicator for existing moodboards -->
-                    <UBadge v-if="moodboardData" :color="moodboardStatusInfo?.color as any" variant="subtle"
+                <!-- Status badge for existing moodboards -->
+                <div v-if="moodboard" class="ml-auto">
+                    <UBadge :color="moodboardStatusInfo?.color as any" variant="subtle"
                         :label="moodboardStatusInfo?.label" :icon="moodboardStatusInfo?.icon" />
-                    <!-- Toggle switch with tooltip wrapper -->
-                    <div class="relative">
-                        <USwitch :model-value="enabled" color="primary" size="md"
-                            :disabled="cannotDisableMoodboard ?? undefined" @update:model-value="handleToggle" />
-                        <UTooltip v-if="cannotDisableMoodboard" text="Impossible de désactiver : un moodboard existe"
-                            :content="{ side: 'left' }">
-                            <!-- Invisible overlay to capture hover -->
-                            <div class="absolute inset-0 cursor-not-allowed" />
-                        </UTooltip>
-                    </div>
                 </div>
             </div>
         </template>
 
-        <div v-if="enabled" class="space-y-4">
+        <!-- Loading State -->
+        <div v-if="loading" class="py-8 text-center">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin mx-auto mb-4" />
+            <p class="text-sm text-neutral-600 dark:text-neutral-400">Chargement du moodboard...</p>
+        </div>
+
+        <!-- Error State -->
+        <UAlert v-else-if="error" color="error" variant="soft" icon="i-lucide-alert-circle" :title="error.message" />
+
+        <div v-else class="space-y-4">
             <!-- Existing Moodboard Display -->
-            <div v-if="moodboardData && !showEditForm" class="space-y-4">
+            <div v-if="moodboard && !showEditForm" class="space-y-4">
                 <div
                     class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div class="flex items-start justify-between mb-3">
                         <div class="space-y-1">
-                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">{{ moodboardData.title }}
+                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">{{ moodboard.title }}
                             </h4>
-                            <p v-if="moodboardData.description" class="text-sm text-neutral-600 dark:text-neutral-400">
-                                {{ moodboardData.description }}
+                            <p v-if="moodboard.description" class="text-sm text-neutral-600 dark:text-neutral-400">
+                                {{ moodboard.description }}
                             </p>
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 {{ imageCount }} image{{ imageCount > 1 ? 's' : '' }} d'inspiration
@@ -52,7 +51,7 @@
 
                         <!-- Client preview button -->
                         <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                            label="Aperçu client" :to="`/moodboard/${moodboardData.id}`" target="_blank" />
+                            label="Aperçu client" :to="`/moodboard/${moodboard.id}`" target="_blank" />
 
                         <!-- Delete button for draft and revision requested moodboards -->
                         <UButton v-if="canEditMoodboard" icon="i-lucide-trash-2" size="sm" variant="outline"
@@ -62,7 +61,7 @@
                     <!-- Image Grid Preview -->
                     <div v-if="hasImages" class="space-y-3 mt-4">
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Aperçu des images</h5>
-                        <ProjectMoodboardImageGrid :images="Array.from(moodboardData.images || [])" :max-preview="6"
+                        <ProjectMoodboardImageGrid :images="Array.from(moodboard.images || [])" :max-preview="6"
                             :can-delete="false" @image-click="handleImageClick" @delete-image="handleDeleteImage" />
                     </div>
 
@@ -98,7 +97,7 @@
                     </UAlert>
 
                     <!-- Info for revision requested moodboards -->
-                    <UAlert v-else-if="moodboardData.status === 'revision_requested'" color="warning" variant="soft"
+                    <UAlert v-else-if="moodboard.status === 'revision_requested'" color="warning" variant="soft"
                         icon="i-lucide-edit" title="Révisions demandées par le client" class="mt-4">
                         <template #description>
                             Le client a demandé des révisions sur ce moodboard. Vous pouvez le modifier librement,
@@ -107,7 +106,7 @@
                     </UAlert>
 
                     <!-- Info for awaiting client moodboards -->
-                    <UAlert v-else-if="moodboardData.status === 'awaiting_client'" color="info" variant="soft"
+                    <UAlert v-else-if="moodboard.status === 'awaiting_client'" color="info" variant="soft"
                         icon="i-lucide-clock" title="Envoyé au client" class="mt-4">
                         <template #description>
                             Ce moodboard a été envoyé au client pour validation. Vous pouvez continuer à le modifier
@@ -116,7 +115,7 @@
                     </UAlert>
 
                     <!-- Info for draft moodboards -->
-                    <UAlert v-else-if="moodboardData.status === 'draft'" color="info" variant="soft"
+                    <UAlert v-else-if="moodboard.status === 'draft'" color="info" variant="soft"
                         icon="i-lucide-file-edit" title="Moodboard en brouillon" class="mt-4">
                         <template #description>
                             Ce moodboard est en brouillon. Vous pouvez le modifier librement et l'envoyer au client
@@ -127,116 +126,80 @@
             </div>
 
             <!-- Create/Edit Moodboard Form -->
-            <div v-else-if="!moodboardData || showEditForm">
-                <!-- Progress indicator for new moodboards -->
-                <div v-if="!moodboardData" class="mb-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-plus" class="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Créer un moodboard</h4>
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Créez une planche d'inspiration
-                                pour votre client</p>
-                        </div>
-                    </div>
-
-                    <!-- Quick tips -->
-                    <UAlert color="info" variant="soft" icon="i-lucide-lightbulb" title="Conseils">
-                        <template #description>
-                            <ul class="text-sm space-y-1 mt-2">
-                                <li>• <strong>Brouillon</strong> : Sauvegarde sans envoyer au client</li>
-                                <li>• <strong>Valider</strong> : Envoie le moodboard au client</li>
-                                <li>• Ajoutez des images d'inspiration pour guider le projet</li>
-                                <li>• Le client peut commenter et demander des révisions</li>
-                            </ul>
-                        </template>
-                    </UAlert>
-                </div>
-
-                <ProjectMoodboardForm :moodboard="showEditForm ? (moodboardData || undefined) : undefined"
+            <div v-else-if="showEditForm">
+                <ProjectMoodboardForm :moodboard="showEditForm ? (moodboard || undefined) : undefined"
                     :project-id="projectId"
-                    :existing-images="showEditForm && moodboardData?.images ? Array.from(moodboardData.images) : undefined"
+                    :existing-images="showEditForm && moodboard?.images ? Array.from(moodboard.images) : undefined"
                     @moodboard-saved="handleMoodboardSaved" @cancel="handleCancel" />
             </div>
+
+            <!-- Empty state with create button -->
+            <div v-else class="py-8 text-center">
+                <div
+                    class="w-16 h-16 bg-gradient-to-br from-pink-100 to-pink-200 dark:from-pink-900 dark:to-pink-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UIcon name="i-lucide-image-plus" class="w-8 h-8 text-pink-600 dark:text-pink-400" />
+                </div>
+                <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Aucun moodboard</h4>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                    Créez une planche d'inspiration pour ce projet
+                </p>
+                <UButton icon="i-lucide-plus" color="primary" label="Créer un moodboard" @click="editMoodboard" />
+            </div>
         </div>
 
-        <!-- Module disabled state -->
-        <div v-else class="py-8 text-center">
-            <div
-                class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
-            </div>
-            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Moodboard désactivé</h4>
-            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                Activez ce module pour créer des planches d'inspiration collaboratives avec vos clients
-            </p>
-            <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                <UIcon name="i-lucide-arrow-up" class="w-3 h-3 inline mr-1" />
-                Utilisez le switch ci-dessus pour activer
-            </div>
-        </div>
+
     </UCard>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-import type { Moodboard, MoodboardImage, MoodboardWithDetails } from '~/types/moodboard';
+import { useMoodboard } from '~/composables/moodboards/user/useMoodboard';
+import type { Moodboard, MoodboardImage } from '~/types/moodboard';
 
 interface Props {
-    enabled: boolean
-    moodboardData: MoodboardWithDetails | null
-    moodboardStatusInfo: { color: string; label: string; icon: string } | null
-    imageCount: number
-    hasImages: boolean
     projectId: string
-    isUploading?: boolean
-    uploadProgress?: number
-}
-
-interface Emits {
-    (e: 'update:enabled', value: boolean): void
-    (e: 'moodboard-saved', data: { moodboard: Moodboard; projectUpdated: boolean; selectedFiles?: File[] }): void
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+
+// Use the moodboard composable for complete state management
+const {
+    loading,
+    error,
+    moodboard,
+    imageCount,
+    hasImages,
+    fetchMoodboard,
+    saveMoodboard,
+    deleteMoodboard,
+    uploadImages,
+    deleteImage,
+} = useMoodboard(props.projectId)
 
 // Local state
 const showEditForm = ref(false)
 const isDeleting = ref(false)
+const isUploading = ref(false)
+const uploadProgress = ref(0)
 
 // Computed properties
-const cannotDisableMoodboard = computed(() => {
-    // Cannot disable if any moodboard exists (even draft)
-    return !!props.moodboardData
-})
-
 const canEditMoodboard = computed(() => {
     // Le moodboard reste toujours modifiable sauf s'il est complètement validé par le client
-    return !props.moodboardData || props.moodboardData.status !== 'completed'
+    return !moodboard.value || moodboard.value.status !== 'completed'
 })
 
-// Methods
-const handleToggle = (value: boolean) => {
-    // Prevent disabling if any moodboard exists
-    if (!value && cannotDisableMoodboard.value) {
-        // Reset the toggle to enabled state
-        emit('update:enabled', true)
+// Status info for badge
+const moodboardStatusInfo = computed(() => {
+    if (!moodboard.value) return null
 
-        const toast = useToast()
-        toast.add({
-            title: 'Action impossible',
-            description: 'Impossible de désactiver le module : un moodboard existe. Supprimez-le d\'abord si il n\'est pas validé par le client.',
-            icon: 'i-lucide-alert-circle',
-            color: 'warning'
-        })
-        return
+    const statusOptions: Record<string, { color: string; label: string; icon: string }> = {
+        draft: { color: 'neutral', label: 'Brouillon', icon: 'i-lucide-file-edit' },
+        awaiting_client: { color: 'warning', label: 'En attente client', icon: 'i-lucide-clock' },
+        revision_requested: { color: 'info', label: 'Révision demandée', icon: 'i-lucide-edit' },
+        completed: { color: 'success', label: 'Validé', icon: 'i-lucide-check-circle' },
     }
 
-    emit('update:enabled', value)
-}
+    return statusOptions[moodboard.value.status] || null
+})
 
 const editMoodboard = () => {
     showEditForm.value = true
@@ -247,11 +210,50 @@ const handleCancel = () => {
 }
 
 const handleMoodboardSaved = async (data: { moodboard: Moodboard; projectUpdated: boolean; selectedFiles?: File[] }) => {
-    // Close the edit form
-    showEditForm.value = false
+    try {
+        // Save moodboard data
+        await saveMoodboard(data.moodboard)
 
-    // Emit to parent component to handle the actual moodboard save
-    emit('moodboard-saved', data)
+        // Upload images if any
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            isUploading.value = true
+            uploadProgress.value = 0
+
+            // Simulate progress for better UX
+            const progressInterval = setInterval(() => {
+                if (uploadProgress.value < 90) {
+                    uploadProgress.value += 10
+                }
+            }, 200)
+
+            try {
+                await uploadImages(data.selectedFiles)
+                uploadProgress.value = 100
+            } finally {
+                clearInterval(progressInterval)
+                setTimeout(() => {
+                    isUploading.value = false
+                    uploadProgress.value = 0
+                }, 500)
+            }
+        }
+
+        // Close the edit form
+        showEditForm.value = false
+
+        // Refresh moodboard data
+        await fetchMoodboard()
+
+    } catch (err) {
+        console.error('Error saving moodboard:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
 }
 
 const handleImageClick = (image: MoodboardImage) => {
@@ -268,11 +270,7 @@ const handleDeleteImage = async (imageId: string) => {
     if (!confirmed) return
 
     try {
-        // Import the moodboard service
-        const { moodboardService } = await import('~/services/moodboardService')
-
-        // Delete the image
-        await moodboardService.deleteImage(imageId)
+        await deleteImage(imageId)
 
         // Show success message
         toast.add({
@@ -281,9 +279,6 @@ const handleDeleteImage = async (imageId: string) => {
             icon: 'i-lucide-check-circle',
             color: 'success'
         })
-
-        // Refresh moodboard data
-        emit('moodboard-saved', { moodboard: props.moodboardData as Moodboard, projectUpdated: false })
 
     } catch (err) {
         console.error('Error deleting image:', err)
@@ -297,7 +292,7 @@ const handleDeleteImage = async (imageId: string) => {
 }
 
 const confirmDeleteMoodboard = async () => {
-    if (!props.moodboardData) return
+    if (!moodboard.value) return
 
     const toast = useToast()
 
@@ -309,11 +304,7 @@ const confirmDeleteMoodboard = async () => {
     isDeleting.value = true
 
     try {
-        // Import the moodboard service
-        const { moodboardService } = await import('~/services/moodboardService')
-
-        // Delete the moodboard
-        await moodboardService.deleteMoodboard(props.moodboardData.id)
+        await deleteMoodboard()
 
         // Show success message
         toast.add({
@@ -323,8 +314,8 @@ const confirmDeleteMoodboard = async () => {
             color: 'success'
         })
 
-        // Simple solution to refresh the page
-        window.location.reload()
+        // Reset state
+        showEditForm.value = false
 
     } catch (err) {
         console.error('Error deleting moodboard:', err)
@@ -338,4 +329,13 @@ const confirmDeleteMoodboard = async () => {
         isDeleting.value = false
     }
 }
+
+// Load moodboard on mount
+onMounted(async () => {
+    try {
+        await fetchMoodboard()
+    } catch (err) {
+        console.error('Error loading moodboard:', err)
+    }
+})
 </script>

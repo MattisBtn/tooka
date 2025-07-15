@@ -9,35 +9,35 @@
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">Sélection d'images par le client</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <!-- Status indicator for existing selections -->
-                    <UBadge v-if="selectionData" :color="selectionStatusInfo?.color as any" variant="subtle"
+                <!-- Status badge for existing selections -->
+                <div v-if="selection" class="ml-auto">
+                    <UBadge :color="selectionStatusInfo?.color as any" variant="subtle"
                         :label="selectionStatusInfo?.label" :icon="selectionStatusInfo?.icon" />
-                    <!-- Toggle switch with tooltip wrapper -->
-                    <div class="relative">
-                        <USwitch :model-value="enabled" color="primary" size="md"
-                            :disabled="cannotDisableSelection ?? undefined" @update:model-value="handleToggle" />
-                        <UTooltip v-if="cannotDisableSelection" text="Impossible de désactiver : une sélection existe"
-                            :content="{ side: 'left' }">
-                            <!-- Invisible overlay to capture hover -->
-                            <div class="absolute inset-0 cursor-not-allowed" />
-                        </UTooltip>
-                    </div>
                 </div>
             </div>
         </template>
 
-        <div v-if="enabled" class="space-y-4">
+        <!-- Loading State -->
+        <div v-if="loading" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-orange-500" />
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="text-center py-12">
+            <UAlert color="error" variant="soft" icon="i-lucide-alert-circle" title="Erreur"
+                :description="error.message" />
+        </div>
+
+        <div v-else class="space-y-4">
             <!-- Existing Selection Display -->
-            <div v-if="selectionData && !showEditForm" class="space-y-4">
+            <div v-if="selection && !showEditForm" class="space-y-4">
                 <div
                     class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div class="flex items-start justify-between mb-3">
                         <div class="space-y-1">
                             <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">
-                                Sélection de {{ selectionData.max_media_selection }} média{{
-                                    selectionData.max_media_selection >
-                                        1 ? 's' : '' }}
+                                Sélection de {{ selection.max_media_selection }} média{{
+                                    selection.max_media_selection > 1 ? 's' : '' }}
                             </h4>
                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
                                 {{ imageCount }} image{{ imageCount > 1 ? 's' : '' }} disponibles
@@ -56,13 +56,13 @@
                             :disabled="!canEditSelection" @click="editSelection" />
 
                         <!-- Client preview button - Show for all statuses except draft -->
-                        <UButton v-if="selectionData.status !== 'draft'" icon="i-lucide-external-link" size="sm"
-                            variant="outline" color="neutral" label="Aperçu client"
-                            :to="`/selection/${selectionData.id}`" target="_blank" />
+                        <UButton v-if="selection.status !== 'draft'" icon="i-lucide-external-link" size="sm"
+                            variant="outline" color="neutral" label="Aperçu client" :to="`/selection/${selection.id}`"
+                            target="_blank" />
 
                         <!-- Download selected images button - Show when selection is revision_requested or completed -->
                         <UButton
-                            v-if="selectedCount > 0 && (selectionData.status === 'revision_requested' || selectionData.status === 'completed')"
+                            v-if="selectedCount > 0 && (selection.status === 'revision_requested' || selection.status === 'completed')"
                             icon="i-lucide-download" size="sm" variant="outline" color="success"
                             label="Télécharger sélection" :loading="isDownloading" @click="downloadSelectedImages" />
 
@@ -76,7 +76,7 @@
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             Images et sélections du client
                         </h5>
-                        <ProjectSelectionImageGrid :images="Array.from(selectionData.images || [])" :max-preview="6"
+                        <ProjectSelectionImageGrid :images="Array.from(selection.images || [])" :max-preview="6"
                             :can-delete="false" :can-toggle-selection="false" :show-selection-state="true"
                             @image-click="handleImageClick" />
                     </div>
@@ -113,7 +113,7 @@
                     </UAlert>
 
                     <!-- Info for revision requested selections -->
-                    <UAlert v-else-if="selectionData.status === 'revision_requested'" color="warning" variant="soft"
+                    <UAlert v-else-if="selection.status === 'revision_requested'" color="warning" variant="soft"
                         icon="i-lucide-edit" title="Révisions demandées par le client" class="mt-4">
                         <template #description>
                             Le client a demandé des révisions sur cette sélection. Vous pouvez la modifier librement,
@@ -122,7 +122,7 @@
                     </UAlert>
 
                     <!-- Info for awaiting client selections -->
-                    <UAlert v-else-if="selectionData.status === 'awaiting_client'" color="info" variant="soft"
+                    <UAlert v-else-if="selection.status === 'awaiting_client'" color="info" variant="soft"
                         icon="i-lucide-clock" title="Envoyée au client" class="mt-4">
                         <template #description>
                             Cette sélection a été envoyée au client pour validation. Vous pouvez continuer à la modifier
@@ -131,7 +131,7 @@
                     </UAlert>
 
                     <!-- Info for draft selections -->
-                    <UAlert v-else-if="selectionData.status === 'draft'" color="info" variant="soft"
+                    <UAlert v-else-if="selection.status === 'draft'" color="info" variant="soft"
                         icon="i-lucide-file-edit" title="Sélection en brouillon" class="mt-4">
                         <template #description>
                             Cette sélection est en brouillon. Vous pouvez la modifier librement et l'envoyer au client
@@ -142,121 +142,83 @@
             </div>
 
             <!-- Create/Edit Selection Form -->
-            <div v-else-if="!selectionData || showEditForm">
-                <!-- Progress indicator for new selections -->
-                <div v-if="!selectionData" class="mb-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-plus" class="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Créer une sélection</h4>
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Créez une sélection d'images pour
-                                votre
-                                client</p>
-                        </div>
-                    </div>
-
-                    <!-- Quick tips -->
-                    <UAlert color="info" variant="soft" icon="i-lucide-lightbulb" title="Conseils">
-                        <template #description>
-                            <ul class="text-sm space-y-1 mt-2">
-                                <li>• <strong>Brouillon</strong> : Sauvegarde sans envoyer au client</li>
-                                <li>• <strong>Valider</strong> : Envoie la sélection au client</li>
-                                <li>• Proposez plus d'images que le nombre maximum sélectionnable</li>
-                                <li>• <strong>Sélection</strong> : Seul le client peut sélectionner ses images préférées
-                                </li>
-                            </ul>
-                        </template>
-                    </UAlert>
-                </div>
-
-                <ProjectSelectionForm :selection="showEditForm ? (selectionData || undefined) : undefined"
+            <div v-else-if="showEditForm">
+                <ProjectSelectionForm :selection="showEditForm ? (selection || undefined) : undefined"
                     :project-id="projectId"
-                    :existing-images="showEditForm && selectionData?.images ? Array.from(selectionData.images) : undefined"
+                    :existing-images="showEditForm && selection?.images ? Array.from(selection.images) : undefined"
                     @selection-saved="handleSelectionSaved" @cancel="handleCancel" />
             </div>
+
+            <!-- Empty state with create button -->
+            <div v-else class="py-8 text-center">
+                <div
+                    class="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UIcon name="i-lucide-mouse-pointer-click" class="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Aucune sélection</h4>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                    Créez une sélection d'images pour ce projet
+                </p>
+                <UButton icon="i-lucide-plus" color="primary" label="Créer une sélection" @click="editSelection" />
+            </div>
         </div>
 
-        <!-- Module disabled state -->
-        <div v-else class="py-8 text-center">
-            <div
-                class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UIcon name="i-lucide-mouse-pointer-click" class="w-8 h-8 text-neutral-400" />
-            </div>
-            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Sélection désactivé</h4>
-            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                Activez ce module pour permettre au client de sélectionner ses images préférées
-            </p>
-            <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                <UIcon name="i-lucide-arrow-up" class="w-3 h-3 inline mr-1" />
-                Utilisez le switch ci-dessus pour activer
-            </div>
-        </div>
+
     </UCard>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-import type { SelectionFormData, SelectionImage, SelectionWithDetails } from '~/types/selection';
+import { computed, onMounted, ref } from 'vue';
+import { useSelection } from '~/composables/selections/user/useSelection';
+import type { SelectionFormData, SelectionImage } from '~/types/selection';
 
 interface Props {
-    enabled: boolean
-    selectionData: SelectionWithDetails | null
-    selectionStatusInfo: { color: string; label: string; icon: string } | null
-    imageCount: number
-    selectedCount: number
-    hasImages: boolean
-    formattedExtraMediaPrice: string | null
     projectId: string
-    isUploading?: boolean
-    uploadProgress?: number
-}
-
-interface Emits {
-    (e: 'update:enabled', value: boolean): void
-    (e: 'selection-saved', data: { selection: SelectionFormData; projectUpdated: boolean; selectedFiles?: File[] }): void
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
 
-// Local state
+// Use the selection composable for complete state management
+const {
+    loading,
+    error,
+    selection,
+    imageCount,
+    selectedCount,
+    hasImages,
+    formattedExtraMediaPrice,
+    fetchSelection,
+    saveSelection,
+    uploadImages,
+    deleteSelection,
+} = useSelection(props.projectId)
+
+// Local state for UI
 const showEditForm = ref(false)
 const isDeleting = ref(false)
 const isDownloading = ref(false)
+const isUploading = ref(false)
+const uploadProgress = ref(0)
 
-// Computed properties
-const cannotDisableSelection = computed(() => {
-    // Cannot disable if any selection exists (even draft)
-    return !!props.selectionData
-})
+// Status info for badge
+const selectionStatusInfo = computed(() => {
+    if (!selection.value) return null
 
-const canEditSelection = computed(() => {
-    // La sélection reste toujours modifiable sauf si elle est complètement validée par le client
-    return !props.selectionData || props.selectionData.status !== 'completed'
-})
-
-// Methods
-const handleToggle = (value: boolean) => {
-    // Prevent disabling if any selection exists
-    if (!value && cannotDisableSelection.value) {
-        // Reset the toggle to enabled state
-        emit('update:enabled', true)
-
-        const toast = useToast()
-        toast.add({
-            title: 'Action impossible',
-            description: 'Impossible de désactiver le module : une sélection existe. Supprimez-la d\'abord si elle n\'est pas validée par le client.',
-            icon: 'i-lucide-alert-circle',
-            color: 'warning'
-        })
-        return
+    const statusOptions: Record<string, { color: string; label: string; icon: string }> = {
+        draft: { color: 'neutral', label: 'Brouillon', icon: 'i-lucide-mouse-pointer-click' },
+        awaiting_client: { color: 'warning', label: 'En attente client', icon: 'i-lucide-clock' },
+        revision_requested: { color: 'info', label: 'Révision demandée', icon: 'i-lucide-edit' },
+        completed: { color: 'success', label: 'Validé', icon: 'i-lucide-check-circle' },
     }
 
-    emit('update:enabled', value)
-}
+    return statusOptions[selection.value.status] || null
+})
+
+// Computed properties
+const canEditSelection = computed(() => {
+    // La sélection reste toujours modifiable sauf si elle est complètement validée par le client
+    return !selection.value || selection.value.status !== 'completed'
+})
 
 const editSelection = () => {
     showEditForm.value = true
@@ -267,11 +229,84 @@ const handleCancel = () => {
 }
 
 const handleSelectionSaved = async (data: { selection: SelectionFormData; projectUpdated: boolean; selectedFiles?: File[] }) => {
-    // Close the edit form
-    showEditForm.value = false
+    try {
+        // Save the selection using the composable
+        const result = await saveSelection(data.selection, data.projectUpdated)
 
-    // Emit to parent component to handle the actual selection save
-    emit('selection-saved', data)
+        // Handle file uploads if there are selected files
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            // Get the selection ID from the result or existing selection data
+            const selectionId = result.selection.id || selection.value?.id
+
+            if (selectionId) {
+                isUploading.value = true
+                uploadProgress.value = 0
+
+                try {
+                    // Simulate progress for better UX
+                    const progressInterval = setInterval(() => {
+                        if (uploadProgress.value < 85) {
+                            uploadProgress.value += Math.random() * 15
+                        }
+                    }, 300)
+
+                    await uploadImages(data.selectedFiles)
+
+                    clearInterval(progressInterval)
+                    uploadProgress.value = 100
+
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Images uploadées',
+                        description: `${data.selectedFiles.length} image(s) ajoutée(s) avec succès à la sélection.`,
+                        icon: 'i-lucide-check-circle',
+                        color: 'success'
+                    })
+
+                    // Auto-refresh after upload
+                    setTimeout(async () => {
+                        await fetchSelection()
+                        isUploading.value = false
+                        uploadProgress.value = 0
+                    }, 1000)
+
+                } catch (uploadError) {
+                    console.error('Upload error:', uploadError)
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Erreur d\'upload',
+                        description: uploadError instanceof Error ? uploadError.message : 'Une erreur est survenue lors de l\'upload.',
+                        icon: 'i-lucide-alert-circle',
+                        color: 'error'
+                    })
+                    isUploading.value = false
+                    uploadProgress.value = 0
+                }
+            }
+        }
+
+        // Close the edit form
+        showEditForm.value = false
+
+        // Show success message
+        const toast = useToast()
+        toast.add({
+            title: 'Sélection sauvegardée',
+            description: 'La sélection a été sauvegardée avec succès.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
+
+    } catch (err) {
+        console.error('Error saving selection:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
 }
 
 const handleImageClick = (image: SelectionImage) => {
@@ -280,7 +315,7 @@ const handleImageClick = (image: SelectionImage) => {
 }
 
 const downloadSelectedImages = async () => {
-    if (!props.selectionData) return
+    if (!selection.value) return
 
     const toast = useToast()
     isDownloading.value = true
@@ -290,7 +325,7 @@ const downloadSelectedImages = async () => {
         const { selectionService } = await import('~/services/selectionService')
 
         // Download selected images
-        await selectionService.downloadSelectedImages(props.selectionData.id)
+        await selectionService.downloadSelectedImages(selection.value.id)
 
     } catch (err) {
         console.error('Error downloading selected images:', err)
@@ -306,10 +341,10 @@ const downloadSelectedImages = async () => {
 }
 
 const confirmDeleteSelection = async () => {
-    if (!props.selectionData) return
+    if (!selection.value) return
 
     // Prevent deletion during upload
-    if (props.isUploading) {
+    if (isUploading.value) {
         const toast = useToast()
         toast.add({
             title: 'Action impossible',
@@ -330,11 +365,7 @@ const confirmDeleteSelection = async () => {
     isDeleting.value = true
 
     try {
-        // Import the selection service
-        const { selectionService } = await import('~/services/selectionService')
-
-        // Delete the selection
-        await selectionService.deleteSelection(props.selectionData.id)
+        await deleteSelection()
 
         // Show success message
         toast.add({
@@ -344,8 +375,7 @@ const confirmDeleteSelection = async () => {
             color: 'success'
         })
 
-        // Simple solution to refresh the page
-        window.location.reload()
+
 
     } catch (err) {
         console.error('Error deleting selection:', err)
@@ -359,4 +389,10 @@ const confirmDeleteSelection = async () => {
         isDeleting.value = false
     }
 }
+
+// Initialize component
+onMounted(async () => {
+    // Fetch selection data
+    await fetchSelection()
+})
 </script>

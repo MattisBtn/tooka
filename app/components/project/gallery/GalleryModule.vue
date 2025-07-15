@@ -9,27 +9,28 @@
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">Livrable final pour le client</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <!-- Status indicator for existing galleries -->
-                    <UBadge v-if="galleryData" :color="galleryStatusInfo?.color as any" variant="subtle"
-                        :label="galleryStatusInfo?.label" :icon="galleryStatusInfo?.icon" />
-                    <!-- Toggle switch with tooltip wrapper -->
-                    <div class="relative">
-                        <USwitch :model-value="enabled" color="primary" size="md"
-                            :disabled="cannotDisableGallery ?? undefined" @update:model-value="handleToggle" />
-                        <UTooltip v-if="cannotDisableGallery" text="Impossible de désactiver : une galerie existe"
-                            :content="{ side: 'left' }">
-                            <!-- Invisible overlay to capture hover -->
-                            <div class="absolute inset-0 cursor-not-allowed" />
-                        </UTooltip>
-                    </div>
+                <!-- Status badge for existing galleries -->
+                <div v-if="gallery" class="ml-auto">
+                    <UBadge :color="galleryStatusInfo?.color as any" variant="subtle" :label="galleryStatusInfo?.label"
+                        :icon="galleryStatusInfo?.icon" />
                 </div>
             </div>
         </template>
 
-        <div v-if="enabled" class="space-y-4">
+        <!-- Loading State -->
+        <div v-if="loading" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error" class="py-8">
+            <UAlert color="error" variant="soft" icon="i-lucide-alert-circle" title="Erreur"
+                :description="error.message" />
+        </div>
+
+        <div v-else class="space-y-4">
             <!-- Existing Gallery Display -->
-            <div v-if="galleryData && !showEditForm" class="space-y-4">
+            <div v-if="gallery && !showEditForm" class="space-y-4">
                 <div
                     class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
                     <div class="flex items-start justify-between mb-3">
@@ -76,8 +77,8 @@
                         <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                             Paiement requis pour téléchargement :
                         </span>
-                        <UBadge :color="galleryData.payment_required ? 'warning' : 'success'" variant="subtle"
-                            :label="galleryData.payment_required ? 'Oui' : 'Non'" />
+                        <UBadge :color="gallery.payment_required ? 'warning' : 'success'" variant="subtle"
+                            :label="gallery.payment_required ? 'Oui' : 'Non'" />
                     </div>
 
                     <div class="flex items-center gap-2 mb-4">
@@ -86,7 +87,7 @@
 
                         <!-- Client preview button -->
                         <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                            label="Aperçu client" :to="`/gallery/${galleryData.id}`" target="_blank" />
+                            label="Aperçu client" :to="`/gallery/${gallery.id}`" target="_blank" />
 
                         <!-- Delete button for draft and revision requested galleries -->
                         <UButton v-if="canEditGallery" icon="i-lucide-trash-2" size="sm" variant="outline" color="error"
@@ -96,7 +97,7 @@
                     <!-- Image Grid Preview -->
                     <div v-if="hasImages" class="space-y-3 mt-4">
                         <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Aperçu des images</h5>
-                        <ProjectGalleryImageGrid :images="Array.from(galleryData.images || [])" :max-preview="6"
+                        <ProjectGalleryImageGrid :images="Array.from(gallery.images || [])" :max-preview="6"
                             :can-delete="false" @image-click="handleImageClick" @delete-image="handleDeleteImage" />
                     </div>
 
@@ -132,7 +133,7 @@
                     </UAlert>
 
                     <!-- Info for revision requested galleries -->
-                    <UAlert v-else-if="galleryData.status === 'revision_requested'" color="warning" variant="soft"
+                    <UAlert v-else-if="gallery.status === 'revision_requested'" color="warning" variant="soft"
                         icon="i-lucide-edit" title="Révisions demandées" class="mt-4">
                         <template #description>
                             Le client a demandé des révisions sur cette galerie. Vous pouvez modifier les paramètres
@@ -141,7 +142,7 @@
                     </UAlert>
 
                     <!-- Info for draft galleries -->
-                    <UAlert v-else-if="galleryData.status === 'draft'" color="info" variant="soft" icon="i-lucide-info"
+                    <UAlert v-else-if="gallery.status === 'draft'" color="info" variant="soft" icon="i-lucide-info"
                         title="Galerie en brouillon" class="mt-4">
                         <template #description>
                             Cette galerie est encore en brouillon. Vous pouvez modifier les paramètres,
@@ -153,120 +154,76 @@
             </div>
 
             <!-- Create/Edit Gallery Form -->
-            <div v-else-if="!galleryData || showEditForm">
-                <!-- Progress indicator for new galleries -->
-                <div v-if="!galleryData" class="mb-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-8 h-8 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-plus" class="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Créer une galerie</h4>
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Configurez votre galerie et
-                                uploadez vos
-                                images
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Quick tips -->
-                    <UAlert color="info" variant="soft" icon="i-lucide-lightbulb" title="Conseils">
-                        <template #description>
-                            <ul class="text-sm space-y-1 mt-2">
-                                <li>• <strong>Brouillon</strong> : Sauvegarde sans envoyer au client</li>
-                                <li>• <strong>Valider</strong> : Envoie la galerie au client</li>
-                                <li>• Vous pouvez uploader jusqu'à 200+ images</li>
-                                <li>• Le paiement est calculé automatiquement selon la proposition</li>
-                            </ul>
-                        </template>
-                    </UAlert>
-                </div>
-
-                <ProjectGalleryForm :gallery="showEditForm ? (galleryData || undefined) : undefined"
-                    :project-id="projectId" :pricing="pricing || undefined"
-                    :existing-images="showEditForm && galleryData?.images ? Array.from(galleryData.images) : undefined"
+            <div v-else-if="showEditForm">
+                <ProjectGalleryForm :gallery="showEditForm ? (gallery || undefined) : undefined"
+                    :project-id="props.projectId" :pricing="pricing || undefined"
+                    :existing-images="showEditForm && gallery?.images ? Array.from(gallery.images) : undefined"
                     @gallery-saved="handleGallerySaved" @cancel="handleCancel" />
             </div>
+
+            <!-- Empty state with create button -->
+            <div v-else class="py-8 text-center">
+                <div
+                    class="w-16 h-16 bg-gradient-to-br from-violet-100 to-violet-200 dark:from-violet-900 dark:to-violet-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UIcon name="i-lucide-image-plus" class="w-8 h-8 text-violet-600 dark:text-violet-400" />
+                </div>
+                <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Aucune galerie</h4>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                    Créez une galerie de livraison pour ce projet
+                </p>
+                <UButton icon="i-lucide-plus" color="primary" label="Créer une galerie" @click="editGallery" />
+            </div>
         </div>
 
-        <!-- Module disabled state -->
-        <div v-else class="py-8 text-center">
-            <div
-                class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UIcon name="i-lucide-images" class="w-8 h-8 text-neutral-400" />
-            </div>
-            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Galerie désactivé</h4>
-            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                Activez ce module pour créer des galeries de livraison pour vos clients
-            </p>
-            <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                <UIcon name="i-lucide-arrow-up" class="w-3 h-3 inline mr-1" />
-                Utilisez le switch ci-dessus pour activer
-            </div>
-        </div>
+
     </UCard>
 </template>
 
 <script lang="ts" setup>
-import type { Gallery, GalleryImage, GalleryPricing, GalleryWithDetails } from '~/types/gallery';
+import { useGallery } from '~/composables/galleries/user/useGallery';
+import type { Gallery, GalleryImage } from '~/types/gallery';
 
 interface Props {
-    enabled: boolean
-    galleryData: GalleryWithDetails | null
-    galleryStatusInfo: { color: string; label: string; icon: string } | null
-    pricing: GalleryPricing | null
-    formattedBasePrice: string
-    formattedDepositPaid: string
-    formattedRemainingAmount: string
-    imageCount: number
-    hasImages: boolean
     projectId: string
-    isUploading?: boolean
-    uploadProgress?: number
-}
-
-interface Emits {
-    (e: 'update:enabled', value: boolean): void
-    (e: 'gallery-saved', data: { gallery: Gallery; projectUpdated: boolean; selectedFiles?: File[] }): void
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
 
-// Local state
+// Use the gallery composable for complete state management
+const {
+    loading,
+    error,
+    gallery,
+    pricing,
+    imageCount,
+    hasImages,
+    formattedBasePrice,
+    formattedDepositPaid,
+    formattedRemainingAmount,
+    fetchGallery,
+    saveGallery,
+    uploadImages,
+    deleteGallery,
+    getStatusOptions,
+} = useGallery(props.projectId)
+
+// Local state for UI
 const showEditForm = ref(false)
 const isDeleting = ref(false)
+const isUploading = ref(false)
+const uploadProgress = ref(0)
+
+// Gallery status info
+const galleryStatusInfo = computed(() => {
+    if (!gallery.value) return null
+    const statusOptions = getStatusOptions()
+    return statusOptions.find(option => option.value === gallery.value!.status)
+})
 
 // Computed properties
-const cannotDisableGallery = computed(() => {
-    // Cannot disable if any gallery exists (even draft)
-    return !!props.galleryData
-})
-
 const canEditGallery = computed(() => {
-    return !props.galleryData || props.galleryData.status === 'draft' || props.galleryData.status === 'revision_requested'
+    return !gallery.value || gallery.value.status === 'draft' || gallery.value.status === 'revision_requested'
 })
-
-// Methods
-const handleToggle = (value: boolean) => {
-    // Prevent disabling if any gallery exists
-    if (!value && cannotDisableGallery.value) {
-        // Reset the toggle to enabled state
-        emit('update:enabled', true)
-
-        const toast = useToast()
-        toast.add({
-            title: 'Action impossible',
-            description: 'Impossible de désactiver le module : une galerie existe. Supprimez-la d\'abord si elle est en brouillon.',
-            icon: 'i-lucide-alert-circle',
-            color: 'warning'
-        })
-        return
-    }
-
-    emit('update:enabled', value)
-}
 
 const editGallery = () => {
     showEditForm.value = true
@@ -277,14 +234,90 @@ const handleCancel = () => {
 }
 
 const handleGallerySaved = async (data: { gallery: Gallery; projectUpdated: boolean; selectedFiles?: File[] }) => {
-    // Close the edit form
-    showEditForm.value = false
+    try {
+        // Save the gallery using the composable
+        const shouldValidate = data.projectUpdated
+        const result = await saveGallery(data.gallery, shouldValidate)
 
-    // Emit to parent component to handle the actual gallery save
-    emit('gallery-saved', data)
+        // Handle file uploads if there are selected files
+        if (data.selectedFiles && data.selectedFiles.length > 0) {
+            // Get the gallery ID from the result or existing gallery data
+            const galleryId = result.gallery.id || gallery.value?.id
 
-    // Handle file uploads if this is a new gallery with files
-    // Note: This will be handled by the parent component after gallery creation
+            if (galleryId) {
+                isUploading.value = true
+                uploadProgress.value = 0
+
+                try {
+                    // Simulate progress for better UX
+                    const progressInterval = setInterval(() => {
+                        if (uploadProgress.value < 85) {
+                            uploadProgress.value += Math.random() * 15
+                        }
+                    }, 300)
+
+                    // Upload images using the gallery composable
+                    await uploadImages(data.selectedFiles)
+
+                    clearInterval(progressInterval)
+                    uploadProgress.value = 100
+
+                    // Small delay to show 100% before hiding
+                    setTimeout(() => {
+                        isUploading.value = false
+                        uploadProgress.value = 0
+                    }, 1000)
+
+                } catch (uploadErr) {
+                    console.error('Error uploading images:', uploadErr)
+                    isUploading.value = false
+                    uploadProgress.value = 0
+
+                    const toast = useToast()
+                    toast.add({
+                        title: 'Erreur d\'upload',
+                        description: uploadErr instanceof Error ? uploadErr.message : 'Une erreur est survenue lors de l\'upload des images.',
+                        icon: 'i-lucide-alert-circle',
+                        color: 'error'
+                    })
+                }
+            }
+        }
+
+        // Close the edit form
+        showEditForm.value = false
+
+        // Show success notification
+        const toast = useToast()
+        if (shouldValidate) {
+            toast.add({
+                title: 'Galerie validée !',
+                description: 'La galerie a été envoyée au client.',
+                icon: 'i-lucide-check-circle',
+                color: 'success'
+            })
+        } else {
+            toast.add({
+                title: 'Brouillon sauvegardé',
+                description: 'Votre galerie a été sauvegardée en brouillon.',
+                icon: 'i-lucide-save',
+                color: 'info'
+            })
+        }
+
+        // Refresh gallery data
+        await fetchGallery()
+
+    } catch (err) {
+        console.error('Error saving gallery:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
 }
 
 const handleImageClick = (image: GalleryImage) => {
@@ -316,7 +349,7 @@ const handleDeleteImage = async (imageId: string) => {
         })
 
         // Refresh gallery data
-        emit('gallery-saved', { gallery: props.galleryData as Gallery, projectUpdated: false })
+        await fetchGallery()
 
     } catch (err) {
         console.error('Error deleting image:', err)
@@ -330,7 +363,7 @@ const handleDeleteImage = async (imageId: string) => {
 }
 
 const confirmDeleteGallery = async () => {
-    if (!props.galleryData) return
+    if (!gallery.value) return
 
     const toast = useToast()
 
@@ -342,11 +375,8 @@ const confirmDeleteGallery = async () => {
     isDeleting.value = true
 
     try {
-        // Import the gallery service
-        const { galleryService } = await import('~/services/galleryService')
-
         // Delete the gallery
-        await galleryService.deleteGallery(props.galleryData.id)
+        await deleteGallery()
 
         // Show success message
         toast.add({
@@ -356,8 +386,7 @@ const confirmDeleteGallery = async () => {
             color: 'success'
         })
 
-        // Emit event to refresh parent data (gallery deleted)
-        window.location.reload() // Simple solution to refresh the page
+
 
     } catch (err) {
         console.error('Error deleting gallery:', err)
@@ -371,4 +400,13 @@ const confirmDeleteGallery = async () => {
         isDeleting.value = false
     }
 }
+
+// Load gallery on mount
+onMounted(async () => {
+    try {
+        await fetchGallery()
+    } catch (err) {
+        console.error('Error loading gallery:', err)
+    }
+})
 </script>

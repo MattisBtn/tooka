@@ -1,5 +1,6 @@
 import { moodboardService } from "~/services/moodboardService";
 import type {
+  Moodboard,
   MoodboardFormData,
   MoodboardWithDetails,
 } from "~/types/moodboard";
@@ -34,20 +35,35 @@ export const useMoodboard = (projectId: string) => {
     }
   };
 
-  // Save moodboard (create or update)
-  const saveMoodboard = async (data: MoodboardFormData) => {
+  // Save moodboard (create or update) with support for direct Moodboard object
+  const saveMoodboard = async (data: MoodboardFormData | Moodboard) => {
     loading.value = true;
     error.value = null;
 
     try {
       let result;
 
-      if (isEditMode.value && moodboard.value) {
-        // Update existing moodboard
-        result = await moodboardService.updateMoodboard(moodboard.value.id, {
+      // Handle direct Moodboard object (from form submission)
+      if ("id" in data && data.id && isEditMode.value) {
+        // Update existing moodboard using direct Moodboard data
+        result = await moodboardService.updateMoodboard(data.id, {
           title: data.title,
           description: data.description,
-          status: data.status, // Use the status from form data
+          status: data.status,
+        });
+
+        // Update local state
+        moodboard.value = {
+          ...moodboard.value!,
+          ...result.moodboard,
+        };
+      } else if (isEditMode.value && moodboard.value) {
+        // Update existing moodboard using form data
+        const formData = data as MoodboardFormData;
+        result = await moodboardService.updateMoodboard(moodboard.value.id, {
+          title: formData.title,
+          description: formData.description,
+          status: formData.status,
         });
 
         // Update local state
@@ -57,11 +73,12 @@ export const useMoodboard = (projectId: string) => {
         };
       } else {
         // Create new moodboard
+        const formData = data as MoodboardFormData;
         result = await moodboardService.createMoodboard({
           project_id: projectId,
-          title: data.title,
-          description: data.description || null,
-          status: data.status,
+          title: formData.title,
+          description: formData.description || null,
+          status: formData.status,
         });
 
         // Fetch the complete moodboard data

@@ -4,3 +4,11 @@
 @theme static {
   --font-sans: "Inter", sans-serif;
 }
+
+:root {
+  --ui-primary: black;
+}
+
+.dark {
+  --ui-primary: white;
+}
