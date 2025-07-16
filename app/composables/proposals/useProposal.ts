@@ -46,6 +46,7 @@ export const useProposal = (projectId: string) => {
         contract_url: formData.contract_url || null,
         quote_url: formData.quote_url || null,
         status: formData.status,
+        revision_last_comment: null,
       };
 
       let result;
@@ -148,6 +149,9 @@ export const useProposal = (projectId: string) => {
   const isAwaitingClient = computed(
     () => proposal.value?.status === "awaiting_client"
   );
+  const isRevisionRequested = computed(
+    () => proposal.value?.status === "revision_requested"
+  );
 
   // Format price
   const formattedPrice = computed(() => {
@@ -192,6 +196,7 @@ export const useProposal = (projectId: string) => {
     isCompleted,
     isDraft,
     isAwaitingClient,
+    isRevisionRequested,
     formattedPrice,
     formattedDepositAmount,
     contractFileUrl,

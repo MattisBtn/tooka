@@ -33,6 +33,23 @@ export interface IPagination {
   pageSize: number;
 }
 
+// Client access types for proposals
+export interface ClientProposalAccess {
+  project: {
+    id: string;
+    title: string;
+    hasPassword: boolean;
+  };
+  proposal: Proposal;
+}
+
+// Client-specific proposal with formatted data
+export interface ClientProposal extends Proposal {
+  formattedPrice: string;
+  formattedDepositAmount?: string;
+  hasDeposit: boolean;
+}
+
 // Proposal status options for UI
 export interface ProposalStatusItem {
   value: "draft" | "awaiting_client" | "revision_requested" | "completed";

@@ -403,6 +403,7 @@ export type Database = {
           price: number
           project_id: string
           quote_url: string | null
+          revision_last_comment: string | null
           status: Database["public"]["Enums"]["status_enum"]
           updated_at: string
         }
@@ -417,6 +418,7 @@ export type Database = {
           price: number
           project_id: string
           quote_url?: string | null
+          revision_last_comment?: string | null
           status?: Database["public"]["Enums"]["status_enum"]
           updated_at?: string
         }
@@ -431,6 +433,7 @@ export type Database = {
           price?: number
           project_id?: string
           quote_url?: string | null
+          revision_last_comment?: string | null
           status?: Database["public"]["Enums"]["status_enum"]
           updated_at?: string
         }

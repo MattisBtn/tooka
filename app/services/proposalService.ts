@@ -167,7 +167,11 @@ export const proposalService = {
 
     // Update project status if proposal is being validated
     let projectUpdated = false;
-    if (shouldValidate && existingProposal.status === "draft") {
+    if (
+      shouldValidate &&
+      (existingProposal.status === "draft" ||
+        existingProposal.status === "revision_requested")
+    ) {
       const project = await projectService.getProjectById(
         existingProposal.project_id
       );

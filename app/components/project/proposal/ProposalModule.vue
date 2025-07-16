@@ -39,7 +39,7 @@
                     </div>
 
                     <!-- Content Display -->
-                    <ProjectProposalContentBuilder :key="contentKey" :content_json="contentJsonComponents"
+                    <ProjectProposalContentBuilder :key="contentKey" :content_json="proposal.content_json"
                         :content_html="proposal.content_html" :status="proposal.status" :readonly="true" />
                 </div>
 
@@ -55,7 +55,7 @@
                             class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
                         <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{
                             formattedDepositAmount
-                            }}
+                        }}
                         </p>
                     </div>
                 </div>
@@ -63,6 +63,11 @@
                 <div class="flex items-center gap-2 mb-4">
                     <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral"
                         label="Modifier la proposition" :disabled="!canEditProposal" @click="editProposal" />
+
+                    <!-- Client preview button -->
+                    <UButton v-if="proposal && proposal.status !== 'draft'" icon="i-lucide-external-link" size="sm"
+                        variant="outline" color="neutral" label="Aperçu client" :to="`/proposal/${proposal.id}`"
+                        target="_blank" />
 
                     <!-- Delete button for draft proposals -->
                     <UButton v-if="proposal.status === 'draft'" icon="i-lucide-trash-2" size="sm" variant="outline"
@@ -80,11 +85,20 @@
                         @error="handleFileError" />
                 </div>
 
-                <!-- Warning for validated proposals -->
-                <UAlert v-if="!canEditProposal" color="warning" variant="soft" icon="i-lucide-info"
-                    title="Proposition validée" class="mt-4">
+                <!-- Revision comment display for revision_requested status -->
+                <UAlert v-if="proposal.status === 'revision_requested'" color="warning" variant="soft"
+                    icon="i-lucide-message-circle" title="Révisions demandées par le client" class="mt-4">
                     <template #description>
-                        Cette proposition a été envoyée au client et ne peut plus être modifiée ni supprimée.
+                        <div class="space-y-2">
+                            <p>Le client a demandé des modifications à cette proposition.</p>
+                            <div v-if="revisionComment"
+                                class="bg-white dark:bg-neutral-900 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+                                <p class="text-sm font-medium text-orange-900 dark:text-orange-100 mb-1">Commentaire du
+                                    client :</p>
+                                <p class="text-sm text-orange-800 dark:text-orange-200 whitespace-pre-wrap">{{
+                                    revisionComment }}</p>
+                            </div>
+                        </div>
                     </template>
                 </UAlert>
 
@@ -93,6 +107,22 @@
                     title="Proposition en brouillon" class="mt-4">
                     <template #description>
                         Cette proposition est encore en brouillon. Vous pouvez la modifier ou la supprimer.
+                    </template>
+                </UAlert>
+
+                <!-- Warning for validated proposals -->
+                <UAlert v-else-if="proposal.status === 'awaiting_client'" color="info" variant="soft"
+                    icon="i-lucide-clock" title="Proposition envoyée" class="mt-4">
+                    <template #description>
+                        Cette proposition a été envoyée au client et attend sa réponse.
+                    </template>
+                </UAlert>
+
+                <!-- Success for completed proposals -->
+                <UAlert v-else-if="proposal.status === 'completed'" color="success" variant="soft"
+                    icon="i-lucide-check-circle" title="Proposition acceptée" class="mt-4">
+                    <template #description>
+                        Cette proposition a été acceptée par le client.
                     </template>
                 </UAlert>
             </div>
@@ -122,7 +152,6 @@
 
 <script lang="ts" setup>
 import { useProposal } from '~/composables/proposals/useProposal';
-import type { ProposalComponent } from '~/composables/proposals/useProposalContentBuilder';
 import type { ProposalFormData } from '~/types/proposal';
 
 interface Props {
@@ -149,16 +178,7 @@ const showEditForm = ref(false)
 
 // Computed properties
 const canEditProposal = computed(() => {
-    return !proposal.value || proposal.value.status === 'draft'
-})
-
-// Convert Json content_json to ProposalComponent[] for the content builder
-const contentJsonComponents = computed(() => {
-    if (!proposal.value?.content_json || !Array.isArray(proposal.value.content_json)) {
-        return null
-    }
-
-    return proposal.value.content_json as unknown as ProposalComponent[]
+    return !proposal.value || proposal.value.status === 'draft' || proposal.value.status === 'revision_requested'
 })
 
 // Simple reactive key for component updates
@@ -179,6 +199,11 @@ const proposalStatusInfo = computed(() => {
     }
 
     return statusOptions[proposal.value.status] || null
+})
+
+// Revision comment for display
+const revisionComment = computed(() => {
+    return proposal.value?.revision_last_comment || null
 })
 
 // Watch for proposal data changes to reset edit form state
@@ -203,7 +228,7 @@ const handleCancel = () => {
 
 const handleProposalSaved = async (data: { proposal: ProposalFormData; projectUpdated: boolean }) => {
     try {
-        const shouldValidate = data.proposal.status === 'awaiting_client'
+        const shouldValidate = data.projectUpdated
         await saveProposal(data.proposal, shouldValidate)
         showEditForm.value = false
 
