@@ -193,12 +193,44 @@ export const useClientGallery = async (galleryId: string) => {
 
     try {
       downloadingGallery.value = true;
-      const response = await $fetch(
+
+      // Use native fetch for file download
+      const response = await fetch(
         `/api/gallery/client/${gallery.value.id}/download`
       );
-      console.log("Download initiated:", response);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Get the blob data
+      const blob = await response.blob();
+
+      // Extract filename from Content-Disposition header or create default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `galerie_${gallery.value.id}.zip`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to download gallery:", error);
+      // You could add a toast notification here for user feedback
     } finally {
       downloadingGallery.value = false;
     }

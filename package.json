@@ -19,6 +19,7 @@
     "@nuxt/ui": "^3.1.1",
     "@nuxtjs/supabase": "^1.5.1",
     "@vueuse/nuxt": "^13.2.0",
+    "jszip": "^3.10.1",
     "nuxt": "^3.17.3",
     "supabase": "^2.22.12",
     "vue": "^3.5.14",
