@@ -40,7 +40,7 @@
 
                     <!-- Content Display -->
                     <ProjectProposalContentBuilder :key="contentKey" :content_json="proposal.content_json"
-                        :content_html="proposal.content_html" :status="proposal.status" :readonly="true" />
+                        :content_html="proposal.content_html" :status="proposal.status as any" :readonly="true" />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-6">
@@ -102,6 +102,20 @@
                     </template>
                 </UAlert>
 
+                <!-- Payment pending alert -->
+                <UAlert v-else-if="proposal.status === 'payment_pending'" color="info" variant="soft"
+                    icon="i-lucide-clock" title="Paiement en attente de confirmation" class="mt-4">
+                    <template #description>
+                        <div class="space-y-3">
+                            <p>Le client a initié le paiement d'acompte. Vérifiez votre compte bancaire et confirmez la
+                                réception.</p>
+                            <UButton color="success" icon="i-lucide-check-circle" size="sm"
+                                label="Confirmer la réception du paiement" :loading="loading"
+                                @click="handleConfirmPayment" />
+                        </div>
+                    </template>
+                </UAlert>
+
                 <!-- Info for draft proposals -->
                 <UAlert v-else-if="proposal.status === 'draft'" color="info" variant="soft" icon="i-lucide-info"
                     title="Proposition en brouillon" class="mt-4">
@@ -130,9 +144,14 @@
 
         <!-- Create/Edit Proposal Form -->
         <div v-else-if="showEditForm">
-            <ProjectProposalForm :proposal="proposal || undefined" :project-id="projectId"
-                :project-initial-price="projectInitialPrice" @proposal-saved="handleProposalSaved"
-                @cancel="handleCancel" />
+            <!-- S'assurer que les données du projet sont chargées avant de rendre le formulaire -->
+            <div v-if="projectLoading" class="py-8 text-center">
+                <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin mx-auto mb-4" />
+                <p class="text-sm text-neutral-600 dark:text-neutral-400">Chargement des données...</p>
+            </div>
+            <ProjectProposalForm v-else :proposal="proposal || undefined" :project="projectPaymentData"
+                :project-id="projectId" :project-initial-price="projectInitialPrice"
+                @proposal-saved="handleProposalSaved" @cancel="handleCancel" />
         </div>
 
         <!-- Empty state with create button -->
@@ -151,8 +170,9 @@
 </template>
 
 <script lang="ts" setup>
+import { useProject } from '~/composables/projects/useProject';
 import { useProposal } from '~/composables/proposals/useProposal';
-import type { ProposalFormData } from '~/types/proposal';
+import type { ProjectPaymentData, ProposalFormData } from '~/types/proposal';
 
 interface Props {
     projectId: string
@@ -170,8 +190,25 @@ const {
     formattedDepositAmount,
     fetchProposal,
     saveProposal,
+    confirmPayment,
     deleteProposal,
 } = useProposal(props.projectId)
+
+// Use project composable to get project data for payment info
+const { project, fetchProject, loading: projectLoading } = useProject(props.projectId)
+
+// Computed for project payment data
+const projectPaymentData = computed(() => {
+    if (!project.value) return undefined;
+
+    return {
+        id: project.value.id,
+        payment_method: project.value.payment_method,
+        bank_iban: project.value.bank_iban,
+        bank_bic: project.value.bank_bic,
+        bank_beneficiary: project.value.bank_beneficiary,
+    };
+});
 
 // Local state
 const showEditForm = ref(false)
@@ -195,10 +232,11 @@ const proposalStatusInfo = computed(() => {
         draft: { color: 'neutral', label: 'Brouillon', icon: 'i-lucide-file-text' },
         awaiting_client: { color: 'warning', label: 'En attente client', icon: 'i-lucide-clock' },
         revision_requested: { color: 'info', label: 'Révision demandée', icon: 'i-lucide-edit' },
+        payment_pending: { color: 'info', label: 'Paiement en attente', icon: 'i-lucide-credit-card' },
         completed: { color: 'success', label: 'Acceptée', icon: 'i-lucide-check-circle' },
     }
 
-    return statusOptions[proposal.value.status] || null
+    return statusOptions[proposal.value.status as string] || null
 })
 
 // Revision comment for display
@@ -218,7 +256,11 @@ const createProposal = () => {
     showEditForm.value = true
 }
 
-const editProposal = () => {
+const editProposal = async () => {
+    // S'assurer que les données du projet sont à jour avant d'ouvrir le formulaire
+    if (!project.value) {
+        await fetchProject()
+    }
     showEditForm.value = true
 }
 
@@ -226,10 +268,14 @@ const handleCancel = () => {
     showEditForm.value = false
 }
 
-const handleProposalSaved = async (data: { proposal: ProposalFormData; projectUpdated: boolean }) => {
+const handleProposalSaved = async (data: {
+    proposal: ProposalFormData;
+    project: ProjectPaymentData;
+    projectUpdated: boolean
+}) => {
     try {
         const shouldValidate = data.projectUpdated
-        await saveProposal(data.proposal, shouldValidate)
+        await saveProposal(data.proposal, data.project, shouldValidate)
         showEditForm.value = false
 
         // Refresh proposal data
@@ -257,12 +303,39 @@ const handleFileError = (error: string) => {
     console.error('Error opening file:', error)
 }
 
-// Load proposal on mount
+// Confirm payment method using composable
+const handleConfirmPayment = async () => {
+    try {
+        await confirmPayment()
+
+        const toast = useToast()
+        toast.add({
+            title: 'Paiement confirmé',
+            description: 'La proposition a été validée avec succès.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
+    } catch (err) {
+        console.error('Error confirming payment:', err)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur',
+            description: 'Erreur lors de la confirmation du paiement.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
+// Load proposal and project on mount
 onMounted(async () => {
     try {
-        await fetchProposal()
+        await Promise.all([
+            fetchProposal(),
+            fetchProject()
+        ])
     } catch (err) {
-        console.error('Error loading proposal:', err)
+        console.error('Error loading data:', err)
     }
 })
 </script>

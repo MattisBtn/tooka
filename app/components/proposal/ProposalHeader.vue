@@ -26,10 +26,15 @@
 
                     <!-- Action buttons based on status -->
                     <template v-if="proposal && isAuthenticated">
-                        <!-- Validate button (for awaiting_client status) -->
-                        <UButton v-if="proposal.status === 'awaiting_client'" icon="i-lucide-check-circle"
-                            color="primary" size="sm" label="Accepter la proposition" :loading="validatingProposal"
-                            @click="$emit('validate')" />
+                        <!-- Pay deposit button (for awaiting_client status with deposit required) -->
+                        <UButton v-if="proposal.status === 'awaiting_client' && proposal.deposit_required"
+                            icon="i-lucide-credit-card" color="success" size="sm" label="Payer l'acompte"
+                            :loading="payingDeposit" @click="$emit('pay-deposit')" />
+
+                        <!-- Accept button (for awaiting_client status WITHOUT deposit) -->
+                        <UButton v-if="proposal.status === 'awaiting_client' && !proposal.deposit_required"
+                            icon="i-lucide-check-circle" color="primary" size="sm" label="Accepter la proposition"
+                            :loading="validatingProposal" @click="$emit('validate')" />
 
                         <!-- Request revisions button (for awaiting_client status) -->
                         <UButton v-if="proposal.status === 'awaiting_client'" icon="i-lucide-edit" variant="outline"
@@ -59,11 +64,12 @@ interface Props {
     isAuthenticated: boolean;
     validatingProposal: boolean;
     requestingRevisions: boolean;
+    payingDeposit: boolean;
     showLogoutButton?: boolean;
 }
 
 interface Emits {
-    (e: 'validate' | 'request-revisions' | 'logout'): void;
+    (e: 'validate' | 'request-revisions' | 'logout' | 'pay-deposit'): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -81,6 +87,8 @@ const statusColor = computed(() => {
             return 'warning';
         case 'revision_requested':
             return 'info';
+        case 'payment_pending':
+            return 'info';
         case 'completed':
             return 'success';
         default:
@@ -96,6 +104,8 @@ const statusLabel = computed(() => {
             return 'En attente de votre réponse';
         case 'revision_requested':
             return 'Révisions demandées';
+        case 'payment_pending':
+            return 'Paiement en attente de confirmation';
         case 'completed':
             return 'Proposition acceptée';
         default:

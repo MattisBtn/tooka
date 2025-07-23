@@ -1,24 +1,29 @@
 import { proposalRepository } from "~/repositories/proposalRepository";
 import { projectService } from "~/services/projectService";
-import type { IPagination, IProposalFilters, Proposal } from "~/types/proposal";
+import type { Proposal, ProposalStatus } from "~/types/proposal";
 
 export const proposalService = {
   /**
    * Fetch proposals with pagination and filtering
    */
   async getProposals(
-    filters: IProposalFilters = {},
-    pagination: IPagination
+    filters: {
+      search?: string;
+      status?: ProposalStatus | null;
+      project_id?: string;
+    } = {},
+    pagination: { page: number; pageSize: number }
   ): Promise<Proposal[]> {
     const proposals = await proposalRepository.findMany(filters, pagination);
 
     // Business logic: sort by status priority
-    return proposals.sort((a, b) => {
-      const statusOrder = {
+    return proposals.sort((a: Proposal, b: Proposal) => {
+      const statusOrder: Record<ProposalStatus, number> = {
         draft: 0,
         awaiting_client: 1,
         revision_requested: 2,
-        completed: 3,
+        payment_pending: 3,
+        completed: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -187,18 +192,42 @@ export const proposalService = {
   },
 
   /**
+   * Confirm payment and validate proposal (photographe action)
+   */
+  async confirmPayment(proposalId: string): Promise<Proposal> {
+    const proposal = await this.getProposalById(proposalId);
+
+    // Verify proposal is in payment_pending status
+    if (proposal.status !== "payment_pending") {
+      throw new Error(
+        "Cette proposition n'est pas en attente de confirmation de paiement"
+      );
+    }
+
+    // Update proposal to completed status
+    const updatedProposal = await proposalRepository.update(proposalId, {
+      status: "completed",
+    });
+
+    // Update project payment status
+    await projectService.updateProject(proposal.project_id, {
+      payment_status: "completed",
+      payment_completed_at: new Date().toISOString(),
+    });
+
+    return updatedProposal;
+  },
+
+  /**
    * Delete proposal with dependency checks
    */
   async deleteProposal(id: string): Promise<void> {
     const proposal = await this.getProposalById(id);
 
-    // Business rule: can't delete proposals that are awaiting client or completed
-    if (
-      proposal.status === "awaiting_client" ||
-      proposal.status === "completed"
-    ) {
+    // Business rule: can't delete proposals that are not draft
+    if (proposal.status !== "draft") {
       throw new Error(
-        "Cannot delete proposals that are awaiting client response or completed"
+        "Seules les propositions en brouillon peuvent être supprimées"
       );
     }
 
@@ -310,6 +339,13 @@ export const proposalService = {
         label: "Révision demandée",
         description: "Le client demande des modifications",
         icon: "i-lucide-edit",
+        color: "info",
+      },
+      {
+        value: "payment_pending" as const,
+        label: "Paiement en attente",
+        description: "En attente de confirmation de paiement",
+        icon: "i-lucide-credit-card",
         color: "info",
       },
       {

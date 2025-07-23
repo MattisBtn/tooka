@@ -1,4 +1,8 @@
-import type { ClientProposalAccess } from "~/types/proposal";
+import type {
+  ClientProposalAccess,
+  PaymentData,
+  PaymentResponse,
+} from "~/types/proposal";
 
 export const useClientProposal = async (proposalId: string) => {
   const loading = ref(true);
@@ -48,9 +52,14 @@ export const useClientProposal = async (proposalId: string) => {
   } = await useFetch<ClientProposalAccess>(
     `/api/proposal/client/${proposalId}`,
     {
-      server: true,
-      lazy: false,
+      key: `proposal-client-${proposalId}`,
+      server: false,
       onResponseError({ response }) {
+        console.error(
+          "API Response Error:",
+          response.status,
+          response.statusText
+        );
         if (response.status === 404) {
           error.value = new Error("Proposition non trouvée");
         } else if (response.status === 403) {
@@ -62,7 +71,7 @@ export const useClientProposal = async (proposalId: string) => {
     }
   );
 
-  // Set initial data
+  // Set initial state based on fetch results
   if (data.value) {
     proposalData.value = data.value;
 
@@ -77,10 +86,49 @@ export const useClientProposal = async (proposalId: string) => {
   }
 
   if (fetchError.value) {
-    error.value = fetchError.value;
+    error.value = new Error(
+      fetchError.value.message || "Failed to fetch proposal"
+    );
   }
 
   loading.value = pending.value;
+
+  // Reactive states for UI
+  const showValidationDialog = ref(false);
+  const showRevisionDialog = ref(false);
+  const showPaymentDialog = ref(false);
+  const validatingProposal = ref(false);
+  const payingDeposit = ref(false);
+  const requestingRevision = ref(false);
+
+  // Form state
+  const revisionComment = ref("");
+  const paymentData = ref<PaymentData | null>(null);
+
+  // Pay deposit method
+  const payDeposit = async () => {
+    if (!proposal.value?.deposit_required || !proposal.value?.deposit_amount)
+      return;
+
+    try {
+      payingDeposit.value = true;
+      const result = await $fetch<PaymentResponse>(
+        `/api/proposal/client/${proposal.value.id}/payment`,
+        {
+          method: "POST",
+          body: { method: "bank_transfer" },
+        }
+      );
+
+      paymentData.value = result.payment;
+      showPaymentDialog.value = true;
+    } catch (err) {
+      console.error("Failed to initiate payment:", err);
+      throw err;
+    } finally {
+      payingDeposit.value = false;
+    }
+  };
 
   // Password verification
   const verifyPassword = async (password: string) => {
@@ -98,17 +146,6 @@ export const useClientProposal = async (proposalId: string) => {
     return await proposalAuth.authenticate(password, serverVerify);
   };
 
-  // Action states
-  const validatingProposal = ref(false);
-  const requestingRevisions = ref(false);
-
-  // Modal states
-  const showValidateDialog = ref(false);
-  const showRequestRevisionsDialog = ref(false);
-
-  // Form state
-  const revisionComment = ref("");
-
   // Client actions methods
   const validateProposal = async () => {
     if (!proposal.value) return;
@@ -124,7 +161,7 @@ export const useClientProposal = async (proposalId: string) => {
       console.error("Failed to validate proposal:", error);
     } finally {
       validatingProposal.value = false;
-      showValidateDialog.value = false;
+      showValidationDialog.value = false;
     }
   };
 
@@ -132,7 +169,7 @@ export const useClientProposal = async (proposalId: string) => {
     if (!proposal.value) return;
 
     try {
-      requestingRevisions.value = true;
+      requestingRevision.value = true;
       await $fetch(
         `/api/proposal/client/${proposal.value.id}/request-revisions`,
         {
@@ -147,19 +184,23 @@ export const useClientProposal = async (proposalId: string) => {
     } catch (error) {
       console.error("Failed to request revisions:", error);
     } finally {
-      requestingRevisions.value = false;
-      showRequestRevisionsDialog.value = false;
+      requestingRevision.value = false;
+      showRevisionDialog.value = false;
       revisionComment.value = "";
     }
   };
 
   // Action handlers for components
   const handleValidate = () => {
-    showValidateDialog.value = true;
+    showValidationDialog.value = true;
   };
 
   const handleRequestRevisions = () => {
-    showRequestRevisionsDialog.value = true;
+    showRevisionDialog.value = true;
+  };
+
+  const handlePayDeposit = () => {
+    payDeposit();
   };
 
   return {
@@ -173,14 +214,17 @@ export const useClientProposal = async (proposalId: string) => {
 
     // Action states
     validatingProposal: readonly(validatingProposal),
-    requestingRevisions: readonly(requestingRevisions),
+    requestingRevisions: readonly(requestingRevision),
+    payingDeposit: readonly(payingDeposit),
 
     // Modal states
-    showValidateDialog,
-    showRequestRevisionsDialog,
+    showValidateDialog: showValidationDialog,
+    showRequestRevisionsDialog: showRevisionDialog,
+    showPaymentDialog,
 
     // Form state
     revisionComment,
+    paymentData: readonly(paymentData),
 
     // Computed
     needsPassword,
@@ -194,10 +238,12 @@ export const useClientProposal = async (proposalId: string) => {
     // Client actions
     validateProposal,
     requestRevisions,
+    payDeposit,
 
     // Action handlers
     handleValidate,
     handleRequestRevisions,
+    handlePayDeposit,
 
     // Auth methods
     logout: proposalAuth.logout,

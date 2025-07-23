@@ -1,119 +1,113 @@
 import { z } from "zod";
-import type { Tables } from "~/types/database.types";
+import type { Database } from "./database.types";
 
-export type Proposal = Tables<"proposals">;
+// Types de base depuis la base de données
+export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
+export type ProposalInsert =
+  Database["public"]["Tables"]["proposals"]["Insert"];
+export type ProposalUpdate =
+  Database["public"]["Tables"]["proposals"]["Update"];
 
-export interface IProposalFilters {
-  search?: string;
-  status?:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | null;
-  project_id?: string;
+// Union type pour tous les statuts possibles
+export type ProposalStatus =
+  | "draft"
+  | "awaiting_client"
+  | "revision_requested"
+  | "completed"
+  | "payment_pending";
+
+// Interface étendue avec relations
+export interface ProposalWithProject extends Proposal {
+  project: {
+    id: string;
+    title: string;
+    client_id: string;
+    payment_method: "stripe" | "bank_transfer" | null;
+    bank_iban: string | null;
+    bank_bic: string | null;
+    bank_beneficiary: string | null;
+  };
 }
 
-export interface IProposalRepository {
-  findMany(
-    filters: IProposalFilters,
-    pagination: IPagination
-  ): Promise<Proposal[]>;
-  findById(id: string): Promise<Proposal | null>;
-  findByProjectId(projectId: string): Promise<Proposal | null>;
-  create(
-    data: Omit<Proposal, "id" | "created_at" | "updated_at">
-  ): Promise<Proposal>;
-  update(id: string, data: Partial<Proposal>): Promise<Proposal>;
-  delete(id: string): Promise<void>;
-}
+// Schema de validation pour la création/modification de proposition
+export const proposalFormSchema = z.object({
+  content_html: z.string().min(1, "Le contenu HTML est requis"),
+  content_json: z.any(),
+  price: z.number().min(0, "Le prix doit être positif"),
+  deposit_required: z.boolean(),
+  deposit_amount: z.number().nullable(),
+  contract_url: z.string().nullable(),
+  quote_url: z.string().nullable(),
+});
 
-export interface IPagination {
-  page: number;
-  pageSize: number;
-}
+// Schema de validation pour le projet avec paiement (utilisé dans le formulaire)
+export const projectPaymentSchema = z
+  .object({
+    payment_method: z.enum(["stripe", "bank_transfer"]).nullable(),
+    bank_iban: z.string().nullable(),
+    bank_bic: z.string().nullable(),
+    bank_beneficiary: z.string().nullable(),
+  })
+  .refine(
+    (data) => {
+      // Si payment_method est bank_transfer, les champs bancaires sont requis
+      if (data.payment_method === "bank_transfer") {
+        return data.bank_iban && data.bank_bic && data.bank_beneficiary;
+      }
+      return true;
+    },
+    {
+      message: "Les coordonnées bancaires sont requises pour les virements",
+      path: ["bank_iban"],
+    }
+  );
 
-// Client access types for proposals
+// Types pour l'accès client (utilisés dans useClientProposal)
 export interface ClientProposalAccess {
   project: {
     id: string;
     title: string;
     hasPassword: boolean;
   };
-  proposal: Proposal;
-}
-
-// Client-specific proposal with formatted data
-export interface ClientProposal extends Proposal {
-  formattedPrice: string;
-  formattedDepositAmount?: string;
-  hasDeposit: boolean;
-}
-
-// Proposal status options for UI
-export interface ProposalStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
-  label: string;
-  description: string;
-  icon: string;
-  color: string;
-}
-
-// Validation schema for proposal form
-export const proposalFormSchema = z
-  .object({
-    content_json: z.array(z.any()).default([]),
-    content_html: z.string().default(""),
-    price: z
-      .number()
-      .min(0, "Le prix doit être positif")
-      .refine((val) => val > 0, "Le prix est requis"),
-    deposit_required: z.boolean().default(false),
-    deposit_amount: z
-      .number()
-      .min(0, "Le montant de l'acompte doit être positif")
-      .optional()
-      .nullable(),
-    contract_url: z.string().optional().nullable(),
-    quote_url: z.string().optional().nullable(),
-    status: z
-      .enum(["draft", "awaiting_client", "revision_requested", "completed"])
-      .default("draft"),
-  })
-  .refine(
-    (data) => {
-      // If deposit is required, deposit_amount must be provided and > 0
-      if (data.deposit_required) {
-        return data.deposit_amount && data.deposit_amount > 0;
-      }
-      return true;
-    },
-    {
-      message: "Le montant de l'acompte est requis quand l'acompte est activé",
-      path: ["deposit_amount"],
-    }
-  )
-  .refine(
-    (data) => {
-      // If deposit_amount is provided, it should not exceed the total price
-      if (data.deposit_amount && data.price) {
-        return data.deposit_amount <= data.price;
-      }
-      return true;
-    },
-    {
-      message: "Le montant de l'acompte ne peut pas dépasser le prix total",
-      path: ["deposit_amount"],
-    }
-  );
-
-export type ProposalFormData = z.infer<typeof proposalFormSchema>;
-
-// Proposal with project information for display
-export interface ProposalWithProject extends Proposal {
-  project?: {
+  proposal: {
     id: string;
-    title: string;
-    status: "draft" | "in_progress" | "completed";
+    content_html: string;
+    content_json: unknown;
+    price: number;
+    deposit_required: boolean;
+    deposit_amount: number | null;
+    status: ProposalStatus;
+    contract_url: string | null;
+    quote_url: string | null;
+    created_at: string;
+    updated_at: string;
   };
 }
+
+// Types pour les données de paiement côté client
+export interface PaymentData {
+  method: string;
+  amount: number;
+  reference: string;
+  bankDetails?: {
+    iban: string;
+    bic: string;
+    beneficiary: string;
+    reference: string;
+  };
+}
+
+export interface PaymentResponse {
+  success: boolean;
+  message: string;
+  payment: PaymentData;
+  proposal: {
+    id: string;
+    status: ProposalStatus;
+    clientName: string;
+    projectTitle: string;
+  };
+}
+
+export type ProposalFormData = z.infer<typeof proposalFormSchema>;
+export type ProjectPaymentData = z.infer<typeof projectPaymentSchema>;

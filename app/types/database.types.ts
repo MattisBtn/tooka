@@ -310,6 +310,9 @@ export type Database = {
       }
       projects: {
         Row: {
+          bank_beneficiary: string | null
+          bank_bic: string | null
+          bank_iban: string | null
           bank_transfer_reference: string | null
           client_id: string
           created_at: string
@@ -334,6 +337,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bank_beneficiary?: string | null
+          bank_bic?: string | null
+          bank_iban?: string | null
           bank_transfer_reference?: string | null
           client_id: string
           created_at?: string
@@ -358,6 +364,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bank_beneficiary?: string | null
+          bank_bic?: string | null
+          bank_iban?: string | null
           bank_transfer_reference?: string | null
           client_id?: string
           created_at?: string
@@ -604,6 +613,7 @@ export type Database = {
         | "awaiting_client"
         | "revision_requested"
         | "completed"
+        | "payment_pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -756,6 +766,7 @@ export const Constants = {
         "awaiting_client",
         "revision_requested",
         "completed",
+        "payment_pending",
       ],
     },
   },

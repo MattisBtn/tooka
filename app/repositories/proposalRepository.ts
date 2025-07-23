@@ -1,14 +1,13 @@
-import type {
-  IPagination,
-  IProposalFilters,
-  IProposalRepository,
-  Proposal,
-} from "~/types/proposal";
+import type { Proposal, ProposalStatus } from "~/types/proposal";
 
-export const proposalRepository: IProposalRepository = {
+export const proposalRepository = {
   async findMany(
-    filters: IProposalFilters,
-    pagination: IPagination
+    filters: {
+      search?: string;
+      status?: ProposalStatus | null;
+      project_id?: string;
+    },
+    pagination: { page: number; pageSize: number }
   ): Promise<Proposal[]> {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();

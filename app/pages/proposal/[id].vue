@@ -4,8 +4,9 @@
             <!-- Proposal Header -->
             <ProposalHeader :project="project" :proposal="proposal" :is-authenticated="isAuthenticated"
                 :validating-proposal="validatingProposal" :requesting-revisions="requestingRevisions"
-                :show-logout-button="project?.hasPassword && isAuthenticated" @validate="handleValidate"
-                @request-revisions="handleRequestRevisions" @logout="handleLogout" />
+                :paying-deposit="payingDeposit" :show-logout-button="project?.hasPassword && isAuthenticated"
+                @validate="handleValidate" @request-revisions="handleRequestRevisions" @pay-deposit="handlePayDeposit"
+                @logout="handleLogout" />
 
             <!-- Simple header for other states -->
             <ProposalSimpleHeader v-if="!proposal || !isAuthenticated || !project" />
@@ -19,7 +20,7 @@
                 <!-- Proposal view -->
                 <ProposalClientView v-else-if="proposal && isAuthenticated && project" :proposal-id="proposalId"
                     :proposal="proposal" :project="project" :formatted-price="formattedPrice"
-                    :formatted-deposit-amount="formattedDepositAmount" :has-deposit="hasDeposit" />
+                    :formatted-deposit-amount="formattedDepositAmount" :has-deposit="!!hasDeposit" />
 
                 <!-- Loading state -->
                 <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
@@ -58,9 +59,9 @@
             <!-- Action Modals -->
             <ProposalActionModals v-model:show-validate-dialog="showValidateDialog"
                 v-model:show-request-revisions-dialog="showRequestRevisionsDialog"
-                v-model:revision-comment="revisionComment" :validating-proposal="validatingProposal"
-                :requesting-revisions="requestingRevisions" @validate="validateProposal"
-                @request-revisions="requestRevisions" />
+                v-model:show-payment-dialog="showPaymentDialog" v-model:revision-comment="revisionComment"
+                :validating-proposal="validatingProposal" :requesting-revisions="requestingRevisions"
+                :payment-data="paymentData" @validate="validateProposal" @request-revisions="requestRevisions" />
 
             <!-- Footer -->
             <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
@@ -102,10 +103,15 @@ const {
     // Action states
     validatingProposal,
     requestingRevisions,
+    payingDeposit,
 
     // Modal states
     showValidateDialog,
     showRequestRevisionsDialog,
+    showPaymentDialog,
+
+    // Form state
+    paymentData,
 
     // Form state
     revisionComment,
@@ -125,6 +131,7 @@ const {
     // Action handlers
     handleValidate,
     handleRequestRevisions,
+    handlePayDeposit,
 
     // Auth methods
     logout,

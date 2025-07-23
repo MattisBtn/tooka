@@ -120,6 +120,18 @@
                                 la renvoyer.
                             </template>
                         </UAlert>
+
+                        <!-- Payment pending -->
+                        <UAlert v-else-if="proposal.status === 'payment_pending'" color="warning" variant="soft"
+                            icon="i-lucide-clock" title="Paiement en cours de traitement">
+                            <template #description>
+                                <div class="space-y-2">
+                                    <p>Votre paiement d'acompte a été initié avec succès.</p>
+                                    <p class="text-sm">Votre photographe va vérifier la réception du virement et
+                                        confirmer votre proposition sous 24-48h.</p>
+                                </div>
+                            </template>
+                        </UAlert>
                     </div>
                 </div>
             </div>

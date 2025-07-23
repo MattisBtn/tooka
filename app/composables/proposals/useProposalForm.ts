@@ -1,6 +1,9 @@
 import type { ProposalComponent } from "~/composables/proposals/useProposalContentBuilder";
+import { proposalService } from "~/services/proposalService";
 import {
+  projectPaymentSchema,
   proposalFormSchema,
+  type ProjectPaymentData,
   type Proposal,
   type ProposalFormData,
 } from "~/types/proposal";
@@ -12,14 +15,23 @@ interface ExistingFileInfo {
   isExisting: true;
 }
 
+interface Project {
+  id: string;
+  payment_method: "stripe" | "bank_transfer" | null;
+  bank_iban: string | null;
+  bank_bic: string | null;
+  bank_beneficiary: string | null;
+}
+
 export const useProposalForm = (
   proposal?: Proposal,
+  project?: Project,
   projectInitialPrice?: number
 ) => {
   const isEditMode = computed(() => !!proposal);
 
-  // Form state
-  const state = reactive<ProposalFormData>({
+  // Proposal form state (données de la proposition)
+  const proposalState = reactive<ProposalFormData>({
     content_json: (Array.isArray(proposal?.content_json)
       ? proposal.content_json
       : []) as unknown as ProposalComponent[],
@@ -29,8 +41,25 @@ export const useProposalForm = (
     deposit_amount: proposal?.deposit_amount || null,
     contract_url: proposal?.contract_url || null,
     quote_url: proposal?.quote_url || null,
-    status: proposal?.status || "draft",
   });
+
+  // Project payment state (données de paiement du projet)
+  const projectState = reactive<ProjectPaymentData>({
+    payment_method: project?.payment_method || null,
+    bank_iban: project?.bank_iban || null,
+    bank_bic: project?.bank_bic || null,
+    bank_beneficiary: project?.bank_beneficiary || null,
+  });
+
+  // Combined state for backward compatibility and form validation
+  const state = computed(() => ({
+    ...proposalState,
+    ...projectState,
+  }));
+
+  // Schemas
+  const proposalSchema = proposalFormSchema;
+  const paymentSchema = projectPaymentSchema;
 
   // File upload states - can hold File objects or existing file info
   const contractFile = ref<File | ExistingFileInfo | null>(null);
@@ -74,113 +103,119 @@ export const useProposalForm = (
     return filename;
   }
 
-  // Watch deposit_required to reset deposit_amount when disabled
+  // Watch deposit_required to reset related fields when disabled
   watch(
-    () => state.deposit_required,
+    () => proposalState.deposit_required,
     (newValue) => {
       if (!newValue) {
-        state.deposit_amount = null;
+        proposalState.deposit_amount = null;
+        projectState.payment_method = null;
+        projectState.bank_iban = null;
+        projectState.bank_bic = null;
+        projectState.bank_beneficiary = null;
       }
     }
   );
 
-  // Validation schema
-  const schema = proposalFormSchema;
-
-  // Handle file selection
-  const handleContractFileSelect = (files: FileList | null) => {
-    if (files && files.length > 0) {
-      contractFile.value = files[0] || null;
+  // Watch payment_method to reset bank details when not bank_transfer
+  watch(
+    () => projectState.payment_method,
+    (newValue) => {
+      if (newValue !== "bank_transfer") {
+        projectState.bank_iban = null;
+        projectState.bank_bic = null;
+        projectState.bank_beneficiary = null;
+      }
     }
+  );
+
+  // File upload functions
+  const handleContractFileSelect = (file: File) => {
+    contractFile.value = file;
+    // Reset URL when new file selected
+    proposalState.contract_url = null;
   };
 
-  const handleQuoteFileSelect = (files: FileList | null) => {
-    if (files && files.length > 0) {
-      quoteFile.value = files[0] || null;
-    }
+  const handleQuoteFileSelect = (file: File) => {
+    quoteFile.value = file;
+    // Reset URL when new file selected
+    proposalState.quote_url = null;
   };
 
-  // Upload files and update URLs in state
-  const uploadFiles = async (
-    uploadFileFn: (file: File, type: "contract" | "quote") => Promise<string>
-  ) => {
+  // Upload files and update state with URLs
+  const uploadFiles = async (projectId: string): Promise<void> => {
     const uploadPromises: Promise<void>[] = [];
 
-    // Handle contract file
-    if (contractFile.value) {
-      if ("isExisting" in contractFile.value) {
-        // It's an existing file, keep the current URL
-        state.contract_url = contractFile.value.path;
-      } else {
-        // It's a new File object, upload it
-        contractUploading.value = true;
-        uploadPromises.push(
-          uploadFileFn(contractFile.value, "contract")
-            .then((url) => {
-              state.contract_url = url;
-              contractFile.value = null;
-            })
-            .finally(() => {
-              contractUploading.value = false;
-            })
-        );
-      }
+    // Upload contract file if exists and is not an existing file
+    if (contractFile.value && !("isExisting" in contractFile.value)) {
+      contractUploading.value = true;
+      uploadPromises.push(
+        proposalService
+          .uploadFile(contractFile.value, projectId, "contract")
+          .then((url: string) => {
+            proposalState.contract_url = url;
+            contractUploading.value = false;
+          })
+      );
     }
 
-    // Handle quote file
-    if (quoteFile.value) {
-      if ("isExisting" in quoteFile.value) {
-        // It's an existing file, keep the current URL
-        state.quote_url = quoteFile.value.path;
-      } else {
-        // It's a new File object, upload it
-        quoteUploading.value = true;
-        uploadPromises.push(
-          uploadFileFn(quoteFile.value, "quote")
-            .then((url) => {
-              state.quote_url = url;
-              quoteFile.value = null;
-            })
-            .finally(() => {
-              quoteUploading.value = false;
-            })
-        );
-      }
+    // Upload quote file if exists and is not an existing file
+    if (quoteFile.value && !("isExisting" in quoteFile.value)) {
+      quoteUploading.value = true;
+      uploadPromises.push(
+        proposalService
+          .uploadFile(quoteFile.value, projectId, "quote")
+          .then((url: string) => {
+            proposalState.quote_url = url;
+            quoteUploading.value = false;
+          })
+      );
     }
 
     await Promise.all(uploadPromises);
   };
 
-  // Remove file URLs
+  // Remove file functions
   const removeContractFile = () => {
-    state.contract_url = null;
     contractFile.value = null;
+    proposalState.contract_url = null;
   };
 
   const removeQuoteFile = () => {
-    state.quote_url = null;
     quoteFile.value = null;
+    proposalState.quote_url = null;
   };
 
   // Computed properties
   const hasContractFile = computed(
-    () => !!state.contract_url || !!contractFile.value
+    () => !!proposalState.contract_url || !!contractFile.value
   );
-  const hasQuoteFile = computed(() => !!state.quote_url || !!quoteFile.value);
+  const hasQuoteFile = computed(
+    () => !!proposalState.quote_url || !!quoteFile.value
+  );
   const isUploading = computed(
     () => contractUploading.value || quoteUploading.value
   );
 
   // Calculate deposit percentage
   const depositPercentage = computed(() => {
-    if (!state.deposit_amount || !state.price || state.price === 0) return 0;
-    return Math.round((state.deposit_amount / state.price) * 100);
+    if (
+      !proposalState.deposit_amount ||
+      !proposalState.price ||
+      proposalState.price === 0
+    )
+      return 0;
+    return Math.round(
+      (proposalState.deposit_amount / proposalState.price) * 100
+    );
   });
 
   // Set deposit amount from percentage
   const setDepositFromPercentage = (percentage: number) => {
-    if (state.price > 0) {
-      state.deposit_amount = Math.round((state.price * percentage) / 100);
+    if (proposalState.price > 0) {
+      proposalState.deposit_amount = Math.round(
+        (proposalState.price * percentage) / 100
+      );
     }
   };
 
@@ -191,10 +226,19 @@ export const useProposalForm = (
     { label: "50%", value: 50 },
   ];
 
+  // Payment method options for USelectMenu
+  const paymentMethodOptions = [
+    { value: "stripe", label: "Stripe (Carte bancaire)", disabled: true },
+    { value: "bank_transfer", label: "Virement bancaire" },
+  ];
+
   return {
     // State
+    proposalState,
+    projectState,
     state,
-    schema,
+    proposalSchema,
+    paymentSchema,
     isEditMode,
 
     // File handling
@@ -209,6 +253,7 @@ export const useProposalForm = (
     hasQuoteFile,
     depositPercentage,
     quickDepositOptions,
+    paymentMethodOptions,
 
     // Actions
     handleContractFileSelect,

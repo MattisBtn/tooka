@@ -1,5 +1,9 @@
 import { proposalService } from "~/services/proposalService";
-import type { Proposal, ProposalFormData } from "~/types/proposal";
+import type {
+  ProjectPaymentData,
+  Proposal,
+  ProposalFormData,
+} from "~/types/proposal";
 
 export const useProposal = (projectId: string) => {
   const loading = ref(false);
@@ -27,15 +31,19 @@ export const useProposal = (projectId: string) => {
     }
   };
 
-  // Create or update proposal
+  /**
+   * Save proposal (create or update)
+   */
   const saveProposal = async (
     formData: ProposalFormData,
+    projectData: ProjectPaymentData,
     shouldValidate: boolean = false
   ) => {
     loading.value = true;
     error.value = null;
 
     try {
+      // Prepare proposal data (without payment fields)
       const proposalData = {
         project_id: projectId,
         content_json: formData.content_json,
@@ -45,7 +53,7 @@ export const useProposal = (projectId: string) => {
         deposit_amount: formData.deposit_amount || null,
         contract_url: formData.contract_url || null,
         quote_url: formData.quote_url || null,
-        status: formData.status,
+        status: "draft" as const,
         revision_last_comment: null,
       };
 
@@ -65,10 +73,43 @@ export const useProposal = (projectId: string) => {
         proposal.value = result.proposal;
       }
 
+      // Update project payment data if needed
+      if (
+        projectData.payment_method ||
+        projectData.bank_iban ||
+        projectData.bank_bic ||
+        projectData.bank_beneficiary
+      ) {
+        const { projectService } = await import("~/services/projectService");
+        await projectService.updateProject(projectId, projectData);
+      }
+
       return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to save proposal");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Confirm payment (photographe action)
+  const confirmPayment = async () => {
+    if (!proposal.value) return;
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const updatedProposal = await proposalService.confirmPayment(
+        proposal.value.id
+      );
+      proposal.value = updatedProposal;
+      return updatedProposal;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to confirm payment");
       throw err;
     } finally {
       loading.value = false;
@@ -152,6 +193,9 @@ export const useProposal = (projectId: string) => {
   const isRevisionRequested = computed(
     () => proposal.value?.status === "revision_requested"
   );
+  const isPaymentPending = computed(
+    () => proposal.value?.status === "payment_pending"
+  );
 
   // Format price
   const formattedPrice = computed(() => {
@@ -197,6 +241,7 @@ export const useProposal = (projectId: string) => {
     isDraft,
     isAwaitingClient,
     isRevisionRequested,
+    isPaymentPending,
     formattedPrice,
     formattedDepositAmount,
     contractFileUrl,
@@ -205,6 +250,7 @@ export const useProposal = (projectId: string) => {
     // Actions
     fetchProposal,
     saveProposal,
+    confirmPayment,
     uploadFile,
     deleteProposal,
     getStatusOptions,
