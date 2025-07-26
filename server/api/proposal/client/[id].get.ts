@@ -22,7 +22,11 @@ export default defineEventHandler(async (event) => {
         project:projects(
           id,
           title,
-          password_hash
+          password_hash,
+          bank_iban,
+          bank_bic,
+          bank_beneficiary,
+          bank_transfer_reference
         )
       `
       )
@@ -42,6 +46,8 @@ export default defineEventHandler(async (event) => {
 
     // Check if proposal is accessible to clients
     // Only allow access to proposals that are not in draft status
+
+    // TODO: Uncomment this when we have a way to handle draft proposals
     // if (proposal.status === "draft") {
     //   throw createError({
     //     statusCode: 403,
@@ -54,7 +60,25 @@ export default defineEventHandler(async (event) => {
       id: string;
       title: string;
       password_hash: string;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+      bank_transfer_reference: string | null;
     };
+
+    // Prepare bank details if available
+    const bankDetails =
+      projectData.bank_iban &&
+      projectData.bank_bic &&
+      projectData.bank_beneficiary &&
+      projectData.bank_transfer_reference
+        ? {
+            iban: projectData.bank_iban,
+            bic: projectData.bank_bic,
+            beneficiary: projectData.bank_beneficiary,
+            reference: projectData.bank_transfer_reference,
+          }
+        : undefined;
 
     // Return data in the format expected by ClientProposalAccess
     return {
@@ -62,6 +86,7 @@ export default defineEventHandler(async (event) => {
         id: projectData.id,
         title: projectData.title,
         hasPassword: !!projectData.password_hash,
+        bankDetails,
       },
       proposal: {
         id: proposal.id,

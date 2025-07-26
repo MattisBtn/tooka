@@ -4,7 +4,7 @@
             <!-- Proposal Header -->
             <ProposalHeader :project="project" :proposal="proposal" :is-authenticated="isAuthenticated"
                 :validating-proposal="validatingProposal" :requesting-revisions="requestingRevisions"
-                :paying-deposit="payingDeposit" :show-logout-button="project?.hasPassword && isAuthenticated"
+                :confirming-payment="confirmingPayment" :show-logout-button="project?.hasPassword && isAuthenticated"
                 @validate="handleValidate" @request-revisions="handleRequestRevisions" @pay-deposit="handlePayDeposit"
                 @logout="handleLogout" />
 
@@ -71,7 +71,8 @@
                 v-model:show-request-revisions-dialog="showRequestRevisionsDialog"
                 v-model:show-payment-dialog="showPaymentDialog" v-model:revision-comment="revisionComment"
                 :validating-proposal="validatingProposal" :requesting-revisions="requestingRevisions"
-                :payment-data="paymentData" @validate="validateProposal" @request-revisions="requestRevisions" />
+                :confirming-payment="confirmingPayment" :project="project" :proposal="proposal"
+                @validate="validateProposal" @request-revisions="requestRevisions" @confirm-payment="confirmPayment" />
 
             <!-- Footer -->
             <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
@@ -113,7 +114,7 @@ const {
     // Action states
     validatingProposal,
     requestingRevisions,
-    payingDeposit,
+    confirmingPayment,
 
     // Modal states
     showValidateDialog,
@@ -121,7 +122,6 @@ const {
     showPaymentDialog,
 
     // Form state
-    paymentData,
     revisionComment,
 
     // Computed
@@ -133,6 +133,7 @@ const {
     verifyPassword,
     validateProposal,
     requestRevisions,
+    confirmPayment,
 
     // File actions
     viewContract,

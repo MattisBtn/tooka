@@ -1,8 +1,4 @@
-import type {
-  ClientProposalAccess,
-  PaymentData,
-  PaymentResponse,
-} from "~/types/proposal";
+import type { ClientProposalAccess, PaymentResponse } from "~/types/proposal";
 
 /**
  * Simplified Client Authentication Composable
@@ -176,12 +172,11 @@ export const useClientProposal = async (proposalId: string) => {
   const showRequestRevisionsDialog = ref(false);
   const showPaymentDialog = ref(false);
   const validatingProposal = ref(false);
-  const payingDeposit = ref(false);
+  const confirmingPayment = ref(false);
   const requestingRevisions = ref(false);
 
   // Form state
   const revisionComment = ref("");
-  const paymentData = ref<PaymentData | null>(null);
 
   // Password verification
   const verifyPassword = async (password: string) => {
@@ -237,25 +232,24 @@ export const useClientProposal = async (proposalId: string) => {
     }
   };
 
-  const payDeposit = async () => {
+  const confirmPayment = async () => {
     if (!proposal.value?.deposit_required || !proposal.value?.deposit_amount)
       return;
     try {
-      payingDeposit.value = true;
-      const result = await $fetch<PaymentResponse>(
+      confirmingPayment.value = true;
+      await $fetch<PaymentResponse>(
         `/api/proposal/client/${proposal.value.id}/payment`,
         {
           method: "POST",
           body: { method: "bank_transfer" },
         }
       );
-      paymentData.value = result.payment;
-      showPaymentDialog.value = true;
+      await reloadNuxtApp();
     } catch (err) {
-      console.error("Failed to initiate payment:", err);
+      console.error("Failed to confirm payment:", err);
       throw err;
     } finally {
-      payingDeposit.value = false;
+      confirmingPayment.value = false;
     }
   };
 
@@ -319,7 +313,7 @@ export const useClientProposal = async (proposalId: string) => {
   };
 
   const handlePayDeposit = () => {
-    payDeposit();
+    showPaymentDialog.value = true;
   };
 
   return {
@@ -335,7 +329,7 @@ export const useClientProposal = async (proposalId: string) => {
     // Action states
     validatingProposal: readonly(validatingProposal),
     requestingRevisions: readonly(requestingRevisions),
-    payingDeposit: readonly(payingDeposit),
+    confirmingPayment: readonly(confirmingPayment),
 
     // Modal states
     showValidateDialog,
@@ -344,7 +338,6 @@ export const useClientProposal = async (proposalId: string) => {
 
     // Form state
     revisionComment,
-    paymentData: readonly(paymentData),
 
     // Computed
     formattedPrice,
@@ -355,7 +348,7 @@ export const useClientProposal = async (proposalId: string) => {
     verifyPassword,
     validateProposal,
     requestRevisions,
-    payDeposit,
+    confirmPayment,
 
     // File actions
     viewContract,

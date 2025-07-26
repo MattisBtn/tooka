@@ -114,7 +114,8 @@
                         </div>
                     </template>
 
-                    <div v-if="paymentData" class="space-y-6">
+                    <div v-if="proposal?.deposit_required && proposal?.deposit_amount && project?.bankDetails"
+                        class="space-y-6">
                         <!-- Amount to pay -->
                         <div
                             class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
@@ -125,14 +126,14 @@
                                 <p class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                                     {{ new Intl.NumberFormat('fr-FR', {
                                         style: 'currency', currency: 'EUR'
-                                    }).format(paymentData.amount)
+                                    }).format(proposal.deposit_amount)
                                     }}
                                 </p>
                             </div>
                         </div>
 
                         <!-- Bank details -->
-                        <div v-if="paymentData.bankDetails" class="space-y-4">
+                        <div class="space-y-4">
                             <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Coordonnées bancaires
                             </h4>
@@ -143,7 +144,7 @@
                                         class="text-sm font-medium text-neutral-700 dark:text-neutral-300">IBAN</label>
                                     <div class="flex items-center gap-2">
                                         <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
-                            {{ paymentData.bankDetails.iban }}
+                            {{ project.bankDetails.iban }}
                         </code>
                                         <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
                                     </div>
@@ -154,7 +155,7 @@
                                         class="text-sm font-medium text-neutral-700 dark:text-neutral-300">BIC</label>
                                     <div class="flex items-center gap-2">
                                         <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
-                            {{ paymentData.bankDetails.bic }}
+                            {{ project.bankDetails.bic }}
                         </code>
                                         <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
                                     </div>
@@ -165,7 +166,7 @@
                                         class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Bénéficiaire</label>
                                     <div class="flex items-center gap-2">
                                         <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
-                            {{ paymentData.bankDetails.beneficiary }}
+                            {{ project.bankDetails.beneficiary }}
                         </code>
                                         <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
                                     </div>
@@ -178,7 +179,7 @@
                                     <div class="flex items-center gap-2">
                                         <code
                                             class="flex-1 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-sm font-medium">
-                            {{ paymentData.bankDetails.reference }}
+                            {{ project.bankDetails.reference }}
                         </code>
                                         <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
                                     </div>
@@ -198,8 +199,10 @@
                         </UAlert>
 
                         <div class="flex items-center justify-end gap-3 pt-4">
-                            <UButton variant="ghost" color="neutral" label="Fermer"
+                            <UButton variant="ghost" color="neutral" label="Annuler"
                                 @click="$emit('update:showPaymentDialog', false)" />
+                            <UButton color="success" icon="i-lucide-check-circle" label="J'ai effectué le virement"
+                                :loading="confirmingPayment" @click="$emit('confirm-payment')" />
                         </div>
                     </div>
                 </UCard>
@@ -216,8 +219,11 @@ interface Props {
     revisionComment: string;
     validatingProposal: boolean;
     requestingRevisions: boolean;
-    paymentData?: {
-        amount: number;
+    confirmingPayment: boolean;
+    project?: {
+        id: string;
+        title: string;
+        hasPassword: boolean;
         bankDetails?: {
             iban: string;
             bic: string;
@@ -225,12 +231,17 @@ interface Props {
             reference: string;
         };
     } | null;
+    proposal?: {
+        id: string;
+        deposit_amount: number | null;
+        deposit_required: boolean;
+    } | null;
 }
 
 interface Emits {
     (e: 'update:showValidateDialog' | 'update:showRequestRevisionsDialog' | 'update:showPaymentDialog', value: boolean): void;
     (e: 'update:revisionComment', value: string): void;
-    (e: 'validate' | 'request-revisions'): void;
+    (e: 'validate' | 'request-revisions' | 'confirm-payment'): void;
 }
 
 defineProps<Props>();

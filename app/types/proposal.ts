@@ -68,6 +68,12 @@ export interface ClientProposalAccess {
     id: string;
     title: string;
     hasPassword: boolean;
+    bankDetails?: {
+      iban: string;
+      bic: string;
+      beneficiary: string;
+      reference: string;
+    };
   };
   proposal: {
     id: string;

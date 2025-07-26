@@ -29,7 +29,7 @@
                         <!-- Pay deposit button (for awaiting_client status with deposit required) -->
                         <UButton v-if="proposal.status === 'awaiting_client' && proposal.deposit_required"
                             icon="i-lucide-credit-card" color="success" size="sm" label="Payer l'acompte"
-                            :loading="payingDeposit" @click="$emit('pay-deposit')" />
+                            :loading="confirmingPayment" @click="$emit('pay-deposit')" />
 
                         <!-- Accept button (for awaiting_client status WITHOUT deposit) -->
                         <UButton v-if="proposal.status === 'awaiting_client' && !proposal.deposit_required"
@@ -64,7 +64,7 @@ interface Props {
     isAuthenticated: boolean;
     validatingProposal: boolean;
     requestingRevisions: boolean;
-    payingDeposit: boolean;
+    confirmingPayment: boolean;
     showLogoutButton?: boolean;
 }
 
