@@ -3,9 +3,12 @@
     <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900">
       <!-- Gallery Header -->
       <GalleryHeader :project="project" :gallery="gallery" :is-authenticated="isAuthenticated"
-        :downloading-gallery="downloadingGallery" :show-logout-button="project?.hasPassword && isAuthenticated"
-        @validate="handleValidate" @validate-with-payment="handleValidateWithPayment"
-        @request-revisions="handleRequestRevisions" @download="handleDownload" @logout="handleLogout" />
+        :downloading-gallery="downloadingGallery" :validating-gallery="validatingGallery"
+        :requesting-revisions="requestingRevisions" :confirming-payment="confirmingPayment"
+        :has-remaining-amount="hasRemainingAmount" :formatted-remaining-amount="formattedRemainingAmount"
+        :show-logout-button="project?.hasPassword && isAuthenticated" @validate="handleValidate"
+        @request-revisions="handleRequestRevisions" @pay-remaining-amount="handlePayRemainingAmount"
+        @download="handleDownload" @logout="handleLogout" />
 
       <!-- Simple header for other states -->
       <GallerySimpleHeader v-if="!gallery || !isAuthenticated || !project" />
@@ -54,10 +57,11 @@
 
       <!-- Action Modals -->
       <GalleryActionModals v-model:show-validate-dialog="showValidateDialog"
-        v-model:show-validate-with-payment-dialog="showValidateWithPaymentDialog"
+        v-model:show-payment-dialog="showPaymentDialog"
         v-model:show-request-revisions-dialog="showRequestRevisionsDialog" v-model:revision-comment="revisionComment"
-        :validating-gallery="validatingGallery" :requesting-revisions="requestingRevisions" @validate="validateGallery"
-        @validate-with-payment="validateGalleryWithPayment" @request-revisions="requestRevisions" />
+        :validating-gallery="validatingGallery" :requesting-revisions="requestingRevisions"
+        :confirming-payment="confirmingPayment" :formatted-remaining-amount="formattedRemainingAmount"
+        @validate="validateGallery" @confirm-payment="confirmPayment" @request-revisions="requestRevisions" />
 
       <!-- Footer -->
       <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
@@ -99,14 +103,19 @@ const {
   authError,
   hasMore,
 
+  // Payment-related
+  hasRemainingAmount,
+  formattedRemainingAmount,
+
   // Action states
   validatingGallery,
   requestingRevisions,
   downloadingGallery,
+  confirmingPayment,
 
   // Modal states
   showValidateDialog,
-  showValidateWithPaymentDialog,
+  showPaymentDialog,
   showRequestRevisionsDialog,
 
   // Form state
@@ -118,13 +127,13 @@ const {
 
   // Client actions
   validateGallery,
-  validateGalleryWithPayment,
   requestRevisions,
+  confirmPayment,
 
   // Action handlers
   handleValidate,
-  handleValidateWithPayment,
   handleRequestRevisions,
+  handlePayRemainingAmount,
   handleDownload,
 
   // Auth methods
@@ -140,8 +149,6 @@ const handleAuthentication = async (password: string) => {
 const handleLogout = () => {
   logout();
 };
-
-
 
 // SEO meta
 useHead({

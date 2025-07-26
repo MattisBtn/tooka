@@ -123,8 +123,17 @@
                         </div>
                     </div>
 
-                    <!-- Warning for validated galleries -->
-                    <UAlert v-if="!canEditGallery && gallery.status !== 'payment_pending'" color="warning"
+                    <!-- Completed gallery alert -->
+                    <UAlert v-if="gallery.status === 'completed'" color="success" variant="soft"
+                        icon="i-lucide-check-circle" title="Galerie terminée" class="mt-4">
+                        <template #description>
+                            Cette galerie a été validée par le client et est désormais terminée.
+                            Le client peut télécharger ses images en haute résolution.
+                        </template>
+                    </UAlert>
+
+                    <!-- Warning for other validated galleries -->
+                    <UAlert v-else-if="!canEditGallery && gallery.status !== 'payment_pending'" color="warning"
                         variant="soft" icon="i-lucide-info" title="Galerie validée" class="mt-4">
                         <template #description>
                             Cette galerie a été envoyée au client et ne peut plus être modifiée ni supprimée.

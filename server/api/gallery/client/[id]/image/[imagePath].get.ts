@@ -37,7 +37,8 @@ export default defineEventHandler(async (event) => {
     if (
       gallery.status !== "awaiting_client" &&
       gallery.status !== "completed" &&
-      gallery.status !== "revision_requested"
+      gallery.status !== "revision_requested" &&
+      gallery.status !== "payment_pending"
     ) {
       throw createError({
         statusCode: 403,

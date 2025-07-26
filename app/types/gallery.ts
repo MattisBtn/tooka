@@ -167,3 +167,28 @@ export interface GalleryStatusUpdate {
   client_comment?: string;
   updated_at: string;
 }
+
+// Gallery payment types (similar to proposal payment types)
+export interface GalleryPaymentData {
+  method: string;
+  amount: number;
+  reference: string;
+  bankDetails?: {
+    iban: string;
+    bic: string;
+    beneficiary: string;
+    reference: string;
+  };
+}
+
+export interface GalleryPaymentResponse {
+  success: boolean;
+  message: string;
+  payment: GalleryPaymentData;
+  gallery: {
+    id: string;
+    status: "payment_pending";
+    clientName: string;
+    projectTitle: string;
+  };
+}

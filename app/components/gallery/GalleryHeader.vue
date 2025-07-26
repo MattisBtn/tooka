@@ -34,27 +34,36 @@
                     <div v-if="canShowClientActions" class="flex items-center gap-2">
                         <!-- Awaiting client actions -->
                         <template v-if="gallery?.status === 'awaiting_client'">
-                            <!-- Validate with payment -->
-                            <UButton v-if="gallery.payment_required" color="primary" size="sm"
-                                icon="i-heroicons-credit-card" class="hidden sm:flex"
-                                @click="$emit('validate-with-payment')">
-                                <span class="hidden lg:inline">Valider et payer</span>
+                            <!-- Pay remaining amount button (for galleries with payment required and remaining amount > 0) -->
+                            <UButton v-if="hasRemainingAmount" color="success" size="sm" icon="i-heroicons-credit-card"
+                                class="hidden sm:flex" :loading="confirmingPayment"
+                                @click="$emit('pay-remaining-amount')">
+                                <span class="hidden lg:inline">Payer le solde</span>
                                 <span class="lg:hidden">Payer</span>
                             </UButton>
 
-                            <!-- Validate without payment -->
+                            <!-- Validate without payment or with payment already made -->
                             <UButton v-else color="primary" size="sm" icon="i-heroicons-check-circle"
-                                class="hidden sm:flex" @click="$emit('validate')">
+                                class="hidden sm:flex" :loading="validatingGallery" @click="$emit('validate')">
                                 <span class="hidden lg:inline">Valider la galerie</span>
                                 <span class="lg:hidden">Valider</span>
                             </UButton>
 
                             <!-- Request revisions -->
                             <UButton color="warning" variant="outline" size="sm" icon="i-heroicons-pencil-square"
-                                class="hidden sm:flex" @click="$emit('request-revisions')">
+                                class="hidden sm:flex" :loading="requestingRevisions"
+                                @click="$emit('request-revisions')">
                                 <span class="hidden lg:inline">Demander des retouches</span>
                                 <span class="lg:hidden">Retouches</span>
                             </UButton>
+                        </template>
+
+                        <!-- Payment pending status -->
+                        <template v-if="gallery?.status === 'payment_pending'">
+                            <UBadge color="info" variant="soft" size="sm">
+                                <UIcon name="i-heroicons-clock" class="w-3 h-3 mr-1" />
+                                Paiement en cours
+                            </UBadge>
                         </template>
 
                         <!-- Completed gallery actions -->
@@ -82,22 +91,24 @@
 
                                     <!-- Awaiting client actions -->
                                     <template v-if="gallery?.status === 'awaiting_client'">
-                                        <!-- Validate with payment -->
-                                        <UButton v-if="gallery.payment_required" color="primary" variant="solid"
-                                            size="lg" icon="i-heroicons-credit-card" block
-                                            @click="$emit('validate-with-payment')">
-                                            Valider et payer
+                                        <!-- Pay remaining amount -->
+                                        <UButton v-if="hasRemainingAmount" color="success" variant="solid" size="lg"
+                                            icon="i-heroicons-credit-card" block :loading="confirmingPayment"
+                                            @click="$emit('pay-remaining-amount')">
+                                            Payer le solde
                                         </UButton>
 
                                         <!-- Validate without payment -->
                                         <UButton v-else color="primary" variant="solid" size="lg"
-                                            icon="i-heroicons-check-circle" block @click="$emit('validate')">
+                                            icon="i-heroicons-check-circle" block :loading="validatingGallery"
+                                            @click="$emit('validate')">
                                             Valider la galerie
                                         </UButton>
 
                                         <!-- Request revisions -->
                                         <UButton color="warning" variant="outline" size="lg"
-                                            icon="i-heroicons-pencil-square" block @click="$emit('request-revisions')">
+                                            icon="i-heroicons-pencil-square" block :loading="requestingRevisions"
+                                            @click="$emit('request-revisions')">
                                             Demander des retouches
                                         </UButton>
                                     </template>
@@ -124,7 +135,13 @@
                                             <span class="text-neutral-600 dark:text-neutral-400">Photos</span>
                                             <span class="text-neutral-900 dark:text-neutral-100">{{ gallery?.imageCount
                                                 || 0
-                                            }}</span>
+                                                }}</span>
+                                        </div>
+                                        <div v-if="hasRemainingAmount"
+                                            class="flex items-center justify-between text-sm">
+                                            <span class="text-neutral-600 dark:text-neutral-400">Solde à payer</span>
+                                            <span class="text-neutral-900 dark:text-neutral-100 font-medium">{{
+                                                formattedRemainingAmount }}</span>
                                         </div>
                                         <div v-if="project" class="pt-2">
                                             <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{{
@@ -161,13 +178,18 @@ interface Props {
     gallery: ClientGalleryAccess["gallery"] | null;
     isAuthenticated: boolean;
     downloadingGallery: boolean;
+    validatingGallery: boolean;
+    requestingRevisions: boolean;
+    confirmingPayment: boolean;
+    hasRemainingAmount: boolean;
+    formattedRemainingAmount: string | null;
     showLogoutButton?: boolean;
 }
 
 interface Emits {
     validate: [];
-    "validate-with-payment": [];
     "request-revisions": [];
+    "pay-remaining-amount": [];
     download: [];
     logout: [];
 }
@@ -187,6 +209,7 @@ const statusConfig = {
     draft: { label: "Brouillon", color: "neutral" as const, icon: "i-heroicons-document" },
     awaiting_client: { label: "En attente de validation", color: "info" as const, icon: "i-heroicons-clock" },
     revision_requested: { label: "Révision demandée", color: "warning" as const, icon: "i-heroicons-arrow-path" },
+    payment_pending: { label: "Paiement en attente", color: "info" as const, icon: "i-heroicons-credit-card" },
     completed: { label: "Terminée", color: "success" as const, icon: "i-heroicons-check-circle" },
 };
 
@@ -202,6 +225,10 @@ const statusIcon = computed(() =>
 
 // Client actions state
 const canShowClientActions = computed(() =>
-    props.gallery && (props.gallery.status === 'awaiting_client' || props.gallery.status === 'completed')
+    props.gallery && (
+        props.gallery.status === 'awaiting_client' ||
+        props.gallery.status === 'completed' ||
+        props.gallery.status === 'payment_pending'
+    )
 );
 </script>

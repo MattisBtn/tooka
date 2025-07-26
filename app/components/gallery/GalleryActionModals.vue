@@ -47,10 +47,10 @@
                         <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Avantages inclus</h4>
                     </div>
 
-                    <UAlert color="success" variant="soft" icon="i-heroicons-gift" title="Téléchargement gratuit">
+                    <UAlert color="success" variant="soft" icon="i-heroicons-gift" title="Téléchargement disponible">
                         <template #description>
                             <div class="space-y-2">
-                                <p>Aucun paiement requis pour cette galerie</p>
+                                <p>Accès immédiat au téléchargement de votre galerie</p>
                                 <ul class="text-sm space-y-1 ml-4 list-disc">
                                     <li>Téléchargement illimité de toutes les images</li>
                                     <li>Format haute résolution pour impression</li>
@@ -78,39 +78,42 @@
         </template>
     </UModal>
 
-    <!-- Validate with Payment Dialog -->
-    <UModal v-model:open="showValidateWithPaymentDialog">
+    <!-- Payment Dialog -->
+    <UModal v-model:open="showPaymentDialog">
         <template #header>
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                     <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Valider et payer</h3>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Finaliser la galerie avec paiement
-                        sécurisé</p>
+                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Payer le solde restant</h3>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Finaliser le paiement pour accéder au
+                        téléchargement</p>
                 </div>
             </div>
         </template>
 
         <template #body>
             <div class="space-y-6">
-                <!-- Confirmation Section -->
+                <!-- Payment Amount Section -->
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-check-badge" class="w-3 h-3 text-white" />
+                            class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-heroicons-banknotes" class="w-3 h-3 text-white" />
                         </div>
-                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Finalisation avec
-                            paiement
-                        </h4>
+                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Montant à payer</h4>
                     </div>
-                    <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Vous confirmez valider cette galerie et procéder au paiement du solde restant ? Une fois le
-                        paiement effectué, vous aurez accès au téléchargement.
-                    </p>
+
+                    <div
+                        class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-neutral-600 dark:text-neutral-400">Solde restant :</span>
+                            <span class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{{
+                                formattedRemainingAmount }}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <USeparator />
@@ -120,7 +123,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <div
                             class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-credit-card" class="w-3 h-3 text-white" />
+                            <UIcon name="i-heroicons-shield-check" class="w-3 h-3 text-white" />
                         </div>
                         <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Informations de
                             paiement</h4>
@@ -129,11 +132,11 @@
                     <UAlert color="primary" variant="soft" icon="i-heroicons-credit-card" title="Paiement sécurisé">
                         <template #description>
                             <div class="space-y-2">
-                                <p>Le paiement sera traité via notre plateforme sécurisée</p>
+                                <p>Le paiement sera traité via virement bancaire sécurisé</p>
                                 <ul class="text-sm space-y-1 ml-4 list-disc">
-                                    <li>Cryptage SSL 256-bit pour vos données</li>
-                                    <li>Conformité PCI-DSS niveau 1</li>
-                                    <li>Aucune donnée bancaire stockée</li>
+                                    <li>Instructions de virement fournies immédiatement</li>
+                                    <li>Référence unique pour traçabilité</li>
+                                    <li>Accès au téléchargement dès réception</li>
                                 </ul>
                             </div>
                         </template>
@@ -167,7 +170,7 @@
                         </div>
                         <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                             <UIcon name="i-heroicons-document-duplicate" class="w-4 h-4 text-green-500" />
-                            <span>Reçu automatique</span>
+                            <span>Confirmation automatique</span>
                         </div>
                     </div>
                 </div>
@@ -177,12 +180,12 @@
         <template #footer>
             <div class="flex items-center justify-end w-full">
                 <div class="flex items-center gap-3">
-                    <UButton variant="ghost" @click="showValidateWithPaymentDialog = false">
+                    <UButton variant="ghost" @click="showPaymentDialog = false">
                         Annuler
                     </UButton>
-                    <UButton color="primary" :loading="validatingGallery" icon="i-heroicons-credit-card"
-                        @click="$emit('validate-with-payment')">
-                        Confirmer et payer
+                    <UButton color="success" :loading="confirmingPayment" icon="i-heroicons-credit-card"
+                        @click="$emit('confirm-payment')">
+                        Procéder au paiement
                     </UButton>
                 </div>
             </div>
@@ -307,20 +310,22 @@
 <script setup lang="ts">
 interface Props {
     showValidateDialog: boolean;
-    showValidateWithPaymentDialog: boolean;
+    showPaymentDialog: boolean;
     showRequestRevisionsDialog: boolean;
     validatingGallery: boolean;
     requestingRevisions: boolean;
+    confirmingPayment: boolean;
     revisionComment: string;
+    formattedRemainingAmount: string | null;
 }
 
 interface Emits {
     "update:showValidateDialog": [value: boolean];
-    "update:showValidateWithPaymentDialog": [value: boolean];
+    "update:showPaymentDialog": [value: boolean];
     "update:showRequestRevisionsDialog": [value: boolean];
     "update:revisionComment": [value: string];
     validate: [];
-    "validate-with-payment": [];
+    "confirm-payment": [];
     "request-revisions": [];
 }
 
@@ -333,9 +338,9 @@ const showValidateDialog = computed({
     set: (value) => emit('update:showValidateDialog', value)
 });
 
-const showValidateWithPaymentDialog = computed({
-    get: () => props.showValidateWithPaymentDialog,
-    set: (value) => emit('update:showValidateWithPaymentDialog', value)
+const showPaymentDialog = computed({
+    get: () => props.showPaymentDialog,
+    set: (value) => emit('update:showPaymentDialog', value)
 });
 
 const showRequestRevisionsDialog = computed({

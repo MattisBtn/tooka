@@ -1,4 +1,8 @@
-import type { ClientGalleryAccess, GalleryImage } from "~/types/gallery";
+import type {
+  ClientGalleryAccess,
+  GalleryImage,
+  GalleryPaymentResponse,
+} from "~/types/gallery";
 
 export const useClientGallery = async (galleryId: string) => {
   const loading = ref(true);
@@ -43,6 +47,23 @@ export const useClientGallery = async (galleryId: string) => {
 
   const needsPassword = computed(() => {
     return project.value?.hasPassword && !auth.isAuthenticated.value;
+  });
+
+  // Payment-related computed properties
+  const hasRemainingAmount = computed(() => {
+    return !!(
+      project.value?.remainingAmount &&
+      project.value.remainingAmount > 0 &&
+      gallery.value?.payment_required
+    );
+  });
+
+  const formattedRemainingAmount = computed(() => {
+    if (!project.value?.remainingAmount) return null;
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(project.value.remainingAmount);
   });
 
   // Watch for data changes and update state
@@ -117,11 +138,13 @@ export const useClientGallery = async (galleryId: string) => {
   const validatingGallery = ref(false);
   const requestingRevisions = ref(false);
   const downloadingGallery = ref(false);
+  const confirmingPayment = ref(false);
 
   // Modal states
   const showValidateDialog = ref(false);
   const showValidateWithPaymentDialog = ref(false);
   const showRequestRevisionsDialog = ref(false);
+  const showPaymentDialog = ref(false);
 
   // Form state
   const revisionComment = ref("");
@@ -191,6 +214,27 @@ export const useClientGallery = async (galleryId: string) => {
     }
   };
 
+  const confirmPayment = async () => {
+    if (!gallery.value || !hasRemainingAmount.value) return;
+
+    try {
+      confirmingPayment.value = true;
+      await $fetch<GalleryPaymentResponse>(
+        `/api/gallery/client/${gallery.value.id}/payment`,
+        {
+          method: "POST",
+          body: { method: "bank_transfer" },
+        }
+      );
+      await reloadNuxtApp();
+    } catch (err) {
+      console.error("Failed to confirm payment:", err);
+      throw err;
+    } finally {
+      confirmingPayment.value = false;
+    }
+  };
+
   const downloadGallery = async () => {
     if (!gallery.value) return;
 
@@ -256,6 +300,10 @@ export const useClientGallery = async (galleryId: string) => {
     downloadGallery();
   };
 
+  const handlePayRemainingAmount = () => {
+    showPaymentDialog.value = true;
+  };
+
   return {
     // State
     project: readonly(project),
@@ -272,17 +320,21 @@ export const useClientGallery = async (galleryId: string) => {
     validatingGallery: readonly(validatingGallery),
     requestingRevisions: readonly(requestingRevisions),
     downloadingGallery: readonly(downloadingGallery),
+    confirmingPayment: readonly(confirmingPayment),
 
     // Modal states
     showValidateDialog,
     showValidateWithPaymentDialog,
     showRequestRevisionsDialog,
+    showPaymentDialog,
 
     // Form state
     revisionComment,
 
     // Computed
     needsPassword,
+    hasRemainingAmount,
+    formattedRemainingAmount,
 
     // Actions
     verifyPassword,
@@ -293,12 +345,14 @@ export const useClientGallery = async (galleryId: string) => {
     validateGalleryWithPayment,
     requestRevisions,
     downloadGallery,
+    confirmPayment,
 
     // Action handlers
     handleValidate,
     handleValidateWithPayment,
     handleRequestRevisions,
     handleDownload,
+    handlePayRemainingAmount,
 
     // Auth methods
     logout: auth.logout,
