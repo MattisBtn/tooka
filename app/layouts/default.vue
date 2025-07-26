@@ -48,9 +48,9 @@ const logout = async () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
         <aside :class="[
-            'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col',
+            'fixed top-0 left-0 h-screen z-30 transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col',
             isSidebarCollapsed ? 'w-16' : 'w-64'
         ]">
             <div class="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-700">
@@ -130,7 +130,10 @@ const logout = async () => {
             </div>
         </aside>
 
-        <main class="flex-1 overflow-auto">
+        <main :class="[
+            'min-h-screen transition-all duration-300 ease-in-out',
+            isSidebarCollapsed ? 'ml-16' : 'ml-64'
+        ]">
             <div class="p-6">
                 <slot />
             </div>
