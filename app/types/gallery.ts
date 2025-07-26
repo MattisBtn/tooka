@@ -126,6 +126,7 @@ export interface ClientGalleryAccess {
     title: string;
     description: string | null;
     hasPassword: boolean;
+    remainingAmount: number;
   };
   gallery: GalleryWithDetails;
 }

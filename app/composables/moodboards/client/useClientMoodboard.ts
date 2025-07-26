@@ -15,8 +15,8 @@ export const useClientMoodboard = async (moodboardId: string) => {
   const hasMore = ref(true);
   const currentPage = ref(1);
 
-  // Use moodboard authentication composable
-  const moodboardAuth = useClientAuth("moodboard", moodboardId);
+  // Use simplified auth
+  const auth = useClientAuth("moodboard", moodboardId);
 
   // Image URL cache (simplified)
   const imageUrlCache = new Map<string, string>();
@@ -78,12 +78,41 @@ export const useClientMoodboard = async (moodboardId: string) => {
     }
   };
 
-  // Computed properties
-  const project = computed(() => moodboardData.value?.project || null);
-  const moodboard = computed(() => moodboardData.value?.moodboard || null);
-  const needsPassword = computed(
-    () => project.value?.hasPassword && !moodboardAuth.isAuthenticated.value
+  // Initial fetch of moodboard data
+  const {
+    data,
+    pending,
+    error: fetchError,
+  } = await useFetch<ClientMoodboardAccess>(
+    `/api/moodboard/client/${moodboardId}`,
+    {
+      query: { page: 1, pageSize: 20 },
+      key: `moodboard-client-${moodboardId}`,
+      server: false,
+      onResponseError({ response }) {
+        if (response.status === 404) {
+          error.value = new Error("Moodboard non trouvé");
+        } else if (response.status === 403) {
+          error.value = new Error("Moodboard non accessible");
+        } else {
+          error.value = new Error("Erreur lors du chargement");
+        }
+      },
+    }
   );
+
+  // Computed properties
+  const project = computed(() => data.value?.project || null);
+  const moodboard = computed(() => data.value?.moodboard || null);
+
+  // Simple logic: if no password required, always authenticated
+  const isAuthenticated = computed(() => {
+    return !project.value?.hasPassword || auth.isAuthenticated.value;
+  });
+
+  const needsPassword = computed(() => {
+    return project.value?.hasPassword && !auth.isAuthenticated.value;
+  });
 
   // Check if user can interact with moodboard
   const canInteract = computed(() => {
@@ -109,29 +138,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
     }));
   };
 
-  // Initial fetch of moodboard data
-  const {
-    data,
-    pending,
-    error: fetchError,
-  } = await useFetch<ClientMoodboardAccess>(
-    `/api/moodboard/client/${moodboardId}`,
-    {
-      query: { page: 1, pageSize: 20 },
-      server: true,
-      lazy: false,
-      onResponseError({ response }) {
-        if (response.status === 404) {
-          error.value = new Error("Moodboard non trouvé");
-        } else if (response.status === 403) {
-          error.value = new Error("Moodboard non accessible");
-        } else {
-          error.value = new Error("Erreur lors du chargement");
-        }
-      },
-    }
-  );
-
   // Set initial data and enhance images with interactions
   if (data.value) {
     moodboardData.value = data.value;
@@ -147,14 +153,18 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
     hasMore.value = data.value.moodboard.hasMore || false;
     currentPage.value = data.value.moodboard.currentPage || 1;
-
-    // Initialize authentication
-    if (!data.value.project.hasPassword) {
-      await moodboardAuth.authenticate("", async () => true);
-    } else {
-      await moodboardAuth.initializeAuth();
-    }
   }
+
+  // Initialize auth for password-protected projects
+  watch(
+    data,
+    (newData) => {
+      if (newData?.project.hasPassword) {
+        auth.initializeAuth();
+      }
+    },
+    { immediate: true }
+  );
 
   if (fetchError.value) {
     error.value = fetchError.value;
@@ -164,12 +174,7 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
   // Load more images for infinite scroll
   const loadMore = async () => {
-    if (
-      loadingMore.value ||
-      !hasMore.value ||
-      !moodboardAuth.isAuthenticated.value
-    )
-      return;
+    if (loadingMore.value || !hasMore.value || !isAuthenticated.value) return;
 
     try {
       loadingMore.value = true;
@@ -211,7 +216,7 @@ export const useClientMoodboard = async (moodboardId: string) => {
       return verificationResult.valid;
     };
 
-    return await moodboardAuth.authenticate(password, serverVerify);
+    return await auth.verifyPassword(password, serverVerify);
   };
 
   // Action states
@@ -441,8 +446,8 @@ export const useClientMoodboard = async (moodboardId: string) => {
     loading: readonly(loading),
     loadingMore: readonly(loadingMore),
     error: readonly(error),
-    isAuthenticated: moodboardAuth.isAuthenticated,
-    authError: moodboardAuth.authError,
+    isAuthenticated,
+    authError: auth.authError,
     hasMore: readonly(hasMore),
     canInteract: readonly(canInteract),
 
@@ -473,6 +478,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
     getImageUrl,
 
     // Auth methods
-    logout: moodboardAuth.logout,
+    logout: auth.logout,
   };
 };

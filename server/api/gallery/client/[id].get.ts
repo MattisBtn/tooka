@@ -32,7 +32,8 @@ export default defineEventHandler(
             title,
             description,
             password_hash,
-            status
+            status,
+            remaining_amount
           )
         `
         )
@@ -50,11 +51,7 @@ export default defineEventHandler(
       }
 
       // Check if gallery is accessible to clients
-      if (
-        gallery.status !== "awaiting_client" &&
-        gallery.status !== "completed" &&
-        gallery.status !== "revision_requested"
-      ) {
+      if (gallery.status === "draft") {
         throw createError({
           statusCode: 403,
           message: "Galerie non accessible",
@@ -95,6 +92,7 @@ export default defineEventHandler(
         description: string | null;
         password_hash: string;
         status: string;
+        remaining_amount: number;
       };
 
       const totalImages = countResult.count || 0;
@@ -107,6 +105,7 @@ export default defineEventHandler(
           title: projectData.title,
           description: projectData.description,
           hasPassword: !!projectData.password_hash,
+          remainingAmount: projectData.remaining_amount,
         },
         gallery: {
           ...gallery,

@@ -13,8 +13,8 @@ export const useClientSelection = async (selectionId: string) => {
   const hasMore = ref(true);
   const currentPage = ref(1);
 
-  // Use selection authentication composable
-  const selectionAuth = useClientAuth("selection", selectionId);
+  // Use simplified auth
+  const auth = useClientAuth("selection", selectionId);
 
   // Image URL cache
   const imageUrlCache = new Map<string, string>();
@@ -80,12 +80,41 @@ export const useClientSelection = async (selectionId: string) => {
     }
   };
 
-  // Computed properties
-  const project = computed(() => selectionData.value?.project || null);
-  const selection = computed(() => selectionData.value?.selection || null);
-  const needsPassword = computed(
-    () => project.value?.hasPassword && !selectionAuth.isAuthenticated.value
+  // Initial fetch of selection data
+  const {
+    data,
+    pending,
+    error: fetchError,
+  } = await useFetch<ClientSelectionAccess>(
+    `/api/selection/client/${selectionId}`,
+    {
+      query: { page: 1, pageSize: 20 },
+      key: `selection-client-${selectionId}`,
+      server: false,
+      onResponseError({ response }) {
+        if (response.status === 404) {
+          error.value = new Error("Sélection non trouvée");
+        } else if (response.status === 403) {
+          error.value = new Error("Sélection non accessible");
+        } else {
+          error.value = new Error("Erreur lors du chargement");
+        }
+      },
+    }
   );
+
+  // Computed properties
+  const project = computed(() => data.value?.project || null);
+  const selection = computed(() => data.value?.selection || null);
+
+  // Simple logic: if no password required, always authenticated
+  const isAuthenticated = computed(() => {
+    return !project.value?.hasPassword || auth.isAuthenticated.value;
+  });
+
+  const needsPassword = computed(() => {
+    return project.value?.hasPassword && !auth.isAuthenticated.value;
+  });
 
   // Check if user can interact with selection
   const canInteract = computed(() => {
@@ -122,47 +151,27 @@ export const useClientSelection = async (selectionId: string) => {
     selectionStatus?: string
   ): SelectionImageWithSelection[] => {
     const currentStatus = selectionStatus || selection.value?.status;
-    
+
     return imagesList.map((image) => ({
       ...image,
       // For completed/revision_requested selections, use database state
       // For draft/awaiting_client, prioritize localStorage over database
-      userSelected: 
+      userSelected:
         currentStatus === "completed" || currentStatus === "revision_requested"
           ? image.is_selected // Use database state for finalized selections
           : getUserSelection(image.id) || image.is_selected, // Use localStorage first, fallback to database
     }));
   };
 
-  // Initial fetch of selection data
-  const {
-    data,
-    pending,
-    error: fetchError,
-  } = await useFetch<ClientSelectionAccess>(
-    `/api/selection/client/${selectionId}`,
-    {
-      query: { page: 1, pageSize: 20 },
-      server: true,
-      lazy: false,
-      onResponseError({ response }) {
-        if (response.status === 404) {
-          error.value = new Error("Sélection non trouvée");
-        } else if (response.status === 403) {
-          error.value = new Error("Sélection non accessible");
-        } else {
-          error.value = new Error("Erreur lors du chargement");
-        }
-      },
-    }
-  );
-
   // Set initial data and enhance images with user selections
   if (data.value) {
     selectionData.value = data.value;
 
     // Clear localStorage if selection is finalized (to avoid conflicts with DB state)
-    if (data.value.selection.status === "completed" || data.value.selection.status === "revision_requested") {
+    if (
+      data.value.selection.status === "completed" ||
+      data.value.selection.status === "revision_requested"
+    ) {
       if (import.meta.client) {
         localStorage.removeItem(USER_SELECTIONS_KEY);
       }
@@ -180,14 +189,18 @@ export const useClientSelection = async (selectionId: string) => {
 
     hasMore.value = data.value.selection.hasMore || false;
     currentPage.value = data.value.selection.currentPage || 1;
-
-    // Initialize authentication
-    if (!data.value.project.hasPassword) {
-      await selectionAuth.authenticate("", async () => true);
-    } else {
-      await selectionAuth.initializeAuth();
-    }
   }
+
+  // Initialize auth for password-protected projects
+  watch(
+    data,
+    (newData) => {
+      if (newData?.project.hasPassword) {
+        auth.initializeAuth();
+      }
+    },
+    { immediate: true }
+  );
 
   if (fetchError.value) {
     error.value = fetchError.value;
@@ -197,12 +210,7 @@ export const useClientSelection = async (selectionId: string) => {
 
   // Load more images for infinite scroll
   const loadMore = async () => {
-    if (
-      loadingMore.value ||
-      !hasMore.value ||
-      !selectionAuth.isAuthenticated.value
-    )
-      return;
+    if (loadingMore.value || !hasMore.value || !isAuthenticated.value) return;
 
     try {
       loadingMore.value = true;
@@ -218,9 +226,12 @@ export const useClientSelection = async (selectionId: string) => {
       if (response.selection.images && response.selection.images.length > 0) {
         // Update selection status first in case it changed
         if (response.selection) {
-          selectionData.value = { ...selectionData.value!, selection: response.selection };
+          selectionData.value = {
+            ...selectionData.value!,
+            selection: response.selection,
+          };
         }
-        
+
         const enhancedNewImages = enhanceImagesWithSelections(
           Array.from(response.selection.images),
           response.selection.status
@@ -250,7 +261,7 @@ export const useClientSelection = async (selectionId: string) => {
       return verificationResult.valid;
     };
 
-    return await selectionAuth.authenticate(password, serverVerify);
+    return await auth.verifyPassword(password, serverVerify);
   };
 
   // Action states
@@ -350,8 +361,8 @@ export const useClientSelection = async (selectionId: string) => {
     loading: readonly(loading),
     loadingMore: readonly(loadingMore),
     error: readonly(error),
-    isAuthenticated: selectionAuth.isAuthenticated,
-    authError: selectionAuth.authError,
+    isAuthenticated,
+    authError: auth.authError,
     hasMore: readonly(hasMore),
     canInteract: readonly(canInteract),
 
@@ -385,6 +396,6 @@ export const useClientSelection = async (selectionId: string) => {
     getImageUrl,
 
     // Auth methods
-    logout: selectionAuth.logout,
+    logout: auth.logout,
   };
 };

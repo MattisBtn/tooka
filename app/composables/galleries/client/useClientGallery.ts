@@ -9,15 +9,8 @@ export const useClientGallery = async (galleryId: string) => {
   const hasMore = ref(true);
   const currentPage = ref(1);
 
-  // Use gallery authentication composable
-  const galleryAuth = useClientAuth("gallery", galleryId);
-
-  // Computed properties
-  const project = computed(() => galleryData.value?.project || null);
-  const gallery = computed(() => galleryData.value?.gallery || null);
-  const needsPassword = computed(
-    () => project.value?.hasPassword && !galleryAuth.isAuthenticated.value
-  );
+  // Use simplified auth
+  const auth = useClientAuth("gallery", galleryId);
 
   // Initial fetch of gallery data (without images for faster loading)
   const {
@@ -26,8 +19,8 @@ export const useClientGallery = async (galleryId: string) => {
     error: fetchError,
   } = await useFetch<ClientGalleryAccess>(`/api/gallery/client/${galleryId}`, {
     query: { page: 1, pageSize: 20 },
-    server: true,
-    lazy: false,
+    key: `gallery-client-${galleryId}`,
+    server: false,
     onResponseError({ response }) {
       if (response.status === 404) {
         error.value = new Error("Galerie non trouvée");
@@ -39,22 +32,37 @@ export const useClientGallery = async (galleryId: string) => {
     },
   });
 
-  // Set initial data
-  if (data.value) {
-    galleryData.value = data.value;
-    images.value = [...(data.value.gallery.images || [])];
-    hasMore.value = data.value.gallery.hasMore || false;
-    currentPage.value = data.value.gallery.currentPage || 1;
+  // Computed properties
+  const project = computed(() => data.value?.project || null);
+  const gallery = computed(() => data.value?.gallery || null);
 
-    // Initialize authentication
-    if (!data.value.project.hasPassword) {
-      // No password required, authenticate immediately using a dummy verify function
-      await galleryAuth.authenticate("", async () => true);
-    } else {
-      // Try to restore from stored session
-      await galleryAuth.initializeAuth();
-    }
-  }
+  // Simple logic: if no password required, always authenticated
+  const isAuthenticated = computed(() => {
+    return !project.value?.hasPassword || auth.isAuthenticated.value;
+  });
+
+  const needsPassword = computed(() => {
+    return project.value?.hasPassword && !auth.isAuthenticated.value;
+  });
+
+  // Watch for data changes and update state
+  watch(
+    data,
+    (newData) => {
+      if (newData) {
+        galleryData.value = newData;
+        images.value = [...(newData.gallery.images || [])];
+        hasMore.value = newData.gallery.hasMore || false;
+        currentPage.value = newData.gallery.currentPage || 1;
+      }
+
+      // Initialize auth for password-protected projects
+      if (newData?.project.hasPassword) {
+        auth.initializeAuth();
+      }
+    },
+    { immediate: true }
+  );
 
   if (fetchError.value) {
     error.value = fetchError.value;
@@ -64,12 +72,7 @@ export const useClientGallery = async (galleryId: string) => {
 
   // Load more images for infinite scroll
   const loadMore = async () => {
-    if (
-      loadingMore.value ||
-      !hasMore.value ||
-      !galleryAuth.isAuthenticated.value
-    )
-      return;
+    if (loadingMore.value || !hasMore.value || !isAuthenticated.value) return;
 
     try {
       loadingMore.value = true;
@@ -107,7 +110,7 @@ export const useClientGallery = async (galleryId: string) => {
       return verificationResult.valid;
     };
 
-    return await galleryAuth.authenticate(password, serverVerify);
+    return await auth.verifyPassword(password, serverVerify);
   };
 
   // Action states
@@ -261,8 +264,8 @@ export const useClientGallery = async (galleryId: string) => {
     loading: readonly(loading),
     loadingMore: readonly(loadingMore),
     error: readonly(error),
-    isAuthenticated: galleryAuth.isAuthenticated,
-    authError: galleryAuth.authError,
+    isAuthenticated,
+    authError: auth.authError,
     hasMore: readonly(hasMore),
 
     // Action states
@@ -298,6 +301,6 @@ export const useClientGallery = async (galleryId: string) => {
     handleDownload,
 
     // Auth methods
-    logout: galleryAuth.logout,
+    logout: auth.logout,
   };
 };
