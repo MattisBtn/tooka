@@ -26,7 +26,8 @@ export const galleryService = {
         draft: 0,
         awaiting_client: 1,
         revision_requested: 2,
-        completed: 3,
+        payment_pending: 3,
+        completed: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -172,6 +173,27 @@ export const galleryService = {
   },
 
   /**
+   * Confirm payment and validate gallery (photographe action)
+   */
+  async confirmPayment(galleryId: string): Promise<Gallery> {
+    const gallery = await this.getGalleryById(galleryId);
+
+    // Verify gallery is in payment_pending status
+    if (gallery.status !== "payment_pending") {
+      throw new Error(
+        "Cette galerie n'est pas en attente de confirmation de paiement"
+      );
+    }
+
+    // Update gallery to completed status
+    const updatedGallery = await galleryRepository.update(galleryId, {
+      status: "completed",
+    });
+
+    return updatedGallery;
+  },
+
+  /**
    * Delete gallery with dependency checks
    */
   async deleteGallery(id: string): Promise<void> {
@@ -180,10 +202,11 @@ export const galleryService = {
     // Business rule: can't delete galleries that are awaiting client or completed
     if (
       gallery.status === "awaiting_client" ||
-      gallery.status === "completed"
+      gallery.status === "completed" ||
+      gallery.status === "payment_pending"
     ) {
       throw new Error(
-        "Cannot delete galleries that are awaiting client response or completed"
+        "Cannot delete galleries that are awaiting client response, payment pending, or completed"
       );
     }
 
@@ -334,6 +357,13 @@ export const galleryService = {
         label: "Révision demandée",
         description: "Le client demande des modifications",
         icon: "i-lucide-edit",
+        color: "info",
+      },
+      {
+        value: "payment_pending" as const,
+        label: "Paiement en attente",
+        description: "En attente de confirmation de paiement",
+        icon: "i-lucide-credit-card",
         color: "info",
       },
       {

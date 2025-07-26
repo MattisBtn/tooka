@@ -14,11 +14,11 @@
             <!-- Content with top padding when header is fixed -->
             <div :class="{ 'pt-16': proposal && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <ProposalPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
-                    :proposal-id="proposalId" :error="authError || null" @authenticated="handleAuthentication" />
+                <ProposalPasswordForm v-if="needsPassword" :project="project" :proposal-id="proposalId"
+                    :error="authError || null" @authenticated="handleAuthentication" />
 
                 <!-- Proposal view -->
-                <ProposalClientView v-else-if="proposal && isAuthenticated && project" :proposal-id="proposalId"
+                <ProposalClientView v-else-if="proposal && project && isAuthenticated" :proposal-id="proposalId"
                     :proposal="proposal" :project="project" :formatted-price="formattedPrice"
                     :formatted-deposit-amount="formattedDepositAmount" :has-deposit="!!hasDeposit" />
 
@@ -32,7 +32,7 @@
                 </div>
 
                 <!-- Error state -->
-                <div v-else class="min-h-screen flex items-center justify-center p-4">
+                <div v-else-if="error" class="min-h-screen flex items-center justify-center p-4">
                     <UCard class="w-full max-w-lg text-center">
                         <div class="space-y-6">
                             <div
@@ -53,6 +53,15 @@
                             </div>
                         </div>
                     </UCard>
+                </div>
+
+                <!-- Fallback state -->
+                <div v-else class="min-h-screen flex items-center justify-center">
+                    <div class="text-center">
+                        <UIcon name="i-heroicons-arrow-path"
+                            class="w-8 h-8 text-neutral-600 animate-spin mx-auto mb-4" />
+                        <p class="text-neutral-600 dark:text-neutral-400">Initialisation...</p>
+                    </div>
                 </div>
             </div>
 
@@ -89,7 +98,7 @@ definePageMeta({
 const route = useRoute();
 const proposalId = route.params.id as string;
 
-// Use client proposal composable with all functionality
+// Use client proposal composable
 const {
     // Core data
     project,
@@ -112,8 +121,6 @@ const {
 
     // Form state
     paymentData,
-
-    // Form state
     revisionComment,
 
     // Computed
@@ -121,10 +128,8 @@ const {
     formattedDepositAmount,
     hasDeposit,
 
-    // Core actions
+    // Actions
     verifyPassword,
-
-    // Client actions
     validateProposal,
     requestRevisions,
 
@@ -153,17 +158,9 @@ useHead({
         proposal.value ? `Proposition - ${project.value?.title}` : "Proposition"
     ),
     meta: [
-        { name: "robots", content: "noindex, nofollow" }, // Private proposals
+        { name: "robots", content: "noindex, nofollow" },
     ],
 });
-
-// Handle errors
-if (error.value) {
-    throw createError({
-        statusCode: 404,
-        message: "Proposition non trouvée",
-    });
-}
 </script>
 
 <style></style>

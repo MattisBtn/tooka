@@ -124,7 +124,7 @@
                                             <span class="text-neutral-600 dark:text-neutral-400">Photos</span>
                                             <span class="text-neutral-900 dark:text-neutral-100">{{ gallery?.imageCount
                                                 || 0
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div v-if="project" class="pt-2">
                                             <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{{

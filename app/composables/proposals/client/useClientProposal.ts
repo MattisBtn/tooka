@@ -4,22 +4,132 @@ import type {
   PaymentResponse,
 } from "~/types/proposal";
 
+/**
+ * Simplified Client Authentication Composable
+ */
+export const useClientAuth = (resourceType: string, resourceId: string) => {
+  const AUTH_KEY = `${resourceType}_auth_${resourceId}`;
+
+  const isAuthenticated = ref(false);
+  const authError = ref<string | null>(null);
+
+  // Check if project has password
+  const hasStoredAuth = (): boolean => {
+    if (!import.meta.client) return false;
+    try {
+      return localStorage.getItem(AUTH_KEY) === "authenticated";
+    } catch {
+      return false;
+    }
+  };
+
+  // Set authenticated state
+  const setAuthenticated = (authenticated: boolean) => {
+    isAuthenticated.value = authenticated;
+
+    if (import.meta.client) {
+      try {
+        if (authenticated) {
+          localStorage.setItem(AUTH_KEY, "authenticated");
+        } else {
+          localStorage.removeItem(AUTH_KEY);
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  };
+
+  // Initialize from storage
+  const initializeAuth = () => {
+    if (hasStoredAuth()) {
+      isAuthenticated.value = true;
+    }
+  };
+
+  // Verify password
+  const verifyPassword = async (
+    password: string,
+    verifyFn: (password: string) => Promise<boolean>
+  ): Promise<boolean> => {
+    try {
+      authError.value = null;
+
+      const isValid = await verifyFn(password);
+
+      if (isValid) {
+        setAuthenticated(true);
+        return true;
+      } else {
+        authError.value = "Mot de passe incorrect";
+        return false;
+      }
+    } catch {
+      authError.value = "Erreur lors de la vérification";
+      return false;
+    }
+  };
+
+  // Logout
+  const logout = () => {
+    setAuthenticated(false);
+    authError.value = null;
+  };
+
+  return {
+    isAuthenticated: readonly(isAuthenticated),
+    authError: readonly(authError),
+    setAuthenticated,
+    initializeAuth,
+    verifyPassword,
+    logout,
+    hasStoredAuth,
+  };
+};
+
 export const useClientProposal = async (proposalId: string) => {
   const loading = ref(true);
   const error = ref<Error | null>(null);
-  const proposalData = ref<ClientProposalAccess | null>(null);
 
-  // Use proposal authentication composable
-  const proposalAuth = useClientAuth("proposal", proposalId);
+  // Use simplified auth
+  const auth = useClientAuth("proposal", proposalId);
 
-  // Computed properties
-  const project = computed(() => proposalData.value?.project || null);
-  const proposal = computed(() => proposalData.value?.proposal || null);
-  const needsPassword = computed(
-    () => project.value?.hasPassword && !proposalAuth.isAuthenticated.value
+  // Fetch data
+  const {
+    data,
+    pending,
+    error: fetchError,
+  } = await useFetch<ClientProposalAccess>(
+    `/api/proposal/client/${proposalId}`,
+    {
+      key: `proposal-client-${proposalId}`,
+      server: false,
+      onResponseError({ response }) {
+        if (response.status === 404) {
+          error.value = new Error("Proposition non trouvée");
+        } else if (response.status === 403) {
+          error.value = new Error("Proposition non accessible");
+        } else {
+          error.value = new Error("Erreur lors du chargement");
+        }
+      },
+    }
   );
 
-  // Formatted price properties
+  // Computed properties
+  const project = computed(() => data.value?.project || null);
+  const proposal = computed(() => data.value?.proposal || null);
+
+  // Simple logic: if no password required, always authenticated
+  const isAuthenticated = computed(() => {
+    return !project.value?.hasPassword || auth.isAuthenticated.value;
+  });
+
+  const needsPassword = computed(() => {
+    return project.value?.hasPassword && !auth.isAuthenticated.value;
+  });
+
+  // Formatted prices
   const formattedPrice = computed(() => {
     if (!proposal.value?.price) return "0,00 €";
     return new Intl.NumberFormat("fr-FR", {
@@ -44,72 +154,92 @@ export const useClientProposal = async (proposalId: string) => {
     );
   });
 
-  // Initial fetch of proposal data
-  const {
+  // Initialize auth for password-protected projects
+  watch(
     data,
-    pending,
-    error: fetchError,
-  } = await useFetch<ClientProposalAccess>(
-    `/api/proposal/client/${proposalId}`,
-    {
-      key: `proposal-client-${proposalId}`,
-      server: false,
-      onResponseError({ response }) {
-        console.error(
-          "API Response Error:",
-          response.status,
-          response.statusText
-        );
-        if (response.status === 404) {
-          error.value = new Error("Proposition non trouvée");
-        } else if (response.status === 403) {
-          error.value = new Error("Proposition non accessible");
-        } else {
-          error.value = new Error("Erreur lors du chargement");
-        }
-      },
-    }
+    (newData) => {
+      if (newData?.project.hasPassword) {
+        auth.initializeAuth();
+      }
+    },
+    { immediate: true }
   );
 
-  // Set initial state based on fetch results
-  if (data.value) {
-    proposalData.value = data.value;
-
-    // Initialize authentication
-    if (!data.value.project.hasPassword) {
-      // No password required, authenticate immediately
-      await proposalAuth.authenticate("", async () => true);
-    } else {
-      // Try to restore from stored session
-      await proposalAuth.initializeAuth();
-    }
-  }
-
   if (fetchError.value) {
-    error.value = new Error(
-      fetchError.value.message || "Failed to fetch proposal"
-    );
+    error.value = fetchError.value;
   }
 
   loading.value = pending.value;
 
-  // Reactive states for UI
-  const showValidationDialog = ref(false);
-  const showRevisionDialog = ref(false);
+  // UI states
+  const showValidateDialog = ref(false);
+  const showRequestRevisionsDialog = ref(false);
   const showPaymentDialog = ref(false);
   const validatingProposal = ref(false);
   const payingDeposit = ref(false);
-  const requestingRevision = ref(false);
+  const requestingRevisions = ref(false);
 
   // Form state
   const revisionComment = ref("");
   const paymentData = ref<PaymentData | null>(null);
 
-  // Pay deposit method
+  // Password verification
+  const verifyPassword = async (password: string) => {
+    const serverVerify = async (pwd: string) => {
+      const result = await $fetch<{ valid: boolean }>(
+        `/api/proposal/client/${proposalId}/verify`,
+        {
+          method: "POST",
+          body: { password: pwd },
+        }
+      );
+      return result.valid;
+    };
+
+    return await auth.verifyPassword(password, serverVerify);
+  };
+
+  // Actions
+  const validateProposal = async () => {
+    if (!proposal.value) return;
+    try {
+      validatingProposal.value = true;
+      await $fetch(`/api/proposal/client/${proposal.value.id}/validate`, {
+        method: "POST",
+      });
+      await reloadNuxtApp();
+    } catch (error) {
+      console.error("Failed to validate proposal:", error);
+    } finally {
+      validatingProposal.value = false;
+      showValidateDialog.value = false;
+    }
+  };
+
+  const requestRevisions = async () => {
+    if (!proposal.value) return;
+    try {
+      requestingRevisions.value = true;
+      await $fetch(
+        `/api/proposal/client/${proposal.value.id}/request-revisions`,
+        {
+          method: "POST",
+          body: { comment: revisionComment.value },
+        }
+      );
+      await reloadNuxtApp();
+    } catch (error) {
+      console.error("Failed to request revisions:", error);
+    } finally {
+      requestingRevisions.value = false;
+      showRequestRevisionsDialog.value = false;
+      revisionComment.value = "";
+    }
+  };
+
   const payDeposit = async () => {
     if (!proposal.value?.deposit_required || !proposal.value?.deposit_amount)
       return;
-
     try {
       payingDeposit.value = true;
       const result = await $fetch<PaymentResponse>(
@@ -119,7 +249,6 @@ export const useClientProposal = async (proposalId: string) => {
           body: { method: "bank_transfer" },
         }
       );
-
       paymentData.value = result.payment;
       showPaymentDialog.value = true;
     } catch (err) {
@@ -130,73 +259,13 @@ export const useClientProposal = async (proposalId: string) => {
     }
   };
 
-  // Password verification
-  const verifyPassword = async (password: string) => {
-    const serverVerify = async (pwd: string) => {
-      const verificationResult = await $fetch<{ valid: boolean }>(
-        `/api/proposal/client/${proposalId}/verify`,
-        {
-          method: "POST",
-          body: { password: pwd },
-        }
-      );
-      return verificationResult.valid;
-    };
-
-    return await proposalAuth.authenticate(password, serverVerify);
-  };
-
-  // Client actions methods
-  const validateProposal = async () => {
-    if (!proposal.value) return;
-
-    try {
-      validatingProposal.value = true;
-      await $fetch(`/api/proposal/client/${proposal.value.id}/validate`, {
-        method: "POST",
-      });
-      // Refresh the page data
-      await reloadNuxtApp();
-    } catch (error) {
-      console.error("Failed to validate proposal:", error);
-    } finally {
-      validatingProposal.value = false;
-      showValidationDialog.value = false;
-    }
-  };
-
-  const requestRevisions = async () => {
-    if (!proposal.value) return;
-
-    try {
-      requestingRevision.value = true;
-      await $fetch(
-        `/api/proposal/client/${proposal.value.id}/request-revisions`,
-        {
-          method: "POST",
-          body: {
-            comment: revisionComment.value,
-          },
-        }
-      );
-      // Refresh the page data
-      await reloadNuxtApp();
-    } catch (error) {
-      console.error("Failed to request revisions:", error);
-    } finally {
-      requestingRevision.value = false;
-      showRevisionDialog.value = false;
-      revisionComment.value = "";
-    }
-  };
-
-  // Action handlers for components
+  // Action handlers
   const handleValidate = () => {
-    showValidationDialog.value = true;
+    showValidateDialog.value = true;
   };
 
   const handleRequestRevisions = () => {
-    showRevisionDialog.value = true;
+    showRequestRevisionsDialog.value = true;
   };
 
   const handlePayDeposit = () => {
@@ -204,22 +273,23 @@ export const useClientProposal = async (proposalId: string) => {
   };
 
   return {
-    // State
+    // Core data
     project: readonly(project),
     proposal: readonly(proposal),
     loading: readonly(loading),
     error: readonly(error),
-    isAuthenticated: proposalAuth.isAuthenticated,
-    authError: proposalAuth.authError,
+    isAuthenticated,
+    authError: auth.authError,
+    needsPassword,
 
     // Action states
     validatingProposal: readonly(validatingProposal),
-    requestingRevisions: readonly(requestingRevision),
+    requestingRevisions: readonly(requestingRevisions),
     payingDeposit: readonly(payingDeposit),
 
     // Modal states
-    showValidateDialog: showValidationDialog,
-    showRequestRevisionsDialog: showRevisionDialog,
+    showValidateDialog,
+    showRequestRevisionsDialog,
     showPaymentDialog,
 
     // Form state
@@ -227,15 +297,12 @@ export const useClientProposal = async (proposalId: string) => {
     paymentData: readonly(paymentData),
 
     // Computed
-    needsPassword,
     formattedPrice,
     formattedDepositAmount,
     hasDeposit,
 
     // Actions
     verifyPassword,
-
-    // Client actions
     validateProposal,
     requestRevisions,
     payDeposit,
@@ -245,7 +312,7 @@ export const useClientProposal = async (proposalId: string) => {
     handleRequestRevisions,
     handlePayDeposit,
 
-    // Auth methods
-    logout: proposalAuth.logout,
+    // Auth
+    logout: auth.logout,
   };
 };

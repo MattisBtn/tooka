@@ -56,19 +56,45 @@
                         </div>
                     </div>
 
+                    <!-- Payment method info if set -->
+                    <div v-if="paymentMethodInfo" class="mt-3 pt-3 border-t border-orange-300 dark:border-orange-700">
+                        <div class="flex items-center gap-2 mb-2">
+                            <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-orange-600" />
+                            <span class="text-sm font-medium text-orange-900 dark:text-orange-100">
+                                Méthode de paiement (définie lors de la proposition)
+                            </span>
+                        </div>
+                        <div class="text-sm">
+                            <span class="text-orange-700 dark:text-orange-300">Méthode :</span>
+                            <span class="font-semibold text-orange-900 dark:text-orange-100 ml-1">
+                                {{ paymentMethodInfo.label }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                            La méthode de paiement a été définie lors de la proposition et ne peut pas être modifiée.
+                        </p>
+                    </div>
+
                     <div class="mt-3 text-xs text-orange-600 dark:text-orange-400">
-                        {{ state.payment_required
-                            ? 'Le client devra payer le montant restant pour télécharger les images.'
+                        {{ state.payment_required && pricing && pricing.remainingAmount > 0
+                            ? `Le client devra payer ${formattedRemainingAmount} pour télécharger les images.`
                             : 'Le téléchargement sera gratuit pour le client.' }}
                     </div>
                 </div>
 
                 <!-- Payment Required Info -->
-                <UAlert v-if="state.payment_required" color="warning" variant="soft" icon="i-lucide-credit-card"
-                    title="Paiement requis">
+                <UAlert v-if="state.payment_required && pricing && pricing.remainingAmount > 0" color="warning"
+                    variant="soft" icon="i-lucide-credit-card" title="Paiement requis">
                     <template #description>
-                        Le client devra effectuer le paiement du solde restant avant de pouvoir télécharger les images
-                        de la galerie.
+                        Le client devra effectuer le paiement du solde restant ({{ formattedRemainingAmount }})
+                        avant de pouvoir télécharger les images de la galerie.
+                    </template>
+                </UAlert>
+
+                <UAlert v-else-if="state.payment_required && pricing && pricing.remainingAmount === 0" color="success"
+                    variant="soft" icon="i-lucide-check-circle" title="Paiement déjà effectué">
+                    <template #description>
+                        L'acompte couvre le prix total. Le client pourra télécharger les images gratuitement.
                     </template>
                 </UAlert>
 
@@ -192,11 +218,18 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import { useGalleryForm } from "~/composables/galleries/user/useGalleryForm";
 import type { Gallery, GalleryImage, GalleryPricing } from "~/types/gallery";
 
+interface ProposalPaymentInfo {
+    payment_method: 'stripe' | 'bank_transfer' | null;
+    deposit_required: boolean;
+    deposit_amount: number | null;
+}
+
 interface Props {
     gallery?: Gallery;
     projectId: string;
     pricing?: GalleryPricing;
     existingImages?: GalleryImage[];
+    proposalPaymentInfo?: ProposalPaymentInfo;
 }
 
 interface Emits {
@@ -221,10 +254,12 @@ const {
     formattedBasePrice,
     formattedDepositPaid,
     formattedRemainingAmount,
+    pricing,
+    paymentMethodInfo,
     addFiles,
     clearFiles,
     removeExistingImage,
-} = useGalleryForm(props.gallery, props.existingImages, props.pricing);
+} = useGalleryForm(props.gallery, props.existingImages, props.pricing, props.proposalPaymentInfo);
 
 // Create a writable version for the upload field
 const selectedFiles = computed({

@@ -1,95 +1,48 @@
 /**
- * Generic Client Authentication Composable
- * Can be used for moodboards, selections, galleries, etc.
+ * Simplified Client Authentication Composable
  */
-
 export const useClientAuth = (resourceType: string, resourceId: string) => {
   const AUTH_KEY = `${resourceType}_auth_${resourceId}`;
-  const AUTH_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   const isAuthenticated = ref(false);
   const authError = ref<string | null>(null);
 
-  // Simple auth session interface
-  interface AuthSession {
-    resourceType: string;
-    resourceId: string;
-    timestamp: number;
-    authenticated: boolean;
-  }
-
-  // Save authentication session
-  const saveAuthSession = () => {
-    const session: AuthSession = {
-      resourceType,
-      resourceId,
-      timestamp: Date.now(),
-      authenticated: true,
-    };
-
-    if (import.meta.client) {
-      try {
-        localStorage.setItem(AUTH_KEY, JSON.stringify(session));
-      } catch (error) {
-        console.warn("Failed to save auth session:", error);
-      }
-    }
-  };
-
-  // Load authentication session
-  const loadAuthSession = (): AuthSession | null => {
-    if (!import.meta.client) return null;
-
+  // Check if project has password
+  const hasStoredAuth = (): boolean => {
+    if (!import.meta.client) return false;
     try {
-      const stored = localStorage.getItem(AUTH_KEY);
-      if (!stored) return null;
-
-      const session: AuthSession = JSON.parse(stored);
-
-      // Check if session is expired
-      if (Date.now() - session.timestamp > AUTH_EXPIRY) {
-        clearAuthSession();
-        return null;
-      }
-
-      // Verify session belongs to current resource
-      if (
-        session.resourceId !== resourceId ||
-        session.resourceType !== resourceType
-      ) {
-        return null;
-      }
-
-      return session;
-    } catch (error) {
-      console.warn("Failed to load auth session:", error);
-      clearAuthSession();
-      return null;
+      return localStorage.getItem(AUTH_KEY) === "authenticated";
+    } catch {
+      return false;
     }
   };
 
-  // Clear authentication session
-  const clearAuthSession = () => {
+  // Set authenticated state
+  const setAuthenticated = (authenticated: boolean) => {
+    isAuthenticated.value = authenticated;
+
     if (import.meta.client) {
       try {
-        localStorage.removeItem(AUTH_KEY);
-      } catch (error) {
-        console.warn("Failed to clear auth session:", error);
+        if (authenticated) {
+          localStorage.setItem(AUTH_KEY, "authenticated");
+        } else {
+          localStorage.removeItem(AUTH_KEY);
+        }
+      } catch {
+        // Ignore storage errors
       }
     }
   };
 
-  // Verify stored session
-  const verifyStoredAuth = async (): Promise<boolean> => {
-    const session = loadAuthSession();
-    if (!session || !session.authenticated) return false;
-
-    isAuthenticated.value = true;
-    return true;
+  // Initialize from storage
+  const initializeAuth = () => {
+    if (hasStoredAuth()) {
+      isAuthenticated.value = true;
+    }
   };
 
-  // Authenticate with password
-  const authenticate = async (
+  // Verify password
+  const verifyPassword = async (
     password: string,
     verifyFn: (password: string) => Promise<boolean>
   ): Promise<boolean> => {
@@ -99,43 +52,31 @@ export const useClientAuth = (resourceType: string, resourceId: string) => {
       const isValid = await verifyFn(password);
 
       if (isValid) {
-        isAuthenticated.value = true;
-        saveAuthSession();
+        setAuthenticated(true);
         return true;
       } else {
         authError.value = "Mot de passe incorrect";
         return false;
       }
     } catch {
-      authError.value = "Erreur lors de la vérification du mot de passe";
+      authError.value = "Erreur lors de la vérification";
       return false;
     }
   };
 
-  // Logout and clear session
+  // Logout
   const logout = () => {
-    isAuthenticated.value = false;
+    setAuthenticated(false);
     authError.value = null;
-    clearAuthSession();
-  };
-
-  // Initialize authentication state
-  const initializeAuth = async (): Promise<boolean> => {
-    return await verifyStoredAuth();
   };
 
   return {
-    // State
     isAuthenticated: readonly(isAuthenticated),
     authError: readonly(authError),
-
-    // Methods
-    authenticate,
-    logout,
+    setAuthenticated,
     initializeAuth,
-    clearAuthSession,
-
-    // Utilities
-    hasStoredAuth: () => loadAuthSession() !== null,
+    verifyPassword,
+    logout,
+    hasStoredAuth,
   };
 };

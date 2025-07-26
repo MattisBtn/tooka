@@ -124,11 +124,25 @@
                     </div>
 
                     <!-- Warning for validated galleries -->
-                    <UAlert v-if="!canEditGallery" color="warning" variant="soft" icon="i-lucide-info"
-                        title="Galerie validée" class="mt-4">
+                    <UAlert v-if="!canEditGallery && gallery.status !== 'payment_pending'" color="warning"
+                        variant="soft" icon="i-lucide-info" title="Galerie validée" class="mt-4">
                         <template #description>
                             Cette galerie a été envoyée au client et ne peut plus être modifiée ni supprimée.
                             Le module ne peut pas être désactivé.
+                        </template>
+                    </UAlert>
+
+                    <!-- Payment pending alert -->
+                    <UAlert v-else-if="gallery.status === 'payment_pending'" color="info" variant="soft"
+                        icon="i-lucide-clock" title="Paiement en attente de confirmation" class="mt-4">
+                        <template #description>
+                            <div class="space-y-3">
+                                <p>Le client a initié le paiement pour télécharger la galerie. Vérifiez votre compte
+                                    bancaire et confirmez la réception.</p>
+                                <UButton color="success" icon="i-lucide-check-circle" size="sm"
+                                    label="Confirmer la réception du paiement" :loading="loading"
+                                    @click="handleConfirmPayment" />
+                            </div>
                         </template>
                     </UAlert>
 
@@ -158,7 +172,8 @@
                 <ProjectGalleryForm :gallery="showEditForm ? (gallery || undefined) : undefined"
                     :project-id="props.projectId" :pricing="pricing || undefined"
                     :existing-images="showEditForm && gallery?.images ? Array.from(gallery.images) : undefined"
-                    @gallery-saved="handleGallerySaved" @cancel="handleCancel" />
+                    :proposal-payment-info="proposalPaymentInfo" @gallery-saved="handleGallerySaved"
+                    @cancel="handleCancel" />
             </div>
 
             <!-- Empty state with create button -->
@@ -181,6 +196,8 @@
 
 <script lang="ts" setup>
 import { useGallery } from '~/composables/galleries/user/useGallery';
+import { useProject } from '~/composables/projects/useProject';
+import { useProposal } from '~/composables/proposals/useProposal';
 import type { Gallery, GalleryImage } from '~/types/gallery';
 
 interface Props {
@@ -204,8 +221,29 @@ const {
     saveGallery,
     uploadImages,
     deleteGallery,
+    confirmPayment,
     getStatusOptions,
 } = useGallery(props.projectId)
+
+// Use proposal composable to get payment info
+const {
+    proposal,
+    fetchProposal: _fetchProposal
+} = useProposal(props.projectId)
+
+// Use project composable to get project payment data
+const { project, fetchProject: _fetchProject } = useProject(props.projectId)
+
+// Computed for proposal payment info
+const proposalPaymentInfo = computed(() => {
+    if (!proposal.value || !project.value) return undefined;
+
+    return {
+        payment_method: project.value.payment_method,
+        deposit_required: proposal.value.deposit_required,
+        deposit_amount: proposal.value.deposit_amount
+    };
+});
 
 // Local state for UI
 const showEditForm = ref(false)
@@ -222,7 +260,9 @@ const galleryStatusInfo = computed(() => {
 
 // Computed properties
 const canEditGallery = computed(() => {
-    return !gallery.value || gallery.value.status === 'draft' || gallery.value.status === 'revision_requested'
+    return !gallery.value ||
+        gallery.value.status === 'draft' ||
+        gallery.value.status === 'revision_requested'
 })
 
 const editGallery = () => {
@@ -401,12 +441,41 @@ const confirmDeleteGallery = async () => {
     }
 }
 
-// Load gallery on mount
-onMounted(async () => {
+const handleConfirmPayment = async () => {
+    if (!gallery.value) return
+
+    const toast = useToast()
+
     try {
+        await confirmPayment()
+        toast.add({
+            title: 'Paiement confirmé',
+            description: 'Le paiement a été confirmé avec succès. La galerie est maintenant accessible au client.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
         await fetchGallery()
     } catch (err) {
-        console.error('Error loading gallery:', err)
+        console.error('Error confirming payment:', err)
+        toast.add({
+            title: 'Erreur de confirmation',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la confirmation du paiement.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
+// Load gallery and proposal on mount
+onMounted(async () => {
+    try {
+        await Promise.all([
+            fetchGallery(),
+            _fetchProposal(),
+            _fetchProject()
+        ])
+    } catch (err) {
+        console.error('Error loading data:', err)
     }
 })
 </script>

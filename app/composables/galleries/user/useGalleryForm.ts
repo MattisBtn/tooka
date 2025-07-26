@@ -6,19 +6,43 @@ import {
   type GalleryPricing,
 } from "~/types/gallery";
 
+// Interface pour les infos de paiement de la proposition
+interface ProposalPaymentInfo {
+  payment_method: "stripe" | "bank_transfer" | null;
+  deposit_required: boolean;
+  deposit_amount: number | null;
+}
+
 export const useGalleryForm = (
   gallery?: Gallery,
   existingImages?: GalleryImage[],
-  pricing?: GalleryPricing
+  pricing?: GalleryPricing,
+  proposalPaymentInfo?: ProposalPaymentInfo
 ) => {
   const isEditMode = computed(() => !!gallery);
 
   // Form state
   const state = reactive<GalleryFormData>({
     payment_required:
-      gallery?.payment_required ?? pricing?.paymentRequired ?? true,
+      gallery?.payment_required ??
+      (pricing ? pricing.remainingAmount > 0 : true),
     selection_id: gallery?.selection_id || null,
     status: gallery?.status || "draft",
+  });
+
+  // Payment method info from proposal
+  const paymentMethodInfo = computed(() => {
+    if (!proposalPaymentInfo?.payment_method) return null;
+
+    const methodLabels = {
+      stripe: "Carte bancaire (Stripe)",
+      bank_transfer: "Virement bancaire",
+    };
+
+    return {
+      method: proposalPaymentInfo.payment_method,
+      label: methodLabels[proposalPaymentInfo.payment_method],
+    };
   });
 
   // File upload states
@@ -137,6 +161,10 @@ export const useGalleryForm = (
     formattedBasePrice,
     formattedDepositPaid,
     formattedRemainingAmount,
+    paymentMethodInfo,
+
+    // Pricing data
+    pricing: readonly(ref(pricing)),
 
     // Actions
     addFiles,

@@ -12,6 +12,7 @@ export interface IGalleryFilters {
     | "awaiting_client"
     | "revision_requested"
     | "completed"
+    | "payment_pending"
     | null;
   project_id?: string;
 }
@@ -46,7 +47,12 @@ export interface IPagination {
 
 // Gallery status options for UI
 export interface GalleryStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
+  value:
+    | "draft"
+    | "awaiting_client"
+    | "revision_requested"
+    | "completed"
+    | "payment_pending";
   label: string;
   description: string;
   icon: string;
@@ -58,7 +64,13 @@ export const galleryFormSchema = z.object({
   payment_required: z.boolean().default(true),
   selection_id: z.string().optional().nullable(),
   status: z
-    .enum(["draft", "awaiting_client", "revision_requested", "completed"])
+    .enum([
+      "draft",
+      "awaiting_client",
+      "revision_requested",
+      "completed",
+      "payment_pending",
+    ])
     .default("draft"),
 });
 

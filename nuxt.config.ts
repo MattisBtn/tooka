@@ -29,6 +29,7 @@ export default defineNuxtConfig({
         "/moodboard/*",
         "/selection/*",
         "/gallery/*",
+        "/proposal/*",
       ],
     },
   },

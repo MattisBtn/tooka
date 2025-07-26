@@ -154,6 +154,28 @@ export const useGallery = (projectId: string) => {
     }
   };
 
+  // Confirm payment (photographe action)
+  const confirmPayment = async () => {
+    if (!gallery.value) return;
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const updatedGallery = await galleryService.confirmPayment(
+        gallery.value.id
+      );
+      gallery.value = { ...gallery.value, ...updatedGallery };
+      return updatedGallery;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to confirm payment");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Get status options
   const getStatusOptions = () => galleryService.getStatusOptions();
 
@@ -175,6 +197,9 @@ export const useGallery = (projectId: string) => {
   const isDraft = computed(() => gallery.value?.status === "draft");
   const isAwaitingClient = computed(
     () => gallery.value?.status === "awaiting_client"
+  );
+  const isPaymentPending = computed(
+    () => gallery.value?.status === "payment_pending"
   );
   const imageCount = computed(() => gallery.value?.imageCount || 0);
   const hasImages = computed(() => imageCount.value > 0);
@@ -220,6 +245,7 @@ export const useGallery = (projectId: string) => {
     isCompleted,
     isDraft,
     isAwaitingClient,
+    isPaymentPending,
     imageCount,
     hasImages,
     formattedRemainingAmount,
@@ -232,6 +258,7 @@ export const useGallery = (projectId: string) => {
     uploadImages,
     deleteImage,
     deleteGallery,
+    confirmPayment,
     getStatusOptions,
     getImageSignedUrl,
   };
