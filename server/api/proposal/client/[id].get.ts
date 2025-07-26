@@ -42,12 +42,12 @@ export default defineEventHandler(async (event) => {
 
     // Check if proposal is accessible to clients
     // Only allow access to proposals that are not in draft status
-    if (proposal.status === "draft") {
-      throw createError({
-        statusCode: 403,
-        statusMessage: "Cette proposition n'est pas encore accessible",
-      });
-    }
+    // if (proposal.status === "draft") {
+    //   throw createError({
+    //     statusCode: 403,
+    //     statusMessage: "Cette proposition n'est pas encore accessible",
+    //   });
+    // }
 
     // Type assertion pour le projet
     const projectData = proposal.project as {
@@ -73,6 +73,8 @@ export default defineEventHandler(async (event) => {
         status: proposal.status,
         contract_url: proposal.contract_url,
         quote_url: proposal.quote_url,
+        project_id: proposal.project_id,
+        revision_last_comment: proposal.revision_last_comment,
         created_at: proposal.created_at,
         updated_at: proposal.updated_at,
       },

@@ -20,7 +20,8 @@
                 <!-- Proposal view -->
                 <ProposalClientView v-else-if="proposal && project && isAuthenticated" :proposal-id="proposalId"
                     :proposal="proposal" :project="project" :formatted-price="formattedPrice"
-                    :formatted-deposit-amount="formattedDepositAmount" :has-deposit="!!hasDeposit" />
+                    :formatted-deposit-amount="formattedDepositAmount" :has-deposit="!!hasDeposit"
+                    @view-contract="handleViewContract" @view-quote="handleViewQuote" />
 
                 <!-- Loading state -->
                 <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
@@ -133,6 +134,10 @@ const {
     validateProposal,
     requestRevisions,
 
+    // File actions
+    viewContract,
+    viewQuote,
+
     // Action handlers
     handleValidate,
     handleRequestRevisions,
@@ -150,6 +155,15 @@ const handleAuthentication = async (password: string) => {
 // Handle logout
 const handleLogout = () => {
     logout();
+};
+
+// Handle file actions
+const handleViewContract = async () => {
+    await viewContract();
+};
+
+const handleViewQuote = async () => {
+    await viewQuote();
 };
 
 // SEO meta

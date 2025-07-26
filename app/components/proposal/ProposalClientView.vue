@@ -67,27 +67,33 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div v-if="proposal.contract_url"
-                                class="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                                    <UIcon name="i-lucide-file-text" class="w-5 h-5 text-white" />
+                                class="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all duration-200">
+                                <div
+                                    class="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-sm">
+                                    <UIcon name="i-clarity-contract-line" class="w-6 h-6 text-white" />
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-orange-900 dark:text-orange-100">Contrat</p>
-                                    <p class="text-sm text-orange-700 dark:text-orange-300">Document contractuel</p>
+                                    <p class="font-semibold text-orange-900 dark:text-orange-100">Contrat</p>
+                                    <p class="text-sm text-orange-700 dark:text-orange-300">Document contractuel
+                                        officiel</p>
                                 </div>
-                                <UButton icon="i-lucide-external-link" size="xs" variant="ghost" color="warning" />
+                                <UButton icon="i-lucide-external-link" size="sm" variant="soft" color="warning"
+                                    label="Voir" @click="$emit('view-contract')" />
                             </div>
 
                             <div v-if="proposal.quote_url"
-                                class="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                                    <UIcon name="i-lucide-file-text" class="w-5 h-5 text-white" />
+                                class="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 hover:shadow-md transition-all duration-200">
+                                <div
+                                    class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center shadow-sm">
+                                    <UIcon name="i-lucide-receipt" class="w-6 h-6 text-white" />
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="font-medium text-green-900 dark:text-green-100">Devis</p>
-                                    <p class="text-sm text-green-700 dark:text-green-300">Devis détaillé</p>
+                                    <p class="font-semibold text-emerald-900 dark:text-emerald-100">Devis</p>
+                                    <p class="text-sm text-emerald-700 dark:text-emerald-300">Devis détaillé et
+                                        estimations</p>
                                 </div>
-                                <UButton icon="i-lucide-external-link" size="xs" variant="ghost" color="success" />
+                                <UButton icon="i-lucide-external-link" size="sm" variant="soft" color="success"
+                                    label="Voir" @click="$emit('view-quote')" />
                             </div>
                         </div>
                     </div>

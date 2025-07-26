@@ -79,6 +79,8 @@ export interface ClientProposalAccess {
     status: ProposalStatus;
     contract_url: string | null;
     quote_url: string | null;
+    project_id: string;
+    revision_last_comment: string | null;
     created_at: string;
     updated_at: string;
   };

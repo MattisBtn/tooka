@@ -259,6 +259,56 @@ export const useClientProposal = async (proposalId: string) => {
     }
   };
 
+  // File view methods - get signed URLs and open
+  const getFileUrl = async (
+    fileType: "contract" | "quote"
+  ): Promise<string | null> => {
+    if (!proposal.value) return null;
+
+    try {
+      const response = await $fetch<{
+        success: boolean;
+        files: { type: string; url: string }[];
+      }>(`/api/proposal/client/${proposal.value.id}/files`);
+
+      if (response.success) {
+        const file = response.files.find((f) => f.type === fileType);
+        return file?.url || null;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error getting ${fileType} URL:`, error);
+      return null;
+    }
+  };
+
+  const viewContract = async () => {
+    if (!proposal.value?.contract_url) return;
+
+    try {
+      const url = await getFileUrl("contract");
+      if (url) {
+        window.open(url, "_blank");
+      }
+    } catch (error) {
+      console.error("Error opening contract:", error);
+    }
+  };
+
+  const viewQuote = async () => {
+    if (!proposal.value?.quote_url) return;
+
+    try {
+      const url = await getFileUrl("quote");
+      if (url) {
+        window.open(url, "_blank");
+      }
+    } catch (error) {
+      console.error("Error opening quote:", error);
+    }
+  };
+
   // Action handlers
   const handleValidate = () => {
     showValidateDialog.value = true;
@@ -306,6 +356,10 @@ export const useClientProposal = async (proposalId: string) => {
     validateProposal,
     requestRevisions,
     payDeposit,
+
+    // File actions
+    viewContract,
+    viewQuote,
 
     // Action handlers
     handleValidate,
