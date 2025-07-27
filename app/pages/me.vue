@@ -148,8 +148,6 @@ useSeoMeta({
                         {{ profile?.company_name || 'Aucune entreprise' }}
                     </p>
                     <div class="flex items-center gap-2 mt-3">
-                        <UBadge color="success" variant="subtle">Plan {{ billingData.plan }}</UBadge>
-                        <UBadge color="info" variant="subtle">Membre depuis Jan 2024</UBadge>
                         <UBadge v-if="profile" :color="isProfileComplete ? 'success' : 'warning'" variant="subtle">
                             Profil {{ completionPercentage }}% complet
                         </UBadge>
