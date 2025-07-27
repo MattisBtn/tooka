@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from '~/composables/auth/useAuth'
+import { useUserProfile } from '~/composables/user/useUserProfile'
 
 const isSidebarCollapsed = ref(false)
 
@@ -8,6 +9,7 @@ const toggleSidebar = () => {
 }
 
 const { user, logout: authLogout } = useAuth()
+const { profile } = useUserProfile()
 
 // Define isDarkMode computed property for color mode toggle
 const isDarkMode = computed({
@@ -15,6 +17,25 @@ const isDarkMode = computed({
     set: (value) => {
         useColorMode().preference = value ? 'dark' : 'light'
     }
+})
+
+// Computed properties for user display
+const displayName = computed(() => {
+    if (profile.value?.first_name && profile.value?.last_name) {
+        return `${profile.value.first_name} ${profile.value.last_name}`
+    }
+    if (profile.value?.first_name) {
+        return profile.value.first_name
+    }
+    return user.value?.user_metadata?.name || user.value?.email || 'User'
+})
+
+const displayOrganization = computed(() => {
+    return profile.value?.company_name || 'Your workspace'
+})
+
+const displayAvatar = computed(() => {
+    return profile.value?.avatar_url || user.value?.user_metadata?.avatar_url
 })
 
 const categories = [
@@ -106,6 +127,8 @@ const logout = async () => {
                             unchecked-icon="i-heroicons-sun" />
                     </div>
                 </div>
+
+
             </div>
 
             <!-- User profile and logout button -->
@@ -114,12 +137,11 @@ const logout = async () => {
                 <UButton to="/me" color="neutral" variant="ghost" class="w-full p-2 justify-start"
                     :class="[isSidebarCollapsed ? 'justify-center' : 'justify-start']">
                     <div class="flex items-center gap-2 w-full">
-                        <UAvatar :src="user?.user_metadata?.avatar_url" :alt="user?.user_metadata?.name || 'User'"
-                            class="flex-shrink-0" size="sm" />
+                        <UAvatar :src="displayAvatar" :alt="displayName" class="flex-shrink-0" size="sm" />
                         <div :class="[isSidebarCollapsed ? 'sr-only' : 'min-w-0 flex-1 text-left']">
-                            <p class="text-sm font-medium truncate">{{ user?.user_metadata?.name || user?.email }}</p>
+                            <p class="text-sm font-medium truncate">{{ displayName }}</p>
                             <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{
-                                user?.user_metadata?.organization || 'Your workspace' }}</p>
+                                displayOrganization }}</p>
                         </div>
                     </div>
                 </UButton>
