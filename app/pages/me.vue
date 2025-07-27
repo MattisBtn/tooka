@@ -48,7 +48,8 @@ const tabs = ref<TabsItem[]>([
     {
         label: 'Security',
         icon: 'i-heroicons-shield-check',
-        value: 'security'
+        value: 'security',
+        disabled: true
     },
     {
         label: 'Billing',
@@ -238,7 +239,7 @@ useSeoMeta({
                         </template>
 
                         <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <h4 class="font-medium mb-2">Plan actuel</h4>
                                     <div class="flex items-center gap-2">
@@ -271,7 +272,7 @@ useSeoMeta({
                                 </div>
                             </div>
 
-                            <USeparator />
+                            <USeparator /> -->
 
                             <div>
                                 <h4 class="font-medium mb-2">Recevoir des paiements avec Stripe</h4>
