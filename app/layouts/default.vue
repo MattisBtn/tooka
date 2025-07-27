@@ -52,12 +52,6 @@ const categories = [
             { name: 'Projects', icon: 'i-heroicons-folder', to: '/projects' },
         ]
     },
-    {
-        name: 'System',
-        links: [
-            { name: 'Billing', icon: 'i-heroicons-credit-card', to: '/billing' }
-        ]
-    }
 ]
 
 const logout = async () => {
@@ -110,7 +104,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                    }}</span>
+                                }}</span>
                             </UButton>
                         </div>
                     </div>
