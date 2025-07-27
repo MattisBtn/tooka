@@ -37,6 +37,8 @@
                     </div>
                 </div>
 
+
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <UFormField label="Prénom" name="first_name" required>
                         <UInput v-model="formState.first_name" placeholder="Jean" icon="i-heroicons-user" />
@@ -195,6 +197,7 @@ import type { FormSubmitEvent } from '@nuxt/ui'
 import { refDebounced } from '@vueuse/core'
 import { vMaska } from 'maska/vue'
 import type { z } from 'zod'
+
 import { useCompanySearch } from '~/composables/user/useCompanySearch'
 import type { CompanySearchItem, UserProfileFormData, UserProfileWithAuth } from '~/types/userProfile'
 
@@ -225,6 +228,8 @@ const searchQuery = ref('')
 const searchQueryDebounced = refDebounced(searchQuery, 300)
 const companySearchItems = ref<CompanySearchItem[]>([])
 
+
+
 // Watch debounced search query
 watch(searchQueryDebounced, async (query) => {
     if (query.length >= 3) {
@@ -244,4 +249,6 @@ const onCompanySelect = (item: CompanySearchItem | unknown) => {
         Object.assign(formState.value, companyData)
     }
 }
+
+
 </script>

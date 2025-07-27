@@ -79,6 +79,30 @@ const handleSubmit = async (event: FormSubmitEvent<UserProfileFormData>) => {
     await onSubmit(event)
 }
 
+// Avatar modal state
+const isAvatarModalOpen = ref(false)
+
+// Computed for avatar display - now uses only profile data
+const currentAvatarUrl = computed(() => {
+    return profile.value?.avatar_url || undefined
+})
+
+// Avatar alt text
+const avatarAlt = computed(() => {
+    if (profile.value?.first_name && profile.value?.last_name) {
+        return `${profile.value.first_name} ${profile.value.last_name}`;
+    }
+    if (profile.value?.first_name) {
+        return profile.value.first_name;
+    }
+    return user.value?.email || "Avatar";
+})
+
+// Open avatar modal
+const openAvatarModal = () => {
+    isAvatarModalOpen.value = true
+}
+
 useSeoMeta({
     title: 'Mon Profil',
     description: 'Gérez vos paramètres de profil et de compte'
@@ -102,8 +126,18 @@ useSeoMeta({
                 <span class="ml-2 text-neutral-600 dark:text-neutral-400">Chargement du profil...</span>
             </div>
             <div v-else class="flex items-center gap-6">
-                <UAvatar :src="profile?.avatar_url || undefined"
-                    :alt="(profile?.first_name || '') + ' ' + (profile?.last_name || '')" size="3xl" />
+                <!-- Avatar - clickable to open modal -->
+                <div class="relative cursor-pointer group" @click="openAvatarModal">
+                    <UAvatar :src="currentAvatarUrl" :alt="avatarAlt" size="3xl"
+                        class="ring-2 ring-neutral-200 dark:ring-neutral-700 transition-all group-hover:ring-primary-500" />
+
+                    <!-- Overlay on hover -->
+                    <div
+                        class="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <UIcon name="i-heroicons-camera" class="w-6 h-6 text-white" />
+                    </div>
+                </div>
+
                 <div class="flex-1">
                     <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
                         {{ profile?.first_name || 'Prénom' }} {{ profile?.last_name || 'Nom' }}
@@ -120,13 +154,18 @@ useSeoMeta({
                         </UBadge>
                     </div>
                 </div>
+
                 <div class="text-right">
-                    <UButton color="primary" variant="outline" size="sm">
+                    <UButton color="primary" variant="outline" size="sm" @click="openAvatarModal">
+                        <UIcon name="i-heroicons-camera" class="w-4 h-4 mr-1" />
                         Modifier la photo
                     </UButton>
                 </div>
             </div>
         </UCard>
+
+        <!-- Avatar Upload Modal -->
+        <UserAvatarModal v-model="isAvatarModalOpen" />
 
         <!-- Tabs Navigation -->
         <UTabs v-model="activeTab" :items="tabs" class="w-full">

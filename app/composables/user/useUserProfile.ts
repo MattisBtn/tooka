@@ -11,13 +11,16 @@ import { userProfileFormSchema } from "~/types/userProfile";
 export const useUserProfile = () => {
   const { user } = useAuth();
 
-  // Reactive state
-  const profile = ref<UserProfileWithAuth | null>(null);
-  const isLoading = ref(false);
-  const isSubmitting = ref(false);
-  const error = ref<string | null>(null);
+  // Shared reactive state using useState for singleton behavior
+  const profile = useState<UserProfileWithAuth | null>(
+    "user.profile",
+    () => null
+  );
+  const isLoading = useState("user.profile.isLoading", () => false);
+  const isSubmitting = useState("user.profile.isSubmitting", () => false);
+  const error = useState<string | null>("user.profile.error", () => null);
 
-  // Form state
+  // Form state - keep local as it's component-specific
   const formState = ref<UserProfileFormData>({
     first_name: "",
     last_name: "",
