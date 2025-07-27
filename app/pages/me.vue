@@ -2,6 +2,7 @@
 import type { FormSubmitEvent, TabsItem } from '@nuxt/ui'
 
 import { useAuth } from '~/composables/auth/useAuth'
+import { useStripeConnect } from '~/composables/user/useStripeConnect'
 import { useUserProfile } from '~/composables/user/useUserProfile'
 import type { UserProfileFormData } from '~/types/userProfile'
 
@@ -22,6 +23,20 @@ const {
     resetForm,
     resetError,
 } = useUserProfile()
+
+// Use Stripe Connect composable
+const {
+    isLoading: stripeLoading,
+    error: stripeError,
+    hasStripeAccount,
+    isAccountComplete,
+    canReceivePayments,
+    accountStatusText,
+    accountStatusColor,
+    createStripeAccount,
+    getDashboardLink,
+    resetError: resetStripeError
+} = useStripeConnect()
 
 // Define tabs for the profile page
 const tabs = ref<TabsItem[]>([
@@ -220,10 +235,64 @@ useSeoMeta({
                             <USeparator />
 
                             <div>
-                                <h4 class="font-medium mb-2">Historique de facturation</h4>
-                                <UButton color="primary" variant="outline" size="sm">
-                                    Voir l'historique
-                                </UButton>
+                                <h4 class="font-medium mb-2">Recevoir des paiements avec Stripe</h4>
+                                <div v-if="stripeError" class="mb-4">
+                                    <UAlert color="error" variant="subtle" :title="stripeError"
+                                        @close="resetStripeError">
+                                        <template v-if="stripeError.includes('plus accessible')" #actions>
+                                            <UButton color="error" variant="ghost" size="xs"
+                                                @click="createStripeAccount">
+                                                Créer un nouveau compte
+                                            </UButton>
+                                        </template>
+                                    </UAlert>
+                                </div>
+
+                                <div v-if="!hasStripeAccount" class="space-y-3">
+                                    <p class="text-sm text-neutral-500">
+                                        Connectez votre compte Stripe pour recevoir des paiements de vos clients
+                                        directement sur votre
+                                        compte bancaire.
+                                    </p>
+                                    <UButton :loading="stripeLoading" icon="i-bi-stripe"
+                                        class="bg-[#635bff] hover:bg-[#5851e6] text-white border-[#635bff] hover:border-[#5851e6] focus:ring-[#635bff]"
+                                        @click="createStripeAccount">
+                                        {{ stripeError?.includes('plus accessible') ?
+                                            'Créer un nouveau compte' :
+                                            'Connecter Stripe' }}
+                                    </UButton>
+                                </div>
+
+                                <div v-else class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-medium">Compte Stripe connecté</p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <UBadge :color="accountStatusColor" variant="subtle">
+                                                    {{ accountStatusText }}
+                                                </UBadge>
+                                                <UBadge v-if="canReceivePayments" color="success" variant="subtle">
+                                                    Paiements activés
+                                                </UBadge>
+                                            </div>
+                                        </div>
+                                        <UButton color="primary" variant="outline" size="sm" :loading="stripeLoading"
+                                            @click="getDashboardLink">
+                                            Tableau de bord
+                                        </UButton>
+                                    </div>
+
+                                    <UAlert v-if="!isAccountComplete" title="Compte incomplet"
+                                        description="Votre compte Stripe nécessite des informations supplémentaires pour recevoir des paiements."
+                                        color="warning" variant="subtle" :actions="[
+                                            {
+                                                label: 'Compléter maintenant',
+                                                color: 'primary',
+                                                variant: 'solid',
+                                                onClick: createStripeAccount
+                                            }
+                                        ]" />
+                                </div>
                             </div>
                         </div>
                     </UCard>

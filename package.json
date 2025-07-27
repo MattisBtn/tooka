@@ -18,10 +18,12 @@
     "@nuxt/image": "^1.10.0",
     "@nuxt/ui": "^3.3.0",
     "@nuxtjs/supabase": "^1.5.1",
+    "@stripe/stripe-js": "^7.6.1",
     "@vueuse/nuxt": "^13.2.0",
     "jszip": "^3.10.1",
     "maska": "^3.2.0",
     "nuxt": "^3.17.3",
+    "stripe": "^18.3.0",
     "supabase": "^2.22.12",
     "vue": "^3.5.14",
     "zod": "^3.25.27"

@@ -600,6 +600,14 @@ export type Database = {
           last_name: string | null
           phone: string | null
           preferred_currency: string | null
+          stripe_account_id: string | null
+          stripe_account_status:
+            | Database["public"]["Enums"]["stripe_account_status_enum"]
+            | null
+          stripe_charges_enabled: boolean | null
+          stripe_connected_at: string | null
+          stripe_details_submitted: boolean | null
+          stripe_payouts_enabled: boolean | null
           timezone: string | null
           updated_at: string | null
         }
@@ -623,6 +631,14 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?:
+            | Database["public"]["Enums"]["stripe_account_status_enum"]
+            | null
+          stripe_charges_enabled?: boolean | null
+          stripe_connected_at?: string | null
+          stripe_details_submitted?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           timezone?: string | null
           updated_at?: string | null
         }
@@ -646,6 +662,14 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?:
+            | Database["public"]["Enums"]["stripe_account_status_enum"]
+            | null
+          stripe_charges_enabled?: boolean | null
+          stripe_connected_at?: string | null
+          stripe_details_submitted?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           timezone?: string | null
           updated_at?: string | null
         }
@@ -686,6 +710,12 @@ export type Database = {
         | "revision_requested"
         | "completed"
         | "payment_pending"
+      stripe_account_status_enum:
+        | "not_connected"
+        | "pending"
+        | "complete"
+        | "restricted"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -839,6 +869,13 @@ export const Constants = {
         "revision_requested",
         "completed",
         "payment_pending",
+      ],
+      stripe_account_status_enum: [
+        "not_connected",
+        "pending",
+        "complete",
+        "restricted",
+        "rejected",
       ],
     },
   },

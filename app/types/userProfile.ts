@@ -193,6 +193,26 @@ export interface UserProfileWithAuth extends UserProfile {
   };
 }
 
+// Stripe Connect types - adaptés aux champs de la base de données
+export interface StripeConnectAccount {
+  account_id: string;
+  status: "not_connected" | "pending" | "complete" | "restricted" | "rejected";
+  details_submitted: boolean;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  connected_at: string | null;
+}
+
+export interface StripeConnectOnboardingSession {
+  url: string;
+  account_id: string;
+}
+
+// Enhanced user profile with Stripe Connect information
+export interface UserProfileWithStripe extends UserProfileWithAuth {
+  stripe_account?: StripeConnectAccount;
+}
+
 // French Company API Types
 export interface CompanyApiResult {
   siren: string;
