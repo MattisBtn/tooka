@@ -3,14 +3,8 @@
         class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden">
         <!-- Image with hover interactions -->
         <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group">
-            <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="'Image du moodboard'"
-                class="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
-            <div v-else-if="loading" class="w-full h-full flex items-center justify-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
-            </div>
-            <div v-else-if="error" class="w-full h-full flex items-center justify-center">
-                <UIcon name="i-lucide-image-off" class="w-8 h-8 text-neutral-400" />
-            </div>
+            <MoodboardImageClient :image="image" :moodboard-id="moodboardId"
+                class="w-full h-full transition-transform duration-300" />
 
             <!-- Gradient overlay for interactions -->
             <div v-if="canInteract || hasReactions || hasComments"
@@ -114,31 +108,8 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// Image loading state
-const imageUrl = ref<string | null>(null)
-const loading = ref(true)
-const error = ref(false)
-
 // Comment state
 const showCommentModal = ref(false)
-
-// Load image URL on mount
-onMounted(async () => {
-    try {
-        // Use the composable from parent to get image URL
-        // This will be passed down or we can import it
-        const encodedFilePath = encodeURIComponent(props.image.file_url)
-        const response = await $fetch<{ signedUrl: string }>(
-            `/api/moodboard/client/${props.moodboardId}/image/${encodedFilePath}`
-        )
-        imageUrl.value = response.signedUrl
-    } catch (err) {
-        console.error('Failed to load image:', err)
-        error.value = true
-    } finally {
-        loading.value = false
-    }
-})
 
 // Computed properties
 const hasReactions = computed(() => {

@@ -18,9 +18,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
   // Use simplified auth
   const auth = useClientAuth("moodboard", moodboardId);
 
-  // Image URL cache (simplified)
-  const imageUrlCache = new Map<string, string>();
-
   // Simple reactions management with localStorage
   const USER_REACTIONS_KEY = `moodboard_user_reactions_${moodboardId}`;
 
@@ -56,28 +53,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
     return reactions[imageId] || null;
   };
 
-  // Get image signed URL (simplified)
-  const getImageUrl = async (filePath: string): Promise<string | null> => {
-    const cacheKey = `${moodboardId}:${filePath}`;
-
-    if (imageUrlCache.has(cacheKey)) {
-      return imageUrlCache.get(cacheKey)!;
-    }
-
-    try {
-      const encodedFilePath = encodeURIComponent(filePath);
-      const response = await $fetch<{ signedUrl: string }>(
-        `/api/moodboard/client/${moodboardId}/image/${encodedFilePath}`
-      );
-
-      imageUrlCache.set(cacheKey, response.signedUrl);
-      return response.signedUrl;
-    } catch (error) {
-      console.error("Failed to get image URL:", error);
-      return null;
-    }
-  };
-
   // Initial fetch of moodboard data
   const {
     data,
@@ -107,11 +82,22 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
   // Simple logic: if no password required, always authenticated
   const isAuthenticated = computed(() => {
-    return !project.value?.hasPassword || auth.isAuthenticated.value;
+    const result = !project.value?.hasPassword || auth.isAuthenticated.value;
+    console.log(
+      "[DEBUG] isAuthenticated:",
+      result,
+      "hasPassword:",
+      project.value?.hasPassword,
+      "auth:",
+      auth.isAuthenticated.value
+    );
+    return result;
   });
 
   const needsPassword = computed(() => {
-    return project.value?.hasPassword && !auth.isAuthenticated.value;
+    const result = project.value?.hasPassword && !auth.isAuthenticated.value;
+    console.log("[DEBUG] needsPassword:", result);
+    return result;
   });
 
   // Check if user can interact with moodboard
@@ -138,27 +124,33 @@ export const useClientMoodboard = async (moodboardId: string) => {
     }));
   };
 
-  // Set initial data and enhance images with interactions
-  if (data.value) {
-    moodboardData.value = data.value;
-
-    if (data.value.moodboard.images && data.value.moodboard.images.length > 0) {
-      const enhancedImages = enhanceImagesWithInteractions(
-        Array.from(data.value.moodboard.images)
-      );
-      images.value = enhancedImages;
-    } else {
-      images.value = [];
-    }
-
-    hasMore.value = data.value.moodboard.hasMore || false;
-    currentPage.value = data.value.moodboard.currentPage || 1;
-  }
-
-  // Initialize auth for password-protected projects
+  // Watch for data changes and update state
   watch(
     data,
     (newData) => {
+      if (newData) {
+        moodboardData.value = newData;
+
+        if (newData.moodboard.images && newData.moodboard.images.length > 0) {
+          const enhancedImages = enhanceImagesWithInteractions(
+            Array.from(newData.moodboard.images)
+          );
+          console.log(
+            "[DEBUG] Setting images:",
+            enhancedImages.length,
+            "images"
+          );
+          images.value = enhancedImages;
+        } else {
+          console.log("[DEBUG] No images found, setting empty array");
+          images.value = [];
+        }
+
+        hasMore.value = newData.moodboard.hasMore || false;
+        currentPage.value = newData.moodboard.currentPage || 1;
+      }
+
+      // Initialize auth for password-protected projects
       if (newData?.project.hasPassword) {
         auth.initializeAuth();
       }
@@ -475,7 +467,6 @@ export const useClientMoodboard = async (moodboardId: string) => {
     uploadImages,
     addComment,
     reactToImage,
-    getImageUrl,
 
     // Auth methods
     logout: auth.logout,
