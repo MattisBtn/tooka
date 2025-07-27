@@ -52,11 +52,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if selection is accessible to clients
-    if (
-      selection.status !== "awaiting_client" &&
-      selection.status !== "completed" &&
-      selection.status !== "revision_requested"
-    ) {
+    if (selection.status === "draft") {
       throw createError({
         statusCode: 403,
         message: "Sélection non accessible",

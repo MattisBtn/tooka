@@ -82,22 +82,11 @@ export const useClientMoodboard = async (moodboardId: string) => {
 
   // Simple logic: if no password required, always authenticated
   const isAuthenticated = computed(() => {
-    const result = !project.value?.hasPassword || auth.isAuthenticated.value;
-    console.log(
-      "[DEBUG] isAuthenticated:",
-      result,
-      "hasPassword:",
-      project.value?.hasPassword,
-      "auth:",
-      auth.isAuthenticated.value
-    );
-    return result;
+    return !project.value?.hasPassword || auth.isAuthenticated.value;
   });
 
   const needsPassword = computed(() => {
-    const result = project.value?.hasPassword && !auth.isAuthenticated.value;
-    console.log("[DEBUG] needsPassword:", result);
-    return result;
+    return project.value?.hasPassword && !auth.isAuthenticated.value;
   });
 
   // Check if user can interact with moodboard
@@ -135,14 +124,8 @@ export const useClientMoodboard = async (moodboardId: string) => {
           const enhancedImages = enhanceImagesWithInteractions(
             Array.from(newData.moodboard.images)
           );
-          console.log(
-            "[DEBUG] Setting images:",
-            enhancedImages.length,
-            "images"
-          );
           images.value = enhancedImages;
         } else {
-          console.log("[DEBUG] No images found, setting empty array");
           images.value = [];
         }
 

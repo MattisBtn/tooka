@@ -50,11 +50,7 @@ export default defineEventHandler(
       }
 
       // Check accessibility
-      if (
-        !["awaiting_client", "completed", "revision_requested"].includes(
-          selection.status
-        )
-      ) {
+      if (selection.status === "draft") {
         throw createError({
           statusCode: 403,
           message: "Sélection non accessible",

@@ -8,18 +8,10 @@
                 image.userSelected ? 'ring-4 ring-amber-500' : ''
             ]" @click="handleImageClick">
 
-            <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="'Image de sélection'"
-                class="w-full h-full object-cover transition-all duration-300" :class="[
+            <SelectionImageClient :image="image" :selection-id="selectionId"
+                class="w-full h-full transition-all duration-300" :class="[
                     image.userSelected ? 'brightness-75' : ''
-                ]" loading="lazy" />
-
-            <div v-else-if="loading" class="w-full h-full flex items-center justify-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
-            </div>
-
-            <div v-else-if="error" class="w-full h-full flex items-center justify-center">
-                <UIcon name="i-lucide-image-off" class="w-8 h-8 text-neutral-400" />
-            </div>
+                ]" />
 
             <!-- Selection indicator overlay -->
             <div v-if="image.userSelected" class="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
@@ -74,14 +66,8 @@
             <div class="space-y-4">
                 <!-- Large image display -->
                 <div class="relative bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
-                    <NuxtImg v-if="imageUrl" :src="imageUrl" alt="Aperçu de l'image de sélection"
-                        class="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
-                    <div v-else-if="loading" class="w-full h-96 flex items-center justify-center">
-                        <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
-                    </div>
-                    <div v-else-if="error" class="w-full h-96 flex items-center justify-center">
-                        <UIcon name="i-lucide-image-off" class="w-8 h-8 text-neutral-400" />
-                    </div>
+                    <SelectionImageClient :image="image" :selection-id="selectionId" :full-size="true"
+                        class="w-full h-auto max-h-[70vh] object-contain" />
                 </div>
 
                 <!-- Selection status and actions -->
@@ -98,8 +84,7 @@
 
                     <UButton :color="image.userSelected ? 'warning' : 'warning'"
                         :variant="image.userSelected ? 'outline' : 'solid'" size="sm"
-                        :icon="image.userSelected ? 'i-lucide-x' : 'i-lucide-check'"
-                        @click="handleToggleFromModal">
+                        :icon="image.userSelected ? 'i-lucide-x' : 'i-lucide-check'" @click="handleToggleFromModal">
                         {{ image.userSelected ? 'Désélectionner' : 'Sélectionner' }}
                     </UButton>
                 </div>
@@ -124,31 +109,8 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// Image loading state
-const imageUrl = ref<string | null>(null)
-const loading = ref(true)
-const error = ref(false)
-
 // Modal state
 const showImageModal = ref(false)
-
-// No longer need updating state since selections are purely local
-
-// Load image URL on mount
-onMounted(async () => {
-    try {
-        const encodedFilePath = encodeURIComponent(props.image.file_url)
-        const response = await $fetch<{ signedUrl: string }>(
-            `/api/selection/client/${props.selectionId}/image/${encodedFilePath}`
-        )
-        imageUrl.value = response.signedUrl
-    } catch (err) {
-        console.error('Failed to load image:', err)
-        error.value = true
-    } finally {
-        loading.value = false
-    }
-})
 
 // Handle image click for selection
 const handleImageClick = () => {

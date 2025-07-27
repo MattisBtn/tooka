@@ -16,9 +16,6 @@ export const useClientSelection = async (selectionId: string) => {
   // Use simplified auth
   const auth = useClientAuth("selection", selectionId);
 
-  // Image URL cache
-  const imageUrlCache = new Map<string, string>();
-
   // User selections management with localStorage
   const USER_SELECTIONS_KEY = `selection_user_selections_${selectionId}`;
 
@@ -56,28 +53,6 @@ export const useClientSelection = async (selectionId: string) => {
   const getUserSelection = (imageId: string): boolean => {
     const selections = getUserSelections();
     return selections[imageId] || false;
-  };
-
-  // Get image signed URL
-  const getImageUrl = async (filePath: string): Promise<string | null> => {
-    const cacheKey = `${selectionId}:${filePath}`;
-
-    if (imageUrlCache.has(cacheKey)) {
-      return imageUrlCache.get(cacheKey)!;
-    }
-
-    try {
-      const encodedFilePath = encodeURIComponent(filePath);
-      const response = await $fetch<{ signedUrl: string }>(
-        `/api/selection/client/${selectionId}/image/${encodedFilePath}`
-      );
-
-      imageUrlCache.set(cacheKey, response.signedUrl);
-      return response.signedUrl;
-    } catch (error) {
-      console.error("Failed to get image URL:", error);
-      return null;
-    }
   };
 
   // Initial fetch of selection data
@@ -163,38 +138,38 @@ export const useClientSelection = async (selectionId: string) => {
     }));
   };
 
-  // Set initial data and enhance images with user selections
-  if (data.value) {
-    selectionData.value = data.value;
-
-    // Clear localStorage if selection is finalized (to avoid conflicts with DB state)
-    if (
-      data.value.selection.status === "completed" ||
-      data.value.selection.status === "revision_requested"
-    ) {
-      if (import.meta.client) {
-        localStorage.removeItem(USER_SELECTIONS_KEY);
-      }
-    }
-
-    if (data.value.selection.images && data.value.selection.images.length > 0) {
-      const enhancedImages = enhanceImagesWithSelections(
-        Array.from(data.value.selection.images),
-        data.value.selection.status
-      );
-      images.value = enhancedImages;
-    } else {
-      images.value = [];
-    }
-
-    hasMore.value = data.value.selection.hasMore || false;
-    currentPage.value = data.value.selection.currentPage || 1;
-  }
-
-  // Initialize auth for password-protected projects
+  // Watch for data changes and update state
   watch(
     data,
     (newData) => {
+      if (newData) {
+        selectionData.value = newData;
+
+        // Clear localStorage if selection is finalized (to avoid conflicts with DB state)
+        if (
+          newData.selection.status === "completed" ||
+          newData.selection.status === "revision_requested"
+        ) {
+          if (import.meta.client) {
+            localStorage.removeItem(USER_SELECTIONS_KEY);
+          }
+        }
+
+        if (newData.selection.images && newData.selection.images.length > 0) {
+          const enhancedImages = enhanceImagesWithSelections(
+            Array.from(newData.selection.images),
+            newData.selection.status
+          );
+          images.value = enhancedImages;
+        } else {
+          images.value = [];
+        }
+
+        hasMore.value = newData.selection.hasMore || false;
+        currentPage.value = newData.selection.currentPage || 1;
+      }
+
+      // Initialize auth for password-protected projects
       if (newData?.project.hasPassword) {
         auth.initializeAuth();
       }
@@ -393,7 +368,6 @@ export const useClientSelection = async (selectionId: string) => {
     toggleImageSelection,
     validateSelection,
     requestRevisions,
-    getImageUrl,
 
     // Auth methods
     logout: auth.logout,
