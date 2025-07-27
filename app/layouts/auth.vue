@@ -3,7 +3,7 @@
         <header class="w-full p-4 border-b border-neutral-200 dark:border-neutral-800">
             <div class="container mx-auto flex justify-center">
                 <NuxtLink to="/" class="flex items-center gap-2">
-                    <span class="text-xl font-bold text-neutral-900 dark:text-white">Tooka</span>
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-8 w-auto" />
                 </NuxtLink>
             </div>
         </header>
@@ -19,3 +19,9 @@
         </footer>
     </div>
 </template>
+
+<script setup lang="ts">
+import { useLogo } from '~/composables/shared/useLogo';
+
+const { logoSrc } = useLogo()
+</script>

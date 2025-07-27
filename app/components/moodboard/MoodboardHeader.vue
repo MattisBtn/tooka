@@ -9,9 +9,7 @@
                         <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
                             <UIcon name="i-heroicons-camera" class="w-4 h-4 text-white" />
                         </div>
-                        <span class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 hidden sm:block">
-                            Tooka
-                        </span>
+                        <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
                     </div>
 
                     <!-- Project Title and Status -->
@@ -113,6 +111,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLogo } from '~/composables/shared/useLogo'
 import type {
     ClientMoodboardAccess,
     MoodboardWithDetails
@@ -140,6 +139,9 @@ const isDarkMode = computed(() => colorMode.value === 'dark');
 const toggleColorMode = () => {
     colorMode.preference = isDarkMode.value ? 'light' : 'dark';
 };
+
+// Logo management
+const { logoSrc } = useLogo()
 
 // Status display logic
 const statusConfig = {

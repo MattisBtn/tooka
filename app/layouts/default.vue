@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from '~/composables/auth/useAuth'
+import { useLogo } from '~/composables/shared/useLogo'
 import { useUserProfile } from '~/composables/user/useUserProfile'
 
 const isSidebarCollapsed = ref(false)
@@ -10,6 +11,7 @@ const toggleSidebar = () => {
 
 const { user, logout: authLogout } = useAuth()
 const { profile } = useUserProfile()
+const { logoSrc } = useLogo()
 
 // Define isDarkMode computed property for color mode toggle
 const isDarkMode = computed({
@@ -69,13 +71,7 @@ const logout = async () => {
             isSidebarCollapsed ? 'w-16' : 'w-64'
         ]">
             <div class="p-4 flex items-center justify-between border-b border-neutral-200 dark:border-neutral-700">
-                <div class="flex items-center gap-2 overflow-hidden">
-                    <UIcon name="i-heroicons-bolt" class="flex-shrink-0 text-primary-500 h-6 w-6" />
-                    <span
-                        :class="['font-bold text-lg transition-opacity', isSidebarCollapsed ? 'opacity-0' : 'opacity-100']">
-                        Tooka
-                    </span>
-                </div>
+                <NuxtImg v-if="!isSidebarCollapsed" :src="logoSrc" alt="Tooka" class="w-24 h-auto" />
                 <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-left"
                     :class="[isSidebarCollapsed ? 'rotate-180' : '']" square @click="toggleSidebar" />
             </div>
