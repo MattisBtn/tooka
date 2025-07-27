@@ -39,6 +39,7 @@ export default defineNuxtConfig({
       conversionServiceUrl:
         process.env.CONVERSION_SERVICE_URL ||
         "https://tooka-converter-service-production.up.railway.app",
+      companySearchApiUrl: "https://recherche-entreprises.api.gouv.fr",
     },
   },
 });

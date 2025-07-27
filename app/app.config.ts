@@ -27,5 +27,10 @@ export default defineAppConfig({
         size: "xl",
       },
     },
+    inputMenu: {
+      defaultVariants: {
+        size: "xl",
+      },
+    },
   },
 });

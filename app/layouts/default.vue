@@ -110,15 +110,19 @@ const logout = async () => {
 
             <!-- User profile and logout button -->
             <div class="border-t border-neutral-200 dark:border-neutral-700 p-4">
-                <div class="flex items-center gap-2">
-                    <UAvatar :src="user?.user_metadata?.avatar_url" :alt="user?.user_metadata?.name || 'User'"
-                        class="flex-shrink-0" size="sm" />
-                    <div :class="[isSidebarCollapsed ? 'sr-only' : 'min-w-0 flex-1']">
-                        <p class="text-sm font-medium truncate">{{ user?.user_metadata?.name || user?.email }}</p>
-                        <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{
-                            user?.user_metadata?.organization || 'Your workspace' }}</p>
+                <!-- User profile -->
+                <UButton to="/me" color="neutral" variant="ghost" class="w-full p-2 justify-start"
+                    :class="[isSidebarCollapsed ? 'justify-center' : 'justify-start']">
+                    <div class="flex items-center gap-2 w-full">
+                        <UAvatar :src="user?.user_metadata?.avatar_url" :alt="user?.user_metadata?.name || 'User'"
+                            class="flex-shrink-0" size="sm" />
+                        <div :class="[isSidebarCollapsed ? 'sr-only' : 'min-w-0 flex-1 text-left']">
+                            <p class="text-sm font-medium truncate">{{ user?.user_metadata?.name || user?.email }}</p>
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{
+                                user?.user_metadata?.organization || 'Your workspace' }}</p>
+                        </div>
                     </div>
-                </div>
+                </UButton>
 
                 <!-- Logout button -->
                 <div class="mt-4 flex items-center">
