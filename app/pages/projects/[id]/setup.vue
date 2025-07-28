@@ -25,36 +25,10 @@
                 :status-info="statusInfo || null" :formatted-price="formattedPrice"
                 :formatted-created-at="formattedCreatedAt" />
 
-            <!-- Module Configuration -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-3 mb-6">
-                    <div
-                        class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-puzzle" class="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration des
-                            modules
-                        </h2>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Activez et configurez les
-                            fonctionnalités de
-                            votre projet</p>
-                    </div>
-                </div>
-
-                <!-- Proposal Module (now autonomous) -->
-                <ProjectProposalModule :project-id="projectId"
-                    :project-initial-price="project?.initial_price || undefined" />
-
-                <!-- Moodboard Module (now autonomous) -->
-                <ProjectMoodboardModule :project-id="projectId" />
-
-                <!-- Selection Module (now autonomous) -->
-                <ProjectSelectionModule :project-id="projectId" />
-
-                <!-- Gallery Module (now autonomous) -->
-                <ProjectGalleryModule :project-id="projectId" />
-            </div>
+            <!-- Module Onboarding -->
+            <ProjectModuleOnboarding :project-id="projectId"
+                :project-initial-price="project?.initial_price || undefined"
+                :existing-proposal="project?.proposal || null" @proposal-created="handleProposalCreated" />
 
             <!-- Action Buttons -->
             <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
@@ -67,10 +41,7 @@
 
 <script lang="ts" setup>
 import type { BreadcrumbItem } from '@nuxt/ui'
-
-
 import { useProject } from '~/composables/projects/useProject'
-
 
 // Get project ID from route
 const route = useRoute()
@@ -87,14 +58,6 @@ const {
     formattedCreatedAt,
     fetchProject,
 } = useProject(projectId)
-
-
-
-
-
-
-
-// Upload state for UI feedback  
 
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
@@ -114,34 +77,24 @@ useHead({
     title: computed(() => project.value ? `Configuration - ${project.value.title}` : 'Configuration du projet'),
 })
 
+// Handle proposal creation event
+const handleProposalCreated = async () => {
+    try {
+        // Recharger les données du projet pour obtenir la proposition créée
+        await fetchProject()
+    } catch (err) {
+        console.error('Error reloading project:', err)
+    }
+}
 
-
-
-
-
-
-
-
-
-
-
-
-// Initialize - Simplified initialization logic
+// Initialize
 onMounted(async () => {
     try {
         await fetchProject()
-        // Other modules initialize when enabled via watchers
     } catch (err) {
         console.error('Error loading project:', err)
     }
 })
-
-// Module watchers - initialize modules when enabled
-
-
-
-
-
 </script>
 
 <style scoped>
