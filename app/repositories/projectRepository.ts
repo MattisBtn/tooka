@@ -382,6 +382,7 @@ export const projectRepository: IProjectRepository = {
       .update({
         workflow_completed_at: new Date().toISOString(),
         workflow_step: 4,
+        status: "completed",
       })
       .eq("id", id)
       .eq("user_id", user.value.id)

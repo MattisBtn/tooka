@@ -68,7 +68,13 @@ export const moodboardFormSchema = z.object({
     .optional()
     .nullable(),
   status: z
-    .enum(["draft", "awaiting_client", "revision_requested", "completed"])
+    .enum([
+      "draft",
+      "awaiting_client",
+      "revision_requested",
+      "payment_pending",
+      "completed",
+    ])
     .default("draft"),
 });
 

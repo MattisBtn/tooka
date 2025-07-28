@@ -13,231 +13,62 @@
             <UProgress v-model="currentStep" :max="totalSteps" color="primary" class="mb-6" />
 
             <!-- Steps Overview -->
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <div v-for="(step, index) in steps" :key="step.key" :class="[
-                    'flex items-center gap-3 p-3 rounded-lg border transition-all',
-                    index + 1 === currentStep
-                        ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
-                        : index + 1 < currentStep
-                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-                            : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700'
-                ]">
-                    <div :class="[
-                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-                        index + 1 === currentStep
-                            ? 'bg-primary-500'
-                            : index + 1 < currentStep
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-400'
-                    ]">
-                        <UIcon v-if="index + 1 < currentStep" name="i-lucide-check" class="w-4 h-4" />
-                        <span v-else>{{ index + 1 }}</span>
-                    </div>
-                    <div>
-                        <p :class="[
-                            'text-sm font-medium',
-                            index + 1 === currentStep
-                                ? 'text-primary-700 dark:text-primary-300'
-                                : index + 1 < currentStep
-                                    ? 'text-emerald-700 dark:text-emerald-300'
-                                    : 'text-neutral-600 dark:text-neutral-400'
-                        ]">
-                            {{ step.title }}
-                        </p>
-                        <p class="text-xs text-neutral-500 dark:text-neutral-500">
-                            {{ step.description }}
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <ProjectStepper :current-step="currentStep" @step-changed="handleStepChanged" />
         </div>
+
+        <!-- Workflow Error Alert -->
+        <UAlert v-if="workflowError" color="error" variant="soft" icon="i-lucide-alert-circle" :title="workflowError"
+            class="mt-4" />
+
+        <!-- Step In Progress Alert -->
+        <UAlert v-if="stepInProgressMessage" color="warning" variant="soft" icon="i-lucide-clock"
+            :title="stepInProgressMessage" class="mt-4" />
 
         <!-- Current Step Content -->
         <div class="space-y-6">
-            <!-- Step 1: Proposition -->
-            <div v-if="currentStep === 1">
+            <!-- Dynamic Step Content -->
+            <div v-if="currentStepConfig">
                 <UCard variant="outline">
                     <template #header>
                         <div class="flex items-center gap-3">
                             <div
-                                class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white" />
+                                :class="`w-10 h-10 bg-gradient-to-br ${currentStepConfig.gradient} rounded-lg flex items-center justify-center`">
+                                <UIcon :name="currentStepConfig.icon" class="w-5 h-5 text-white" />
                             </div>
                             <div>
                                 <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
-                                    Module Proposition
+                                    {{ currentStepConfig.title }}
                                 </h3>
                                 <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    Souhaitez-vous créer une proposition commerciale pour ce projet ?
+                                    {{ getStepTitle(currentStepConfig.key) }}
                                 </p>
                             </div>
                         </div>
                     </template>
 
                     <div class="space-y-6">
-                        <!-- Feature explanation -->
+                        <!-- Existing Module (show directly if exists) -->
                         <div
-                            class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                                Qu'est-ce qu'une proposition ?
-                            </h4>
-                            <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                    <span>Devis détaillé avec contenu personnalisable</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                    <span>Gestion des acomptes et paiements</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                    <span>Signature électronique du client</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check"
-                                        class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                    <span>Fichiers joints (devis PDF, contrat)</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- Choice buttons (only show if no choice made yet) -->
-                        <div v-if="!moduleConfig.proposal.enabled && !moduleConfig.proposal.configured"
-                            class="flex flex-col sm:flex-row gap-4">
-                            <UButton icon="i-lucide-plus" color="primary" size="lg" class="flex-1 justify-center"
-                                :loading="moduleConfig.proposal.loading" @click="enableProposal">
-                                Oui, créer une proposition
-                            </UButton>
-
-                            <UButton icon="i-lucide-arrow-right" variant="outline" color="neutral" size="lg"
-                                class="flex-1 justify-center" @click="skipProposal">
-                                Non, passer à l'étape suivante
-                            </UButton>
-                        </div>
-
-                        <!-- Choice made indicator -->
-                        <div v-else-if="moduleConfig.proposal.configured && !moduleConfig.proposal.enabled"
-                            class="text-center py-4">
-                            <UBadge color="success" variant="subtle" size="lg" label="Étape ignorée"
-                                icon="i-lucide-check" />
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
-                                Vous avez choisi de ne pas utiliser de proposition pour ce projet.
-                            </p>
-                        </div>
-
-                        <!-- Proposal Module (if enabled) -->
-                        <div v-if="moduleConfig.proposal.enabled"
-                            class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                            <!-- Utiliser le nouveau module simplifié -->
-                            <ProjectProposalModuleSimple :project-id="props.projectId"
+                            v-if="currentStepConfig && getManager(currentStepConfig.key as keyof typeof managers).exists.value">
+                            <component :is="currentStepConfig.component" :project-id="props.projectId"
                                 :project-initial-price="props.projectInitialPrice"
-                                @proposal-configured="handleProposalConfigured" />
-                        </div>
-                    </div>
-                </UCard>
-            </div>
-
-            <!-- Step 2: Moodboard -->
-            <div v-if="currentStep === 2">
-                <UCard variant="outline">
-                    <template #header>
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-image" class="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
-                                    Module Moodboard
-                                </h3>
-                                <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    {{ moodboardTitle }}
-                                </p>
-                            </div>
-                        </div>
-                    </template>
-
-                    <div class="space-y-6">
-                        <!-- Existing Moodboard (show directly if exists) -->
-                        <div v-if="moodboardManager.exists.value"
-                            class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                            <ProjectMoodboardModuleSimple :project-id="props.projectId"
-                                @moodboard-configured="handleMoodboardConfigured" />
+                                @configured="(key: keyof typeof stepsConfig) => handleModuleConfigured(key)" />
                         </div>
 
-                        <!-- New Moodboard Flow (only show if no existing moodboard) -->
-                        <div v-else>
-                            <!-- Feature explanation -->
-                            <div
-                                class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                                <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                                    Qu'est-ce qu'un moodboard ?
-                                </h4>
-                                <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
-                                    <li class="flex items-start gap-2">
-                                        <UIcon name="i-lucide-check"
-                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                        <span>Planche d'inspiration visuelle pour le client</span>
-                                    </li>
-                                    <li class="flex items-start gap-2">
-                                        <UIcon name="i-lucide-check"
-                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                        <span>Validation des directions créatives</span>
-                                    </li>
-                                    <li class="flex items-start gap-2">
-                                        <UIcon name="i-lucide-check"
-                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                        <span>Commentaires et réactions du client</span>
-                                    </li>
-                                    <li class="flex items-start gap-2">
-                                        <UIcon name="i-lucide-check"
-                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                        <span>Collaboration en temps réel</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Choice buttons (only show if no choice made yet) -->
-                            <div v-if="!moduleConfig.moodboard.enabled && !moduleConfig.moodboard.configured"
-                                class="flex flex-col sm:flex-row gap-4">
-                                <UButton icon="i-lucide-plus" color="primary" size="lg" class="flex-1 justify-center"
-                                    :loading="moduleConfig.moodboard.loading" @click="enableMoodboard">
-                                    Oui, créer un moodboard
-                                </UButton>
-
-                                <UButton icon="i-lucide-arrow-right" variant="outline" color="neutral" size="lg"
-                                    class="flex-1 justify-center" @click="skipMoodboard">
-                                    Non, passer à l'étape suivante
-                                </UButton>
-                            </div>
-
-                            <!-- Choice made indicator -->
-                            <div v-else-if="moduleConfig.moodboard.configured && !moduleConfig.moodboard.enabled"
-                                class="text-center py-4">
-                                <UBadge color="success" variant="subtle" size="lg" label="Étape ignorée"
-                                    icon="i-lucide-check" />
-                                <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
-                                    Vous avez choisi de ne pas utiliser de moodboard pour ce projet.
-                                </p>
-                            </div>
-
-                            <!-- Moodboard Module (if enabled) -->
-                            <div v-if="moduleConfig.moodboard.enabled"
-                                class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                                <ProjectMoodboardModuleSimple :project-id="props.projectId"
-                                    @moodboard-configured="handleMoodboardConfigured" />
-                            </div>
+                        <!-- New Module Flow (only show if no existing module) -->
+                        <div v-else-if="currentStepConfig">
+                            <!-- Module Component (show directly since choice buttons are now in each module) -->
+                            <component :is="currentStepConfig.component" :project-id="props.projectId"
+                                :project-initial-price="props.projectInitialPrice"
+                                @configured="(key: keyof typeof stepsConfig) => handleModuleConfigured(key)" />
                         </div>
                     </div>
                 </UCard>
             </div>
 
             <!-- Step Navigation -->
-            <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
+            <div v-if="!isProjectCompleted"
+                class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
                 <UButton v-if="canGoToPreviousStep" icon="i-lucide-arrow-left" variant="ghost" color="neutral"
                     label="Étape précédente" @click="previousStep" />
                 <div v-else />
@@ -253,85 +84,165 @@
                         :disabled="!canProceedToNextStep" @click="completeOnboarding" />
                 </div>
             </div>
-
-            <!-- Workflow Error Alert -->
-            <UAlert v-if="workflowError" color="error" variant="soft" icon="i-lucide-alert-circle"
-                :title="workflowError" class="mt-4" />
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
+import { useGalleryManager } from '~/composables/galleries/useGalleryManager'
 import { useMoodboardManager } from '~/composables/moodboards/useMoodboardManager'
+import { useProposalManager } from '~/composables/proposals/useProposalManager'
+import { useSelectionManager } from '~/composables/selections/useSelectionManager'
 import { useModuleState } from '~/composables/shared/useModuleState'
+import type { WorkflowStep } from '~/types/project'
+
+// Import des composants
+import ProjectGalleryModuleSimple from '~/components/project/gallery/GalleryModuleSimple.vue'
+import ProjectMoodboardModuleSimple from '~/components/project/moodboard/MoodboardModuleSimple.vue'
+import ProjectProposalModuleSimple from '~/components/project/proposal/ProposalModuleSimple.vue'
+import ProjectSelectionModuleSimple from '~/components/project/selection/SelectionModuleSimple.vue'
 
 interface Props {
     projectId: string
     projectInitialPrice?: number
-    existingProposal?: {
-        id: string
-        content_json: unknown
-        content_html: string
-        status: "draft" | "awaiting_client" | "revision_requested" | "completed" | "payment_pending"
-        price: number
-        deposit_required: boolean
-        deposit_amount: number | null
-        contract_url: string | null
-        quote_url: string | null
-    } | null
 }
 
 const props = defineProps<Props>()
 
-// Step configuration
-const steps = [
-    {
-        key: 'proposal',
+// Configuration centralisée des étapes
+const stepsConfig = {
+    proposal: {
+        key: 'proposal' as const,
         title: 'Proposition',
-        description: 'Devis et contrat'
+        icon: 'i-lucide-file-check',
+        gradient: 'from-emerald-500 to-emerald-600',
+        color: 'text-emerald-500',
+        explanationTitle: 'Qu\'est-ce qu\'une proposition ?',
+        features: [
+            'Devis détaillé avec contenu personnalisable',
+            'Gestion des acomptes et paiements',
+            'Signature électronique du client',
+            'Fichiers joints (devis PDF, contrat)'
+        ],
+        enableButtonText: 'Oui, créer une proposition',
+        skipMessage: 'Vous avez choisi de ne pas utiliser de proposition pour ce projet.',
+        component: ProjectProposalModuleSimple
     },
-    {
-        key: 'moodboard',
+    moodboard: {
+        key: 'moodboard' as const,
         title: 'Moodboard',
-        description: 'Inspiration visuelle'
+        icon: 'i-lucide-image',
+        gradient: 'from-pink-500 to-pink-600',
+        color: 'text-pink-500',
+        explanationTitle: 'Qu\'est-ce qu\'un moodboard ?',
+        features: [
+            'Planche d\'inspiration visuelle pour le client',
+            'Validation des directions créatives',
+            'Commentaires et réactions du client',
+            'Collaboration en temps réel'
+        ],
+        enableButtonText: 'Oui, créer un moodboard',
+        skipMessage: 'Vous avez choisi de ne pas utiliser de moodboard pour ce projet.',
+        component: ProjectMoodboardModuleSimple
     },
-    {
-        key: 'selection',
+    selection: {
+        key: 'selection' as const,
         title: 'Sélection',
-        description: 'Choix client'
+        icon: 'i-lucide-mouse-pointer-click',
+        gradient: 'from-orange-500 to-orange-600',
+        color: 'text-orange-500',
+        explanationTitle: 'Qu\'est-ce qu\'une sélection ?',
+        features: [
+            'Sélection d\'images par le client',
+            'Validation des choix finaux',
+            'Gestion des médias supplémentaires',
+            'Interface intuitive de sélection'
+        ],
+        enableButtonText: 'Oui, créer une sélection',
+        skipMessage: 'Vous avez choisi de ne pas utiliser de sélection pour ce projet.',
+        component: ProjectSelectionModuleSimple
     },
-    {
-        key: 'gallery',
+    gallery: {
+        key: 'gallery' as const,
         title: 'Galerie',
-        description: 'Livrable final'
+        icon: 'i-lucide-images',
+        gradient: 'from-violet-500 to-violet-600',
+        color: 'text-violet-500',
+        explanationTitle: 'Qu\'est-ce qu\'une galerie ?',
+        features: [
+            'Livrable final pour le client',
+            'Téléchargement en haute résolution',
+            'Gestion des paiements',
+            'Interface client sécurisée'
+        ],
+        enableButtonText: 'Oui, créer une galerie',
+        skipMessage: 'Vous avez choisi de ne pas utiliser de galerie pour ce projet.',
+        component: ProjectGalleryModuleSimple
     }
-]
+}
 
-const totalSteps = steps.length
+const totalSteps = Object.keys(stepsConfig).length
 const currentStep = ref(1)
 
 // Utiliser le composable centralisé pour l'état des modules
 const {
-    moduleConfig,
-    enableModule,
     configureModule,
+    enableModule,
     canContinueToNextStep: _canContinueToNextStep,
     loadProject,
     startWorkflow,
     goToNextStep,
+    canViewStep,
+    hasStepInProgress,
+    getStepInProgress,
     project
 } = useModuleState(props.projectId)
 
-// Utiliser le composable pour gérer le moodboard
-const moodboardManager = useMoodboardManager(props.projectId)
+// Managers
+const managers = {
+    proposal: useProposalManager(props.projectId),
+    moodboard: useMoodboardManager(props.projectId),
+    selection: useSelectionManager(props.projectId),
+    gallery: useGalleryManager(props.projectId)
+}
 
 // Computed properties
 const canContinueToNextStep = computed(() => _canContinueToNextStep(currentStep.value))
 
-// Computed pour le texte du moodboard
-const moodboardTitle = computed(() => {
-    return moodboardManager.exists.value ? 'Moodboard existant' : 'Souhaitez-vous créer un moodboard d\'inspiration pour ce projet ?'
+// Computed pour vérifier si un step peut être consulté
+const canViewStepComputed = (stepNumber: number) => canViewStep(stepNumber as WorkflowStep)
+
+// Computed pour obtenir la configuration de l'étape actuelle
+const currentStepConfig = computed(() => {
+    const stepKeys = Object.keys(stepsConfig) as Array<keyof typeof stepsConfig>
+    const currentKey = stepKeys[currentStep.value - 1]
+    return currentKey ? stepsConfig[currentKey] : null
 })
+
+// Méthodes génériques
+const getManager = (key: keyof typeof managers) => managers[key]
+
+const getStepTitle = (key: keyof typeof stepsConfig) => {
+    const manager = getManager(key)
+    const exists = manager.exists.value
+    const config = stepsConfig[key]
+
+    if (exists) {
+        const titles = {
+            proposal: 'Proposition existante',
+            moodboard: 'Moodboard existant',
+            selection: 'Sélection existante',
+            gallery: 'Galerie existante'
+        }
+        return titles[key]
+    }
+
+    return `Souhaitez-vous créer ${config?.title.toLowerCase()} pour ce projet ?`
+}
+
+const handleModuleConfigured = (key: keyof typeof stepsConfig) => {
+    configureModule(key)
+}
 
 // Workflow error state
 const workflowError = ref<string | null>(null)
@@ -343,94 +254,30 @@ const syncCurrentStep = () => {
     }
 }
 
-// Methods
-const enableProposal = () => {
-    // Utiliser la méthode du composable centralisé
-    enableModule('proposal', { showForm: true }) // Afficher directement le formulaire
-
-    const toast = useToast()
-    toast.add({
-        title: 'Module activé',
-        description: 'Le module proposition est maintenant disponible.',
-        icon: 'i-lucide-check-circle',
-        color: 'success'
-    })
+// Handler pour les changements de step depuis le ProjectStepper
+const handleStepChanged = (stepNumber: number) => {
+    currentStep.value = stepNumber
+    workflowError.value = null
 }
 
-const skipProposal = () => {
-    // Utiliser la méthode du composable centralisé
-    configureModule('proposal') // Marqué comme "configuré" puisque skippé
-
-    const toast = useToast()
-    toast.add({
-        title: 'Étape ignorée',
-        description: 'Le module proposition a été ignoré. Vous pourrez l\'activer plus tard si nécessaire.',
-        icon: 'i-lucide-info',
-        color: 'info'
-    })
-}
-
-const handleProposalConfigured = () => {
-    // Marquer comme configuré quand le module notifie la fin
-    configureModule('proposal')
-}
-
-// Moodboard methods
-const enableMoodboard = () => {
-    // Utiliser la méthode du composable centralisé
-    enableModule('moodboard', { showForm: true }) // Afficher directement le formulaire
-
-    const toast = useToast()
-    toast.add({
-        title: 'Module activé',
-        description: 'Le module moodboard est maintenant disponible.',
-        icon: 'i-lucide-check-circle',
-        color: 'success'
-    })
-}
-
-const skipMoodboard = () => {
-    // Utiliser la méthode du composable centralisé
-    configureModule('moodboard') // Marqué comme "configuré" puisque skippé
-
-    const toast = useToast()
-    toast.add({
-        title: 'Étape ignorée',
-        description: 'Le module moodboard a été ignoré. Vous pourrez l\'activer plus tard si nécessaire.',
-        icon: 'i-lucide-info',
-        color: 'info'
-    })
-}
-
-const handleMoodboardConfigured = () => {
-    // Marquer comme configuré quand le module notifie la fin
-    configureModule('moodboard')
-}
-
+// Navigation methods
 const nextStep = async () => {
     if (currentStep.value < totalSteps) {
         try {
-            // Vérifier si on peut passer à l'étape suivante
             if (!canContinueToNextStep.value) {
                 workflowError.value = "L'étape courante doit être terminée avant de continuer"
                 return
             }
 
-            // Mettre à jour le workflow step seulement si on avance réellement
             const nextStepNumber = currentStep.value + 1
-            await goToNextStep(currentStep.value)
+            if (!canViewStepComputed(nextStepNumber)) {
+                workflowError.value = "Le step suivant ne peut pas être consulté car un step plus avancé est configuré"
+                return
+            }
 
-            // Passer à l'étape suivante
+            await goToNextStep(currentStep.value)
             currentStep.value = nextStepNumber
             workflowError.value = null
-
-            const toast = useToast()
-            toast.add({
-                title: 'Étape suivante',
-                description: `Passage à l'étape ${currentStep.value}`,
-                icon: 'i-lucide-arrow-right',
-                color: 'success'
-            })
         } catch (error) {
             console.error('Error going to next step:', error)
             workflowError.value = "Erreur lors du passage à l'étape suivante"
@@ -441,20 +288,15 @@ const nextStep = async () => {
 const previousStep = async () => {
     if (currentStep.value > 1) {
         try {
-            // Mettre à jour le workflow step pour revenir en arrière
             const previousStepNumber = currentStep.value - 1
-            await goToNextStep(previousStepNumber)
+            if (!canViewStepComputed(previousStepNumber)) {
+                workflowError.value = "Le step précédent ne peut pas être consulté car un step plus avancé est configuré"
+                return
+            }
 
+            await goToNextStep(previousStepNumber)
             currentStep.value = previousStepNumber
             workflowError.value = null
-
-            const toast = useToast()
-            toast.add({
-                title: 'Étape précédente',
-                description: `Retour à l'étape ${currentStep.value}`,
-                icon: 'i-lucide-arrow-left',
-                color: 'info'
-            })
         } catch (error) {
             console.error('Error going to previous step:', error)
             workflowError.value = "Erreur lors du retour à l'étape précédente"
@@ -471,13 +313,11 @@ const saveAndExit = () => {
         color: 'success'
     })
 
-    // Rediriger vers la liste des projets
     navigateTo('/projects')
 }
 
 const completeOnboarding = async () => {
     try {
-        // Marquer le workflow comme terminé
         const { projectService } = await import('~/services/projectService')
         await projectService.completeWorkflow(props.projectId)
 
@@ -489,7 +329,6 @@ const completeOnboarding = async () => {
             color: 'success'
         })
 
-        // Rediriger vers la liste des projets
         navigateTo('/projects')
     } catch (error) {
         console.error('Error completing onboarding:', error)
@@ -497,84 +336,82 @@ const completeOnboarding = async () => {
     }
 }
 
-// Computed pour vérifier si on peut passer à l'étape suivante
+// Computed properties
 const canProceedToNextStep = computed(() => {
-    if (!project.value) return false
-
-    // Vérifier si le workflow a commencé
-    if (!project.value.workflow_started_at) return true // Première fois
-
-    // Vérifier si l'étape courante est terminée
-    const currentStepModule = steps[currentStep.value - 1]?.key
-    if (!currentStepModule) return false
-
-    // Fonction helper pour vérifier le statut du module
-    const isModuleCompleted = (moduleKey: string) => {
-        switch (moduleKey) {
-            case 'proposal':
-                return project.value?.proposal?.status === 'completed'
-            case 'moodboard':
-                return project.value?.moodboard?.status === 'completed'
-            case 'selection':
-                return project.value?.selection?.status === 'completed'
-            case 'gallery':
-                return project.value?.gallery?.status === 'completed'
-            default:
-                return false
-        }
+    const canContinue = canContinueToNextStep.value
+    if (hasStepInProgress()) {
+        return false
     }
-
-    return isModuleCompleted(currentStepModule)
+    return canContinue
 })
 
-// Computed pour vérifier si on peut revenir à l'étape précédente
 const canGoToPreviousStep = computed(() => {
     if (!project.value) return false
-
-    // On peut toujours revenir à l'étape précédente si on n'est pas à la première étape
     return currentStep.value > 1
 })
 
-// Computed pour vérifier si l'étape actuelle est la dernière étape
 const isLastStep = computed(() => {
     return currentStep.value === totalSteps
 })
 
-// Initialize state based on existing proposal
-watchEffect(() => {
-    if (props.existingProposal) {
-        // Si une proposition existe déjà, marquer comme configuré et activé
-        enableModule('proposal', { showForm: false })
-        configureModule('proposal')
+const stepInProgressMessage = computed(() => {
+    const stepInProgress = getStepInProgress()
+    if (!stepInProgress) return null
+
+    const stepNames = {
+        1: 'Proposition',
+        2: 'Moodboard',
+        3: 'Sélection',
+        4: 'Galerie'
     }
+
+    return `Vous devez d'abord terminer ou supprimer votre ${stepNames[stepInProgress]} (étape ${stepInProgress}) avant de configurer un autre module.`
+})
+
+const isProjectCompleted = computed(() => {
+    return project.value?.workflow_completed_at !== null &&
+        project.value?.workflow_completed_at !== undefined &&
+        project.value?.status === "completed"
 })
 
 // Synchroniser le currentStep quand le projet change
 watch(project, () => {
     syncCurrentStep()
+    // Reset les erreurs de workflow quand le projet change
+    workflowError.value = null
 }, { immediate: true })
+
+// Watcher pour les changements dans les managers (après suppression/modification)
+watch(() => [
+    managers.proposal.exists.value,
+    managers.moodboard.exists.value,
+    managers.selection.exists.value,
+    managers.gallery.exists.value
+], () => {
+    // Resynchroniser le currentStep après changements dans les managers
+    syncCurrentStep()
+    workflowError.value = null
+}, { deep: true })
 
 // Charger le projet et démarrer le workflow au montage
 onMounted(async () => {
     try {
-        // Charger les données du projet
         await loadProject()
 
-        // Démarrer le workflow si pas encore commencé
         if (project.value && !project.value.workflow_started_at) {
             await startWorkflow()
         }
 
-        // Charger le moodboard
-        await moodboardManager.load()
+        // Charger tous les managers et configurer les modules existants
+        for (const [key, manager] of Object.entries(managers)) {
+            await manager.load()
 
-        // Si un moodboard existe déjà, le marquer comme configuré
-        if (moodboardManager.exists.value) {
-            enableModule('moodboard', { showForm: false })
-            configureModule('moodboard')
+            if (manager.exists.value) {
+                enableModule(key as keyof typeof managers, { showForm: false })
+                configureModule(key as keyof typeof managers)
+            }
         }
 
-        // Synchroniser le currentStep avec le workflow_step du projet
         syncCurrentStep()
     } catch (error) {
         console.error('Error initializing onboarding:', error)

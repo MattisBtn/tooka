@@ -27,8 +27,7 @@
 
             <!-- Module Onboarding -->
             <ProjectModuleOnboarding :project-id="projectId"
-                :project-initial-price="project?.initial_price || undefined"
-                :existing-proposal="project?.proposal || null" />
+                :project-initial-price="project?.initial_price || undefined" />
         </div>
     </div>
 </template>

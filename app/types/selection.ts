@@ -98,9 +98,13 @@ export const selectionFormSchema = z.object({
     .min(0, "Le prix doit être positif")
     .optional()
     .nullable(),
-  status: z
-    .enum(["draft", "awaiting_client", "revision_requested", "completed"])
-    .default("draft"),
+  status: z.enum([
+    "draft",
+    "awaiting_client",
+    "revision_requested",
+    "completed",
+    "payment_pending",
+  ]),
 });
 
 export type SelectionFormData = z.infer<typeof selectionFormSchema>;

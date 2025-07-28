@@ -4,6 +4,7 @@ import {
   type GalleryFormData,
   type GalleryImage,
   type GalleryPricing,
+  type ProjectPaymentData,
 } from "~/types/gallery";
 
 // Interface pour les infos de paiement de la proposition
@@ -13,11 +14,21 @@ interface ProposalPaymentInfo {
   deposit_amount: number | null;
 }
 
+// Interface pour les données du projet
+interface Project {
+  id: string;
+  payment_method: "stripe" | "bank_transfer" | null;
+  bank_iban: string | null;
+  bank_bic: string | null;
+  bank_beneficiary: string | null;
+}
+
 export const useGalleryForm = (
   gallery?: Gallery,
   existingImages?: GalleryImage[],
   pricing?: GalleryPricing,
-  proposalPaymentInfo?: ProposalPaymentInfo
+  proposalPaymentInfo?: ProposalPaymentInfo,
+  project?: Project
 ) => {
   const isEditMode = computed(() => !!gallery);
 
@@ -28,6 +39,14 @@ export const useGalleryForm = (
       (pricing ? pricing.remainingAmount > 0 : true),
     selection_id: gallery?.selection_id || null,
     status: gallery?.status || "draft",
+  });
+
+  // Project payment state (données de paiement du projet)
+  const projectState = reactive<ProjectPaymentData>({
+    payment_method: project?.payment_method || null,
+    bank_iban: project?.bank_iban || null,
+    bank_bic: project?.bank_bic || null,
+    bank_beneficiary: project?.bank_beneficiary || null,
   });
 
   // Payment method info from proposal
@@ -62,6 +81,27 @@ export const useGalleryForm = (
   const totalImageCount = computed(
     () => images.value.length + selectedFiles.value.length
   );
+
+  // Check if payment information is required but missing
+  const isPaymentInfoRequired = computed(() => {
+    return state.payment_required && pricing && pricing.remainingAmount > 0;
+  });
+
+  const isPaymentInfoMissing = computed(() => {
+    if (!isPaymentInfoRequired.value) return false;
+
+    // Si payment_method est bank_transfer, vérifier que les coordonnées bancaires sont renseignées
+    if (projectState.payment_method === "bank_transfer") {
+      return (
+        !projectState.bank_iban ||
+        !projectState.bank_bic ||
+        !projectState.bank_beneficiary
+      );
+    }
+
+    // Si payment_method n'est pas défini, les informations sont manquantes
+    return !projectState.payment_method;
+  });
 
   // File handling
   const addFiles = (files: File[]) => {
@@ -147,6 +187,7 @@ export const useGalleryForm = (
   return {
     // State
     state,
+    projectState,
     schema,
     isEditMode,
     selectedFiles: readonly(selectedFiles),
@@ -162,6 +203,8 @@ export const useGalleryForm = (
     formattedDepositPaid,
     formattedRemainingAmount,
     paymentMethodInfo,
+    isPaymentInfoRequired,
+    isPaymentInfoMissing,
 
     // Pricing data
     pricing: readonly(ref(pricing)),
