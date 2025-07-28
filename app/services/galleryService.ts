@@ -1,5 +1,6 @@
 import { galleryImageRepository } from "~/repositories/galleryImageRepository";
 import { galleryRepository } from "~/repositories/galleryRepository";
+import { projectService } from "~/services/projectService";
 import { proposalService } from "~/services/proposalService";
 import type {
   Gallery,
@@ -77,33 +78,50 @@ export const galleryService = {
   },
 
   /**
-   * Calculate gallery pricing based on proposal
+   * Calculate gallery pricing based on proposal or project data
    */
   async calculateGalleryPricing(projectId: string): Promise<GalleryPricing> {
     const proposal = await proposalService.getProposalByProjectId(projectId);
 
-    if (!proposal) {
+    if (proposal) {
+      // Use proposal data if available
+      const basePrice = proposal.price;
+      const depositPaid =
+        proposal.deposit_required && proposal.deposit_amount
+          ? proposal.deposit_amount
+          : 0;
+      const remainingAmount = basePrice - depositPaid;
+
       return {
-        basePrice: 0,
-        depositPaid: 0,
-        remainingAmount: 0,
-        paymentRequired: false,
+        basePrice,
+        depositPaid,
+        remainingAmount,
+        paymentRequired: remainingAmount > 0,
+      };
+    } else {
+      // Use project data when no proposal exists
+      const project = await projectService.getProjectById(projectId);
+
+      if (!project) {
+        return {
+          basePrice: 0,
+          depositPaid: 0,
+          remainingAmount: 0,
+          paymentRequired: false,
+        };
+      }
+
+      const basePrice = project.initial_price || 0;
+      const remainingAmount = project.remaining_amount || 0;
+      const depositPaid = basePrice - remainingAmount;
+
+      return {
+        basePrice,
+        depositPaid,
+        remainingAmount,
+        paymentRequired: remainingAmount > 0,
       };
     }
-
-    const basePrice = proposal.price;
-    const depositPaid =
-      proposal.deposit_required && proposal.deposit_amount
-        ? proposal.deposit_amount
-        : 0;
-    const remainingAmount = basePrice - depositPaid;
-
-    return {
-      basePrice,
-      depositPaid,
-      remainingAmount,
-      paymentRequired: remainingAmount > 0,
-    };
   },
 
   /**

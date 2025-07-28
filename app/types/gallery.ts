@@ -74,7 +74,30 @@ export const galleryFormSchema = z.object({
     .default("draft"),
 });
 
+// Schema de validation pour le projet avec paiement (utilisé dans le formulaire)
+export const projectPaymentSchema = z
+  .object({
+    payment_method: z.enum(["stripe", "bank_transfer"]).nullable(),
+    bank_iban: z.string().nullable(),
+    bank_bic: z.string().nullable(),
+    bank_beneficiary: z.string().nullable(),
+  })
+  .refine(
+    (data) => {
+      // Si payment_method est bank_transfer, les champs bancaires sont requis
+      if (data.payment_method === "bank_transfer") {
+        return data.bank_iban && data.bank_bic && data.bank_beneficiary;
+      }
+      return true;
+    },
+    {
+      message: "Les coordonnées bancaires sont requises pour les virements",
+      path: ["bank_iban"],
+    }
+  );
+
 export type GalleryFormData = z.infer<typeof galleryFormSchema>;
+export type ProjectPaymentData = z.infer<typeof projectPaymentSchema>;
 
 // Gallery with project and images information for display
 export interface GalleryWithDetails extends Gallery {

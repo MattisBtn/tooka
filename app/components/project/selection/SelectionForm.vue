@@ -255,7 +255,7 @@ const emit = defineEmits<Emits>();
 const state = reactive<SelectionFormData>({
     max_media_selection: props.selection?.max_media_selection || 10,
     extra_media_price: props.selection?.extra_media_price || null,
-    status: props.selection?.status || "draft",
+    status: (props.selection?.status || "draft") as "draft" | "awaiting_client" | "revision_requested" | "completed" | "payment_pending",
 });
 
 // File upload states

@@ -4,6 +4,7 @@ import type {
   IProjectRepository,
   Project,
   ProjectWithClient,
+  WorkflowStep,
 } from "~/types/project";
 
 export const projectRepository: IProjectRepository = {
@@ -312,5 +313,86 @@ export const projectRepository: IProjectRepository = {
     if (error) {
       throw new Error(`Failed to delete project: ${error.message}`);
     }
+  },
+
+  // Workflow methods
+  async startWorkflow(id: string): Promise<Project> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour démarrer le workflow");
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        workflow_started_at: new Date().toISOString(),
+        workflow_step: 1,
+      })
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to start workflow: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  async updateWorkflowStep(id: string, step: WorkflowStep): Promise<Project> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error(
+        "Vous devez être connecté pour mettre à jour le workflow"
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        workflow_step: step,
+      })
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update workflow step: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  async completeWorkflow(id: string): Promise<Project> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour terminer le workflow");
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        workflow_completed_at: new Date().toISOString(),
+        workflow_step: 4,
+        status: "completed",
+      })
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to complete workflow: ${error.message}`);
+    }
+
+    return data;
   },
 };
