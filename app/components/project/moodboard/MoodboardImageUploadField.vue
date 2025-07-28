@@ -1,29 +1,11 @@
 <template>
     <div class="space-y-4">
-        <!-- File Input -->
-        <div class="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-6 text-center hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors"
-            :class="{ 'border-pink-500 bg-pink-50 dark:bg-pink-900/20': isDragOver }"
-            @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop">
-
-            <UIcon name="i-lucide-image-plus" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-
-            <div class="space-y-2">
-                <p class="text-lg font-medium text-neutral-900 dark:text-neutral-100">
-                    Glissez-déposez vos images d'inspiration ici
-                </p>
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                    ou cliquez pour sélectionner des fichiers
-                </p>
-                <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                    Formats supportés: JPG, PNG, WebP • Max {{ maxFiles }} images • 10MB par image
-                </p>
-            </div>
-
-            <input ref="fileInput" type="file" multiple accept="image/*" class="hidden" @change="handleFileSelect">
-
-            <UButton icon="i-lucide-palette" color="primary" variant="outline" label="Ajouter des images d'inspiration"
-                class="mt-4" @click="fileInput?.click()" />
-        </div>
+        <!-- File Upload using UFileUpload -->
+        <UFileUpload v-model="selectedFiles" multiple accept="image/*" :max="maxFiles" :max-size="maxFileSize"
+            label="Glissez-déposez vos images d'inspiration ici"
+            :description="`Formats supportés: JPG, PNG, WebP • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
+            icon="i-lucide-palette" color="primary" variant="area" size="lg" class="w-full min-h-48"
+            @error="handleUploadError" />
 
         <!-- Selected Files Preview -->
         <div v-if="selectedFiles.length > 0" class="space-y-3">
@@ -103,8 +85,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 // Local state
-const fileInput = ref<HTMLInputElement>()
-const isDragOver = ref(false)
 const selectedFiles = ref<File[]>([...props.modelValue])
 const errors = ref<string[]>([])
 
@@ -118,86 +98,30 @@ const emitUpdate = () => {
     emit('update:modelValue', [...selectedFiles.value])
 }
 
-// File handling methods
-const validateFile = (file: File): string | null => {
-    if (!file.type.startsWith('image/')) {
-        return `${file.name}: Type de fichier non supporté (images uniquement)`
-    }
-
-    if (file.size > props.maxFileSize) {
-        return `${file.name}: Fichier trop volumineux (max ${formatFileSize(props.maxFileSize)})`
-    }
-
-    return null
-}
-
-const addFiles = (files: FileList | File[]) => {
-    const fileArray = Array.from(files)
-    const newErrors: string[] = []
-    const validFiles: File[] = []
-
-    // Check total file count
-    if (selectedFiles.value.length + fileArray.length > props.maxFiles) {
-        newErrors.push(`Nombre maximum d'images dépassé (max ${props.maxFiles} pour un moodboard)`)
-        return
-    }
-
-    // Validate each file
-    for (const file of fileArray) {
-        const error = validateFile(file)
-        if (error) {
-            newErrors.push(error)
-        } else {
-            // Check for duplicates
-            const isDuplicate = selectedFiles.value.some(
-                existingFile => existingFile.name === file.name && existingFile.size === file.size
-            )
-            if (!isDuplicate) {
-                validFiles.push(file)
-            } else {
-                newErrors.push(`${file.name}: Image déjà sélectionnée`)
-            }
-        }
-    }
-
-    // Update state
-    errors.value = newErrors
-    selectedFiles.value.push(...validFiles)
+// Watch selectedFiles for changes and emit updates
+watch(selectedFiles, () => {
     emitUpdate()
+}, { deep: true })
 
-    // Clear errors after a delay if files were successfully added
-    if (validFiles.length > 0 && newErrors.length === 0) {
+// Handle upload errors from UFileUpload
+const handleUploadError = (error: { message?: string }) => {
+    if (error.message) {
+        errors.value = [error.message]
+        // Clear errors after a delay
         setTimeout(() => {
             errors.value = []
         }, 3000)
     }
 }
 
-const handleFileSelect = (event: Event) => {
-    const target = event.target as HTMLInputElement
-    if (target.files) {
-        addFiles(target.files)
-        target.value = '' // Reset input
-    }
-}
-
-const handleDrop = (event: DragEvent) => {
-    isDragOver.value = false
-    if (event.dataTransfer?.files) {
-        addFiles(event.dataTransfer.files)
-    }
-}
-
 const removeFile = (index: number) => {
     selectedFiles.value.splice(index, 1)
     errors.value = [] // Clear errors when manually removing files
-    emitUpdate()
 }
 
 const clearFiles = () => {
     selectedFiles.value = []
     errors.value = []
-    emitUpdate()
 }
 
 // Utility methods

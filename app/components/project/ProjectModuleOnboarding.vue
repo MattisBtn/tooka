@@ -158,68 +158,82 @@
                                     Module Moodboard
                                 </h3>
                                 <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    Souhaitez-vous créer un moodboard d'inspiration pour ce projet ?
+                                    {{ moodboardTitle }}
                                 </p>
                             </div>
                         </div>
                     </template>
 
                     <div class="space-y-6">
-                        <!-- Feature explanation -->
-                        <div
-                            class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                                Qu'est-ce qu'un moodboard ?
-                            </h4>
-                            <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                    <span>Planche d'inspiration visuelle pour le client</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                    <span>Validation des directions créatives</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                    <span>Commentaires et réactions du client</span>
-                                </li>
-                                <li class="flex items-start gap-2">
-                                    <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                                    <span>Collaboration en temps réel</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- Choice buttons (only show if no choice made yet) -->
-                        <div v-if="!moduleConfig.moodboard.enabled && !moduleConfig.moodboard.configured"
-                            class="flex flex-col sm:flex-row gap-4">
-                            <UButton icon="i-lucide-plus" color="primary" size="lg" class="flex-1 justify-center"
-                                :loading="moduleConfig.moodboard.loading" @click="enableMoodboard">
-                                Oui, créer un moodboard
-                            </UButton>
-
-                            <UButton icon="i-lucide-arrow-right" variant="outline" color="neutral" size="lg"
-                                class="flex-1 justify-center" @click="skipMoodboard">
-                                Non, passer à l'étape suivante
-                            </UButton>
-                        </div>
-
-                        <!-- Choice made indicator -->
-                        <div v-else-if="moduleConfig.moodboard.configured && !moduleConfig.moodboard.enabled"
-                            class="text-center py-4">
-                            <UBadge color="success" variant="subtle" size="lg" label="Étape ignorée"
-                                icon="i-lucide-check" />
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
-                                Vous avez choisi de ne pas utiliser de moodboard pour ce projet.
-                            </p>
-                        </div>
-
-                        <!-- Moodboard Module (if enabled) -->
-                        <div v-if="moduleConfig.moodboard.enabled"
+                        <!-- Existing Moodboard (show directly if exists) -->
+                        <div v-if="moodboardManager.exists.value"
                             class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
                             <ProjectMoodboardModuleSimple :project-id="props.projectId"
                                 @moodboard-configured="handleMoodboardConfigured" />
+                        </div>
+
+                        <!-- New Moodboard Flow (only show if no existing moodboard) -->
+                        <div v-else>
+                            <!-- Feature explanation -->
+                            <div
+                                class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                                    Qu'est-ce qu'un moodboard ?
+                                </h4>
+                                <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
+                                    <li class="flex items-start gap-2">
+                                        <UIcon name="i-lucide-check"
+                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                        <span>Planche d'inspiration visuelle pour le client</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <UIcon name="i-lucide-check"
+                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                        <span>Validation des directions créatives</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <UIcon name="i-lucide-check"
+                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                        <span>Commentaires et réactions du client</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <UIcon name="i-lucide-check"
+                                            class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                        <span>Collaboration en temps réel</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Choice buttons (only show if no choice made yet) -->
+                            <div v-if="!moduleConfig.moodboard.enabled && !moduleConfig.moodboard.configured"
+                                class="flex flex-col sm:flex-row gap-4">
+                                <UButton icon="i-lucide-plus" color="primary" size="lg" class="flex-1 justify-center"
+                                    :loading="moduleConfig.moodboard.loading" @click="enableMoodboard">
+                                    Oui, créer un moodboard
+                                </UButton>
+
+                                <UButton icon="i-lucide-arrow-right" variant="outline" color="neutral" size="lg"
+                                    class="flex-1 justify-center" @click="skipMoodboard">
+                                    Non, passer à l'étape suivante
+                                </UButton>
+                            </div>
+
+                            <!-- Choice made indicator -->
+                            <div v-else-if="moduleConfig.moodboard.configured && !moduleConfig.moodboard.enabled"
+                                class="text-center py-4">
+                                <UBadge color="success" variant="subtle" size="lg" label="Étape ignorée"
+                                    icon="i-lucide-check" />
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-2">
+                                    Vous avez choisi de ne pas utiliser de moodboard pour ce projet.
+                                </p>
+                            </div>
+
+                            <!-- Moodboard Module (if enabled) -->
+                            <div v-if="moduleConfig.moodboard.enabled"
+                                class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                                <ProjectMoodboardModuleSimple :project-id="props.projectId"
+                                    @moodboard-configured="handleMoodboardConfigured" />
+                            </div>
                         </div>
                     </div>
                 </UCard>
@@ -244,6 +258,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useMoodboardManager } from '~/composables/moodboards/useMoodboardManager'
 import { useModuleState } from '~/composables/shared/useModuleState'
 
 interface Props {
@@ -299,8 +314,16 @@ const currentStep = ref(1)
 // Utiliser le composable centralisé pour l'état des modules
 const { moduleConfig, enableModule, configureModule, canContinueToNextStep: _canContinueToNextStep } = useModuleState(props.projectId)
 
+// Utiliser le composable pour gérer le moodboard
+const moodboardManager = useMoodboardManager(props.projectId)
+
 // Computed properties
 const canContinueToNextStep = computed(() => _canContinueToNextStep(currentStep.value))
+
+// Computed pour le texte du moodboard
+const moodboardTitle = computed(() => {
+    return moodboardManager.exists.value ? 'Moodboard existant' : 'Souhaitez-vous créer un moodboard d\'inspiration pour ce projet ?'
+})
 
 // Methods
 const enableProposal = () => {
@@ -400,6 +423,17 @@ watchEffect(() => {
         // Si une proposition existe déjà, marquer comme configuré et activé
         enableModule('proposal', { showForm: false })
         configureModule('proposal')
+    }
+})
+
+// Charger le moodboard au montage pour vérifier s'il existe
+onMounted(async () => {
+    await moodboardManager.load()
+
+    // Si un moodboard existe déjà, le marquer comme configuré
+    if (moodboardManager.exists.value) {
+        enableModule('moodboard', { showForm: false })
+        configureModule('moodboard')
     }
 })
 </script>
