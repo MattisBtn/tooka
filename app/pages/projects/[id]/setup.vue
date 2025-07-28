@@ -28,13 +28,7 @@
             <!-- Module Onboarding -->
             <ProjectModuleOnboarding :project-id="projectId"
                 :project-initial-price="project?.initial_price || undefined"
-                :existing-proposal="project?.proposal || null" @proposal-created="handleProposalCreated" />
-
-            <!-- Action Buttons -->
-            <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-                <UButton icon="i-lucide-arrow-left" variant="ghost" color="neutral" label="Retour aux projets"
-                    @click="navigateTo('/projects')" />
-            </div>
+                :existing-proposal="project?.proposal || null" />
         </div>
     </div>
 </template>
@@ -76,16 +70,6 @@ const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
 useHead({
     title: computed(() => project.value ? `Configuration - ${project.value.title}` : 'Configuration du projet'),
 })
-
-// Handle proposal creation event
-const handleProposalCreated = async () => {
-    try {
-        // Recharger les données du projet pour obtenir la proposition créée
-        await fetchProject()
-    } catch (err) {
-        console.error('Error reloading project:', err)
-    }
-}
 
 // Initialize
 onMounted(async () => {

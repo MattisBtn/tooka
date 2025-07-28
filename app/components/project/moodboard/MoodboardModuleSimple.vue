@@ -60,7 +60,7 @@
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2 mb-4">
                         <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral"
-                            label="Modifier le moodboard" :disabled="!moodboardManager.canEdit.value"
+                            label="Modifier le moodboard" :disabled="!moodboardManager.canEdit.value || !canEditModule"
                             @click="showForm = true" />
 
                         <UButton v-if="moodboardManager.moodboard.value?.status !== 'draft'"
@@ -70,7 +70,8 @@
 
                         <UButton v-if="moodboardManager.moodboard.value?.status === 'draft'" icon="i-lucide-trash-2"
                             size="sm" variant="outline" color="error" label="Supprimer"
-                            :loading="moodboardManager.loading.value" @click="handleDelete" />
+                            :loading="moodboardManager.loading.value" :disabled="!canDeleteModule"
+                            @click="handleDelete" />
                     </div>
 
                     <!-- Image Preview Grid -->
@@ -153,7 +154,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 // Utiliser le state centralisé pour le showForm
-const { moduleConfig, configureModule, enableModule } = useModuleState(props.projectId)
+const { moduleConfig, configureModule, enableModule, canEditModule, canDeleteModule } = useModuleState(props.projectId)
 const showForm = computed({
     get: () => moduleConfig.value.moodboard.showForm,
     set: (value: boolean) => {

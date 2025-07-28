@@ -71,7 +71,7 @@
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-2 mb-4">
                         <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral"
-                            label="Modifier la proposition" :disabled="!proposalManager.canEdit.value"
+                            label="Modifier la proposition" :disabled="!proposalManager.canEdit.value || !canEditModule"
                             @click="showForm = true" />
 
                         <UButton v-if="proposalManager.proposal.value?.status !== 'draft'" icon="i-lucide-external-link"
@@ -80,7 +80,8 @@
 
                         <UButton v-if="proposalManager.proposal.value?.status === 'draft'" icon="i-lucide-trash-2"
                             size="sm" variant="outline" color="error" label="Supprimer"
-                            :loading="proposalManager.loading.value" @click="handleDelete" />
+                            :loading="proposalManager.loading.value" :disabled="!canDeleteModule"
+                            @click="handleDelete" />
                     </div>
 
                     <!-- File attachments -->
@@ -200,7 +201,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 // Utiliser le state centralisé pour le showForm
-const { moduleConfig, configureModule, enableModule } = useModuleState(props.projectId)
+const { moduleConfig, configureModule, enableModule, canEditModule, canDeleteModule } = useModuleState(props.projectId)
 const showForm = computed({
     get: () => moduleConfig.value.proposal.showForm,
     set: (value: boolean) => {

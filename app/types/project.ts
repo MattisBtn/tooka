@@ -20,6 +20,9 @@ export interface IProjectRepository {
   ): Promise<ProjectWithClient>;
   update(id: string, data: Partial<Project>): Promise<Project>;
   delete(id: string): Promise<void>;
+  startWorkflow(id: string): Promise<Project>;
+  updateWorkflowStep(id: string, step: WorkflowStep): Promise<Project>;
+  completeWorkflow(id: string): Promise<Project>;
 }
 
 export interface IPagination {
@@ -67,7 +70,12 @@ export interface ProjectWithClient extends Project {
     id: string;
     content_json: Json;
     content_html: string;
-    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    status:
+      | "draft"
+      | "awaiting_client"
+      | "revision_requested"
+      | "completed"
+      | "payment_pending";
     price: number;
     deposit_required: boolean;
     deposit_amount: number | null;
@@ -98,4 +106,25 @@ export interface ProjectWithClient extends Project {
     created_at: string;
     updated_at: string;
   } | null;
+}
+
+// Workflow step types
+export type WorkflowStep = 1 | 2 | 3 | 4;
+
+export interface WorkflowStepInfo {
+  step: WorkflowStep;
+  module: "proposal" | "moodboard" | "selection" | "gallery";
+  title: string;
+  description: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  isCompleted: boolean;
+}
+
+// Workflow validation
+export interface WorkflowValidation {
+  canProceedToNextStep: boolean;
+  currentStepCompleted: boolean;
+  previousStepsCompleted: boolean;
+  errorMessage?: string;
 }

@@ -335,6 +335,9 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          workflow_completed_at: string | null
+          workflow_started_at: string | null
+          workflow_step: number | null
         }
         Insert: {
           bank_beneficiary?: string | null
@@ -362,6 +365,9 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          workflow_completed_at?: string | null
+          workflow_started_at?: string | null
+          workflow_step?: number | null
         }
         Update: {
           bank_beneficiary?: string | null
@@ -389,6 +395,9 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          workflow_completed_at?: string | null
+          workflow_started_at?: string | null
+          workflow_step?: number | null
         }
         Relationships: [
           {

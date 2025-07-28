@@ -4,6 +4,9 @@ import type {
   IProjectFilters,
   Project,
   ProjectWithClient,
+  WorkflowStep,
+  WorkflowStepInfo,
+  WorkflowValidation,
 } from "~/types/project";
 
 export const projectService = {
@@ -52,6 +55,9 @@ export const projectService = {
       | "user_id"
       | "password_hash"
       | "password_expires_at"
+      | "workflow_started_at"
+      | "workflow_completed_at"
+      | "workflow_step"
     > & {
       require_password?: boolean;
     }
@@ -79,6 +85,9 @@ export const projectService = {
       user_id: user.value.id,
       password_hash: passwordHash,
       password_expires_at: null, // Always null now since expiration is removed
+      workflow_started_at: null,
+      workflow_completed_at: null,
+      workflow_step: null,
     };
 
     return await projectRepository.create(dataWithUserAndSecurity);
@@ -209,5 +218,198 @@ export const projectService = {
         color: "success",
       },
     ];
+  },
+
+  // Workflow methods
+  /**
+   * Start the onboarding workflow
+   */
+  async startWorkflow(id: string): Promise<Project> {
+    const project = await this.getProjectById(id);
+
+    if (project.workflow_started_at) {
+      throw new Error("Workflow already started");
+    }
+
+    return await projectRepository.startWorkflow(id);
+  },
+
+  /**
+   * Update workflow step
+   */
+  async updateWorkflowStep(id: string, step: WorkflowStep): Promise<Project> {
+    const project = await this.getProjectById(id);
+
+    if (!project.workflow_started_at) {
+      throw new Error("Workflow not started");
+    }
+
+    if (step < 1 || step > 4) {
+      throw new Error("Invalid workflow step");
+    }
+
+    return await projectRepository.updateWorkflowStep(id, step);
+  },
+
+  /**
+   * Complete the workflow
+   */
+  async completeWorkflow(id: string): Promise<Project> {
+    const project = await this.getProjectById(id);
+
+    if (!project.workflow_started_at) {
+      throw new Error("Workflow not started");
+    }
+
+    if (project.workflow_completed_at) {
+      throw new Error("Workflow already completed");
+    }
+
+    return await projectRepository.completeWorkflow(id);
+  },
+
+  /**
+   * Validate if project can proceed to next workflow step
+   */
+  validateWorkflowProgression(
+    project: ProjectWithClient,
+    targetStep: WorkflowStep
+  ): WorkflowValidation {
+    const currentStep = project.workflow_step || 1;
+    const steps = [
+      { step: 1, module: "proposal" as const },
+      { step: 2, module: "moodboard" as const },
+      { step: 3, module: "selection" as const },
+      { step: 4, module: "gallery" as const },
+    ];
+
+    // Check if trying to go backwards (allowed for navigation, but not for workflow progression)
+    if (targetStep < currentStep) {
+      return {
+        canProceedToNextStep: true, // Allow going backwards for navigation
+        currentStepCompleted: false,
+        previousStepsCompleted: false,
+      };
+    }
+
+    // Check if trying to skip steps
+    if (targetStep > currentStep + 1) {
+      return {
+        canProceedToNextStep: false,
+        currentStepCompleted: false,
+        previousStepsCompleted: false,
+        errorMessage: "Impossible de sauter des étapes",
+      };
+    }
+
+    // Check if current step is completed (only when advancing)
+    if (targetStep > currentStep) {
+      const currentStepInfo = steps.find((s) => s.step === currentStep);
+      if (!currentStepInfo) {
+        return {
+          canProceedToNextStep: false,
+          currentStepCompleted: false,
+          previousStepsCompleted: false,
+          errorMessage: "Étape invalide",
+        };
+      }
+
+      const currentModule = project[currentStepInfo.module];
+      const currentStepCompleted = currentModule?.status === "completed";
+
+      if (!currentStepCompleted) {
+        return {
+          canProceedToNextStep: false,
+          currentStepCompleted: false,
+          previousStepsCompleted: true,
+          errorMessage: `L'étape ${currentStep} doit être terminée avant de continuer`,
+        };
+      }
+    }
+
+    // Check if previous steps are completed (only when advancing)
+    if (targetStep > currentStep) {
+      const previousStepsCompleted = steps
+        .filter((s) => s.step < currentStep)
+        .every((s) => {
+          const module = project[s.module];
+          return module?.status === "completed";
+        });
+
+      if (!previousStepsCompleted) {
+        return {
+          canProceedToNextStep: false,
+          currentStepCompleted: true,
+          previousStepsCompleted: false,
+          errorMessage: "Les étapes précédentes doivent être terminées",
+        };
+      }
+    }
+
+    return {
+      canProceedToNextStep: true,
+      currentStepCompleted: true,
+      previousStepsCompleted: true,
+    };
+  },
+
+  /**
+   * Get workflow step info
+   */
+  getWorkflowStepInfo(
+    project: ProjectWithClient,
+    step: WorkflowStep
+  ): WorkflowStepInfo {
+    const steps = [
+      {
+        step: 1,
+        module: "proposal" as const,
+        title: "Proposition",
+        description: "Devis et contrat",
+      },
+      {
+        step: 2,
+        module: "moodboard" as const,
+        title: "Moodboard",
+        description: "Inspiration visuelle",
+      },
+      {
+        step: 3,
+        module: "selection" as const,
+        title: "Sélection",
+        description: "Choix client",
+      },
+      {
+        step: 4,
+        module: "gallery" as const,
+        title: "Galerie",
+        description: "Livrable final",
+      },
+    ];
+
+    const stepInfo = steps.find((s) => s.step === step);
+    if (!stepInfo) {
+      throw new Error("Invalid workflow step");
+    }
+
+    const currentStep = project.workflow_step || 1;
+    const module = project[stepInfo.module];
+    const isCompleted = module?.status === "completed";
+
+    // Can edit if it's the current step or a future step
+    const canEdit = step >= currentStep;
+
+    // Can delete if it's the current step and not completed
+    const canDelete = step === currentStep && !isCompleted;
+
+    return {
+      step,
+      module: stepInfo.module,
+      title: stepInfo.title,
+      description: stepInfo.description,
+      canEdit,
+      canDelete,
+      isCompleted,
+    };
   },
 };

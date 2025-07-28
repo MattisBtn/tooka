@@ -10,10 +10,7 @@
             </div>
 
             <!-- Progress Bar -->
-            <div class="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2 mb-6">
-                <div class="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-500"
-                    :style="{ width: `${(currentStep / totalSteps) * 100}%` }" />
-            </div>
+            <UProgress v-model="currentStep" :max="totalSteps" color="primary" class="mb-6" />
 
             <!-- Steps Overview -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -28,7 +25,7 @@
                     <div :class="[
                         'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
                         index + 1 === currentStep
-                            ? 'bg-primary-500 text-white'
+                            ? 'bg-primary-500'
                             : index + 1 < currentStep
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-400'
@@ -241,7 +238,7 @@
 
             <!-- Step Navigation -->
             <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-                <UButton v-if="currentStep > 1" icon="i-lucide-arrow-left" variant="ghost" color="neutral"
+                <UButton v-if="canGoToPreviousStep" icon="i-lucide-arrow-left" variant="ghost" color="neutral"
                     label="Étape précédente" @click="previousStep" />
                 <div v-else />
 
@@ -249,10 +246,17 @@
                     <UButton icon="i-lucide-save" variant="outline" color="neutral"
                         label="Sauvegarder et continuer plus tard" @click="saveAndExit" />
 
-                    <UButton v-if="canContinueToNextStep" icon="i-lucide-arrow-right" color="primary"
-                        label="Étape suivante" @click="nextStep" />
+                    <UButton v-if="!isLastStep" icon="i-lucide-arrow-right" color="primary" label="Étape suivante"
+                        :disabled="!canProceedToNextStep" @click="nextStep" />
+
+                    <UButton v-else icon="i-lucide-check-circle" color="success" label="Terminer la configuration"
+                        :disabled="!canProceedToNextStep" @click="completeOnboarding" />
                 </div>
             </div>
+
+            <!-- Workflow Error Alert -->
+            <UAlert v-if="workflowError" color="error" variant="soft" icon="i-lucide-alert-circle"
+                :title="workflowError" class="mt-4" />
         </div>
     </div>
 </template>
@@ -277,12 +281,7 @@ interface Props {
     } | null
 }
 
-interface Emits {
-    (e: 'proposal-created'): void
-}
-
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
 
 // Step configuration
 const steps = [
@@ -312,7 +311,16 @@ const totalSteps = steps.length
 const currentStep = ref(1)
 
 // Utiliser le composable centralisé pour l'état des modules
-const { moduleConfig, enableModule, configureModule, canContinueToNextStep: _canContinueToNextStep } = useModuleState(props.projectId)
+const {
+    moduleConfig,
+    enableModule,
+    configureModule,
+    canContinueToNextStep: _canContinueToNextStep,
+    loadProject,
+    startWorkflow,
+    goToNextStep,
+    project
+} = useModuleState(props.projectId)
 
 // Utiliser le composable pour gérer le moodboard
 const moodboardManager = useMoodboardManager(props.projectId)
@@ -324,6 +332,16 @@ const canContinueToNextStep = computed(() => _canContinueToNextStep(currentStep.
 const moodboardTitle = computed(() => {
     return moodboardManager.exists.value ? 'Moodboard existant' : 'Souhaitez-vous créer un moodboard d\'inspiration pour ce projet ?'
 })
+
+// Workflow error state
+const workflowError = ref<string | null>(null)
+
+// Synchroniser le currentStep avec le workflow_step du projet
+const syncCurrentStep = () => {
+    if (project.value?.workflow_step) {
+        currentStep.value = project.value.workflow_step
+    }
+}
 
 // Methods
 const enableProposal = () => {
@@ -355,9 +373,6 @@ const skipProposal = () => {
 const handleProposalConfigured = () => {
     // Marquer comme configuré quand le module notifie la fin
     configureModule('proposal')
-
-    // Notifier le parent que la proposition a été créée
-    emit('proposal-created')
 }
 
 // Moodboard methods
@@ -392,15 +407,58 @@ const handleMoodboardConfigured = () => {
     configureModule('moodboard')
 }
 
-const nextStep = () => {
+const nextStep = async () => {
     if (currentStep.value < totalSteps) {
-        currentStep.value++
+        try {
+            // Vérifier si on peut passer à l'étape suivante
+            if (!canContinueToNextStep.value) {
+                workflowError.value = "L'étape courante doit être terminée avant de continuer"
+                return
+            }
+
+            // Mettre à jour le workflow step seulement si on avance réellement
+            const nextStepNumber = currentStep.value + 1
+            await goToNextStep(currentStep.value)
+
+            // Passer à l'étape suivante
+            currentStep.value = nextStepNumber
+            workflowError.value = null
+
+            const toast = useToast()
+            toast.add({
+                title: 'Étape suivante',
+                description: `Passage à l'étape ${currentStep.value}`,
+                icon: 'i-lucide-arrow-right',
+                color: 'success'
+            })
+        } catch (error) {
+            console.error('Error going to next step:', error)
+            workflowError.value = "Erreur lors du passage à l'étape suivante"
+        }
     }
 }
 
-const previousStep = () => {
+const previousStep = async () => {
     if (currentStep.value > 1) {
-        currentStep.value--
+        try {
+            // Mettre à jour le workflow step pour revenir en arrière
+            const previousStepNumber = currentStep.value - 1
+            await goToNextStep(previousStepNumber)
+
+            currentStep.value = previousStepNumber
+            workflowError.value = null
+
+            const toast = useToast()
+            toast.add({
+                title: 'Étape précédente',
+                description: `Retour à l'étape ${currentStep.value}`,
+                icon: 'i-lucide-arrow-left',
+                color: 'info'
+            })
+        } catch (error) {
+            console.error('Error going to previous step:', error)
+            workflowError.value = "Erreur lors du retour à l'étape précédente"
+        }
     }
 }
 
@@ -417,6 +475,71 @@ const saveAndExit = () => {
     navigateTo('/projects')
 }
 
+const completeOnboarding = async () => {
+    try {
+        // Marquer le workflow comme terminé
+        const { projectService } = await import('~/services/projectService')
+        await projectService.completeWorkflow(props.projectId)
+
+        const toast = useToast()
+        toast.add({
+            title: 'Configuration terminée',
+            description: 'Votre projet est maintenant prêt !',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        })
+
+        // Rediriger vers la liste des projets
+        navigateTo('/projects')
+    } catch (error) {
+        console.error('Error completing onboarding:', error)
+        workflowError.value = "Erreur lors de la finalisation de la configuration"
+    }
+}
+
+// Computed pour vérifier si on peut passer à l'étape suivante
+const canProceedToNextStep = computed(() => {
+    if (!project.value) return false
+
+    // Vérifier si le workflow a commencé
+    if (!project.value.workflow_started_at) return true // Première fois
+
+    // Vérifier si l'étape courante est terminée
+    const currentStepModule = steps[currentStep.value - 1]?.key
+    if (!currentStepModule) return false
+
+    // Fonction helper pour vérifier le statut du module
+    const isModuleCompleted = (moduleKey: string) => {
+        switch (moduleKey) {
+            case 'proposal':
+                return project.value?.proposal?.status === 'completed'
+            case 'moodboard':
+                return project.value?.moodboard?.status === 'completed'
+            case 'selection':
+                return project.value?.selection?.status === 'completed'
+            case 'gallery':
+                return project.value?.gallery?.status === 'completed'
+            default:
+                return false
+        }
+    }
+
+    return isModuleCompleted(currentStepModule)
+})
+
+// Computed pour vérifier si on peut revenir à l'étape précédente
+const canGoToPreviousStep = computed(() => {
+    if (!project.value) return false
+
+    // On peut toujours revenir à l'étape précédente si on n'est pas à la première étape
+    return currentStep.value > 1
+})
+
+// Computed pour vérifier si l'étape actuelle est la dernière étape
+const isLastStep = computed(() => {
+    return currentStep.value === totalSteps
+})
+
 // Initialize state based on existing proposal
 watchEffect(() => {
     if (props.existingProposal) {
@@ -426,14 +549,36 @@ watchEffect(() => {
     }
 })
 
-// Charger le moodboard au montage pour vérifier s'il existe
-onMounted(async () => {
-    await moodboardManager.load()
+// Synchroniser le currentStep quand le projet change
+watch(project, () => {
+    syncCurrentStep()
+}, { immediate: true })
 
-    // Si un moodboard existe déjà, le marquer comme configuré
-    if (moodboardManager.exists.value) {
-        enableModule('moodboard', { showForm: false })
-        configureModule('moodboard')
+// Charger le projet et démarrer le workflow au montage
+onMounted(async () => {
+    try {
+        // Charger les données du projet
+        await loadProject()
+
+        // Démarrer le workflow si pas encore commencé
+        if (project.value && !project.value.workflow_started_at) {
+            await startWorkflow()
+        }
+
+        // Charger le moodboard
+        await moodboardManager.load()
+
+        // Si un moodboard existe déjà, le marquer comme configuré
+        if (moodboardManager.exists.value) {
+            enableModule('moodboard', { showForm: false })
+            configureModule('moodboard')
+        }
+
+        // Synchroniser le currentStep avec le workflow_step du projet
+        syncCurrentStep()
+    } catch (error) {
+        console.error('Error initializing onboarding:', error)
+        workflowError.value = "Erreur lors de l'initialisation"
     }
 })
 </script>
