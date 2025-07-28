@@ -180,13 +180,16 @@ const handleMoodboardSaved = async (data: {
     selectedFiles?: File[]
 }) => {
     try {
-        // Recharger les données du moodboardManager pour synchroniser
-        await moodboardManager.load()
-
-        // Upload des images si nécessaire
-        if (data.selectedFiles && data.selectedFiles.length > 0) {
-            await moodboardManager.uploadImages(data.selectedFiles)
-        }
+        // Utiliser la méthode save qui gère création/mise à jour + upload des images
+        await moodboardManager.save(
+            {
+                title: data.moodboard.title,
+                description: data.moodboard.description,
+                project_id: data.moodboard.project_id,
+                status: data.moodboard.status
+            },
+            data.selectedFiles
+        )
 
         // Fermer le formulaire et notifier
         configureModule('moodboard')

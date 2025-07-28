@@ -4,7 +4,7 @@
  * Suit les patterns KISS, YAGNI et DRY
  */
 import { moodboardService } from "~/services/moodboardService";
-import type { MoodboardWithDetails } from "~/types/moodboard";
+import type { Moodboard, MoodboardWithDetails } from "~/types/moodboard";
 
 export const useMoodboardManager = (projectId: string) => {
   // État centralisé avec useState
@@ -89,6 +89,49 @@ export const useMoodboardManager = (projectId: string) => {
     }
   };
 
+  const save = async (
+    moodboardData: Omit<Moodboard, "id" | "created_at" | "updated_at">,
+    files?: File[]
+  ): Promise<{ moodboard: Moodboard; projectUpdated: boolean }> => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      let result: { moodboard: Moodboard; projectUpdated: boolean };
+
+      // Créer ou mettre à jour le moodboard
+      if (moodboard.value?.id) {
+        // Mise à jour
+        result = await moodboardService.updateMoodboard(
+          moodboard.value.id,
+          moodboardData,
+          moodboardData.status === "awaiting_client"
+        );
+      } else {
+        // Création
+        result = await moodboardService.createMoodboard(
+          moodboardData,
+          moodboardData.status === "awaiting_client"
+        );
+      }
+
+      // Upload des images si fournies
+      if (files && files.length > 0) {
+        await moodboardService.uploadImages(result.moodboard.id, files);
+      }
+
+      // Recharger les données pour synchroniser
+      await load();
+
+      return result;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Erreur de sauvegarde";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Computed helpers
   const exists = computed(() => !!moodboard.value);
   const canEdit = computed(
@@ -146,6 +189,7 @@ export const useMoodboardManager = (projectId: string) => {
     remove,
     uploadImages,
     deleteImage,
+    save,
 
     // Computed
     exists,
