@@ -202,9 +202,9 @@
 
 <script lang="ts" setup>
 import { useGalleryManager } from '~/composables/galleries/useGalleryManager';
-import { useProject } from '~/composables/projects/useProject';
 import { useProposal } from '~/composables/proposals/useProposal';
 import { useModuleState } from '~/composables/shared/useModuleState';
+import { useProjectStore } from '~/stores/project';
 import type { GalleryFormData, GalleryImage, ProjectPaymentData } from '~/types/gallery';
 
 interface Props {
@@ -237,15 +237,16 @@ const galleryManager = useGalleryManager(props.projectId)
 // Use proposal composable to get payment info
 const { proposal } = useProposal(props.projectId)
 
-// Use project composable to get project payment data
-const { project } = useProject(props.projectId)
+// Use project store to get project payment data
+const projectStore = useProjectStore()
+const { project } = projectStore
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
-    if (!proposal.value || !project.value) return undefined;
+    if (!proposal.value || !project) return undefined;
 
     return {
-        payment_method: project.value.payment_method,
+        payment_method: project.payment_method,
         deposit_required: proposal.value.deposit_required,
         deposit_amount: proposal.value.deposit_amount
     };

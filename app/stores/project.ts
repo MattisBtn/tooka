@@ -1,8 +1,10 @@
+import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
 import type { Json } from "~/types/database.types";
 import type { ProjectWithClient } from "~/types/project";
 
-export const useProject = (projectId: string) => {
+export const useProjectStore = defineStore("project", () => {
+  // State
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const project = ref<ProjectWithClient | null>(null);
@@ -30,30 +32,6 @@ export const useProject = (projectId: string) => {
       summary: null as string | null,
     },
   });
-
-  // Fetch project details
-  const fetchProject = async () => {
-    if (!projectId) return;
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const data = await projectService.getProjectById(projectId);
-      project.value = data;
-
-      // Update module states based on project data
-      await updateModuleStatesFromProject(data);
-
-      return data;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err : new Error("Failed to fetch project");
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
 
   // Helper function to extract title from proposal content_json
   const extractProposalTitle = (content_json: Json): string => {
@@ -182,6 +160,31 @@ export const useProject = (projectId: string) => {
     Object.assign(modules.value[moduleName], updates);
   };
 
+  // Fetch project details
+  const fetchProject = async (projectId: string) => {
+    if (!projectId) return;
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const data = await projectService.getProjectById(projectId);
+      project.value = data;
+
+      // Update module states based on project data
+      await updateModuleStatesFromProject(data);
+
+      return data;
+    } catch (err) {
+      console.error("Error fetching project:", err);
+      error.value =
+        err instanceof Error ? err : new Error("Failed to fetch project");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Get client display name
   const clientDisplayName = computed(() => {
     if (!project.value?.client) return "Client supprimé";
@@ -240,4 +243,4 @@ export const useProject = (projectId: string) => {
     fetchProject,
     updateModuleState,
   };
-};
+});
