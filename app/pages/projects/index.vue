@@ -13,7 +13,7 @@
 
     <div ref="tableContainer" class="mt-6">
       <UTable ref="table" :columns="columns" :data="store.filteredProjects" sticky :loading="store.isLoading"
-        :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" class="w-full h-[calc(100vh-300px)]" />
+        :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" />
     </div>
 
     <!-- Pagination -->

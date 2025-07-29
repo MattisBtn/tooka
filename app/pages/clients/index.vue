@@ -13,7 +13,7 @@
 
     <div ref="tableContainer" class="mt-6">
       <UTable ref="table" :columns="columns" :data="store.filteredClients" sticky :loading="store.isLoading"
-        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" class="w-full h-[calc(100vh-300px)]" />
+        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" />
     </div>
 
     <!-- Pagination -->
