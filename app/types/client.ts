@@ -8,16 +8,6 @@ export interface IClientFilters {
   type?: "individual" | "company" | null;
 }
 
-export interface IClientRepository {
-  findMany(filters: IClientFilters, pagination: IPagination): Promise<Client[]>;
-  findById(id: string): Promise<Client | null>;
-  create(
-    data: Omit<Client, "id" | "created_at" | "updated_at">
-  ): Promise<Client>;
-  update(id: string, data: Partial<Client>): Promise<Client>;
-  delete(id: string): Promise<void>;
-}
-
 export interface IPagination {
   page: number;
   pageSize: number;

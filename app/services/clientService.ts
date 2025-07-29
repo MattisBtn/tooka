@@ -1,4 +1,3 @@
-import { clientRepository } from "~/repositories/clientRepository";
 import type { Client, IClientFilters, IPagination } from "~/types/client";
 
 export const clientService = {
@@ -6,7 +5,40 @@ export const clientService = {
    * Fetch clients with pagination and filtering
    */
   async getClients(filters: IClientFilters = {}, pagination: IPagination) {
-    const clients = await clientRepository.findMany(filters, pagination);
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder aux clients");
+    }
+
+    let query = supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", user.value.id)
+      .order("created_at", { ascending: false })
+      .range(
+        (pagination.page - 1) * pagination.pageSize,
+        pagination.page * pagination.pageSize - 1
+      );
+
+    if (filters.type) {
+      query = query.eq("type", filters.type);
+    }
+
+    if (filters.search) {
+      query = query.or(
+        `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch clients: ${error.message}`);
+    }
+
+    const clients = data || [];
 
     // Business logic: sort by priority if needed
     if (filters.type === "company") {
@@ -26,13 +58,28 @@ export const clientService = {
       throw new Error("Client ID is required");
     }
 
-    const client = await clientRepository.findById(id);
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
 
-    if (!client) {
-      throw new Error("Client not found");
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder à ce client");
     }
 
-    return client;
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        throw new Error("Client not found");
+      }
+      throw new Error(`Failed to fetch client: ${error.message}`);
+    }
+
+    return data;
   },
 
   /**
@@ -72,7 +119,19 @@ export const clientService = {
       user_id: user.value.id,
     };
 
-    return await clientRepository.create(dataWithUserId);
+    const supabase = useSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("clients")
+      .insert(dataWithUserId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create client: ${error.message}`);
+    }
+
+    return data;
   },
 
   /**
@@ -86,7 +145,26 @@ export const clientService = {
       throw new Error("Cannot change client type after creation");
     }
 
-    return await clientRepository.update(id, updates);
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour modifier ce client");
+    }
+
+    const { data, error } = await supabase
+      .from("clients")
+      .update(updates)
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update client: ${error.message}`);
+    }
+
+    return data;
   },
 
   /**
@@ -99,7 +177,22 @@ export const clientService = {
     // This would typically check other tables
     // For now, just a placeholder
 
-    await clientRepository.delete(id);
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour supprimer ce client");
+    }
+
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.value.id);
+
+    if (error) {
+      throw new Error(`Failed to delete client: ${error.message}`);
+    }
   },
 
   /**
@@ -132,7 +225,7 @@ export const clientService = {
     // Use a large page size to get all clients at once
     const pagination: IPagination = { page: 1, pageSize: 1000 };
 
-    const clients = await clientRepository.findMany(filters, pagination);
+    const clients = await this.getClients(filters, pagination);
 
     // Sort clients alphabetically by name
     return clients.sort((a, b) => {
