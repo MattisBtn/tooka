@@ -3,29 +3,31 @@
     <PageHeader badge="Projets" badge-color="primary" badge-variant="soft" badge-icon="i-heroicons-folder"
       title="Gestion des projets" subtitle="Créez, gérez et suivez vos projets clients" separator>
       <template #actions>
-        <USelectMenu v-model="statusFilter" :items="statusOptions" value-key="value" placeholder="Filtrer par statut"
-          class="mr-2" @update:model-value="handleStatusFilter" />
-        <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Rechercher..." class="mr-2"
-          @update:model-value="handleSearch" />
-        <UButton icon="i-lucide-plus" size="lg" label="Nouveau projet" @click="openCreateModal" />
+        <USelectMenu :model-value="store.statusFilter" :items="store.statusOptions" value-key="value"
+          placeholder="Filtrer par statut" class="mr-2" @update:model-value="store.setStatusFilter" />
+        <UInput :model-value="store.searchQuery" icon="i-lucide-search" placeholder="Rechercher..." class="mr-2"
+          @update:model-value="store.setSearchQuery" />
+        <UButton icon="i-lucide-plus" size="lg" label="Nouveau projet" @click="store.openCreateModal" />
       </template>
     </PageHeader>
 
     <div ref="tableContainer" class="mt-6">
-      <UTable ref="table" :columns="columns" :data="tableRows" sticky
-        :loading="projectStore.loading.value ? true : false"
+      <UTable ref="table" :columns="columns" :data="store.filteredProjects" sticky :loading="store.isLoading"
         :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" class="w-full h-[calc(100vh-200px)]" />
     </div>
 
     <!-- Project Modal -->
-    <ProjectModal v-model="showModal" :project="selectedProject" @project-saved="handleProjectSaved" />
+    <ProjectModal :model-value="store.showModal" :project="store.selectedProject" @update:model-value="store.closeModal"
+      @project-saved="handleProjectSaved" />
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
+    <UModal :open="store.showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
       <template #footer>
         <div class="flex items-center justify-end gap-3 w-full">
-          <UButton color="neutral" variant="ghost" label="Annuler" :disabled="deletionLoading" @click="cancelDelete" />
-          <UButton color="error" label="Supprimer définitivement" :loading="deletionLoading" @click="confirmDelete" />
+          <UButton color="neutral" variant="ghost" label="Annuler" :disabled="store.deletionLoading"
+            @click="store.closeDeleteModal" />
+          <UButton color="error" label="Supprimer définitivement" :loading="store.deletionLoading"
+            @click="confirmDelete" />
         </div>
       </template>
     </UModal>
@@ -36,36 +38,18 @@
 import type { TableColumn } from '@nuxt/ui'
 import { useInfiniteScroll } from '@vueuse/core'
 import { h, resolveComponent } from 'vue'
-import { useProjects } from '~/composables/projects/useProjects'
 import type { ProjectWithClient } from '~/types/project'
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 
-const searchQuery = ref('')
-const statusFilter = ref<"draft" | "in_progress" | "completed" | null>(null)
-const searchTimeout = ref<NodeJS.Timeout | null>(null)
-const projectStore = useProjects()
-const tableContainer = ref<HTMLElement | null>(null)
-const table = ref<ComponentPublicInstance | null>(null)
+// Store
+const store = useProjectsStore()
 
-// Modal states
-const showModal = ref(false)
-const selectedProject = ref<ProjectWithClient | undefined>(undefined)
-
-// Delete confirmation modal state
-const showDeleteModal = ref(false)
-const projectToDelete = ref<ProjectWithClient | null>(null)
-const deletionLoading = ref(false)
-
-// Status filter options
-const statusOptions = computed(() => [
-  { value: null, label: 'Tous les statuts' },
-  ...projectStore.getStatusOptions().map(option => ({
-    value: option.value,
-    label: option.label
-  }))
-])
+// Initialize store
+onMounted(async () => {
+  await store.initialize()
+})
 
 const columns: TableColumn<ProjectWithClient>[] = [
   {
@@ -119,7 +103,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
     header: 'Statut',
     cell: ({ row }) => {
       const status = row.original.status
-      const statusOption = projectStore.getStatusOptions().find(s => s.value === status)
+      const statusOption = store.statusOptions.find(s => s.value === status)
 
       return h(UBadge, {
         color: statusOption?.color || 'gray',
@@ -142,7 +126,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
             color: 'primary',
             variant: 'ghost',
             title: 'Configurer',
-            onClick: () => viewProject(row.original.id)
+            onClick: () => store.viewProject(row.original.id)
           }),
           h(UButton, {
             icon: 'i-lucide-edit',
@@ -150,7 +134,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
             color: 'primary',
             variant: 'ghost',
             title: 'Modifier',
-            onClick: () => openEditModal(row.original)
+            onClick: () => store.openEditModal(row.original)
           }),
           h(UButton, {
             icon: 'i-lucide-trash',
@@ -159,7 +143,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
             variant: 'ghost',
             title: 'Supprimer',
             disabled: row.original.status !== 'draft',
-            onClick: () => openDeleteModal(row.original)
+            onClick: () => store.openDeleteModal(row.original)
           })
         ]
       )
@@ -167,113 +151,48 @@ const columns: TableColumn<ProjectWithClient>[] = [
   }
 ]
 
-// Compute table rows with formatted data
-const tableRows = computed(() => projectStore.projects.value as ProjectWithClient[])
-
 // Computed properties for delete modal
 const deleteModalTitle = computed(() => 'Supprimer le projet')
 
 const deleteModalDescription = computed(() => {
-  if (!projectToDelete.value) return ''
+  if (!store.projectToDelete) return ''
 
-  return `Êtes-vous sûr de vouloir supprimer le projet "${projectToDelete.value.title}" ? Cette action est irréversible.`
+  return `Êtes-vous sûr de vouloir supprimer le projet "${store.projectToDelete.title}" ? Cette action est irréversible.`
 })
 
-// Modal methods
-const openCreateModal = () => {
-  selectedProject.value = undefined
-  showModal.value = true
-}
-
-const openEditModal = (project: ProjectWithClient) => {
-  selectedProject.value = project
-  showModal.value = true
-}
-
-const viewProject = (id: string) => {
-  // Navigate to project detail page
-  navigateTo(`/projects/${id}/setup`)
-}
-
+// Event handlers
 const handleProjectSaved = (project: ProjectWithClient) => {
-  if (selectedProject.value) {
-    // Update existing project in list
-    projectStore.updateProjectInList(project)
+  if (store.selectedProject) {
+    store.updateProjectInList(project)
   } else {
-    // Add new project to list
-    projectStore.addProjectToList(project)
+    store.addProjectToList(project)
   }
-  showModal.value = false
-  selectedProject.value = undefined
-}
-
-// Delete modal methods
-const openDeleteModal = (project: ProjectWithClient) => {
-  projectToDelete.value = project
-  showDeleteModal.value = true
-}
-
-const cancelDelete = () => {
-  showDeleteModal.value = false
-  projectToDelete.value = null
-  deletionLoading.value = false
 }
 
 const confirmDelete = async () => {
-  if (!projectToDelete.value) return
-
-  deletionLoading.value = true
+  if (!store.projectToDelete) return
 
   try {
-    await projectStore.deleteProject(projectToDelete.value.id)
-    showDeleteModal.value = false
-    projectToDelete.value = null
+    await store.deleteProject(store.projectToDelete.id)
   } catch (error) {
     console.error('Error deleting project:', error)
-  } finally {
-    deletionLoading.value = false
   }
 }
 
-const handleSearch = () => {
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value)
-  }
-
-  searchTimeout.value = setTimeout(async () => {
-    const filters = {
-      search: searchQuery.value.trim() || undefined,
-      status: statusFilter.value || undefined
-    }
-
-    await projectStore.refresh(filters)
-  }, 300)
-}
-
-const handleStatusFilter = async () => {
-  const filters = {
-    search: searchQuery.value.trim() || undefined,
-    status: statusFilter.value || undefined
-  }
-
-  await projectStore.refresh(filters)
-}
-
-onMounted(async () => {
-  await projectStore.initialLoad()
+// Setup infinite scroll
+onMounted(() => {
+  const table = ref<ComponentPublicInstance | null>(null)
 
   useInfiniteScroll(
     table.value?.$el,
     async () => {
-      if (projectStore.hasMore.value && !projectStore.loading.value) {
-        await projectStore.loadMore()
+      if (store.canLoadMore) {
+        await store.loadMore()
       }
     },
     {
       distance: 200,
-      canLoadMore: () => {
-        return !projectStore.loading.value && projectStore.hasMore.value
-      }
+      canLoadMore: () => store.canLoadMore
     }
   )
 })

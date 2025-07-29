@@ -16,7 +16,7 @@
         </template>
 
         <template #body>
-            <ProjectForm :project="project" @project-saved="handleProjectSaved" @cancel="closeModal" />
+            <ProjectForm :project="project" @project-saved="handleProjectSaved" @cancel="store.closeModal" />
         </template>
     </UModal>
 </template>
@@ -37,6 +37,9 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Store
+const store = useProjectsStore()
+
 // Computed properties
 const isOpen = computed({
     get: () => props.modelValue,
@@ -50,19 +53,14 @@ const modalTitle = computed(() =>
 // Handle project saved from form
 const handleProjectSaved = (project: ProjectWithClient) => {
     emit('project-saved', project)
-    closeModal()
-}
-
-// Methods
-const closeModal = () => {
-    isOpen.value = false
+    // La fermeture est gérée par le store dans createProject/updateProject
 }
 
 // Handle escape key
 onKeyStroke('Escape', (e) => {
     if (isOpen.value) {
         e.preventDefault()
-        closeModal()
+        store.closeModal()
     }
 })
 </script>

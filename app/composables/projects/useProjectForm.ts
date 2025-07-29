@@ -1,11 +1,11 @@
 import { clientService } from "~/services/clientService";
-import { projectService } from "~/services/projectService";
 import type { Client } from "~/types/client";
 import type { ProjectFormData, ProjectWithClient } from "~/types/project";
 import { projectFormSchema } from "~/types/project";
 
 export const useProjectForm = (initialProject?: ProjectWithClient) => {
   const toast = useToast();
+  const store = useProjectsStore();
 
   // Reactive state for UForm
   const state = reactive<Partial<ProjectFormData>>({
@@ -80,7 +80,7 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
       }
 
       // Ensure all undefined values are converted to null for DB compatibility
-      const projectData = {
+      const projectData: ProjectFormData = {
         title: formData.title,
         client_id: formData.client_id,
         status: formData.status,
@@ -92,10 +92,8 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
       let result: ProjectWithClient;
 
       if (isEditMode.value && initialProject) {
-        result = await projectService.updateProject(
-          initialProject.id,
-          projectData
-        );
+        const { require_password, ...updateData } = projectData;
+        result = await store.updateProject(initialProject.id, updateData);
         toast.add({
           title: "Projet modifié",
           description:
@@ -103,7 +101,9 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
           color: "success",
         });
       } else {
-        result = await projectService.createProject(projectData);
+        // Utiliser le store pour créer le projet
+        result = await store.createProject(projectData);
+
         toast.add({
           title: "Projet créé",
           description: "Le nouveau projet a été ajouté avec succès.",

@@ -1,12 +1,8 @@
-import { projectRepository } from "~/repositories/projectRepository";
 import type {
   IPagination,
   IProjectFilters,
   Project,
   ProjectWithClient,
-  WorkflowStep,
-  WorkflowStepInfo,
-  WorkflowValidation,
 } from "~/types/project";
 
 export const projectService = {
@@ -17,34 +13,115 @@ export const projectService = {
     filters: IProjectFilters = {},
     pagination: IPagination
   ): Promise<ProjectWithClient[]> {
-    const projects = await projectRepository.findMany(filters, pagination);
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
 
-    // Business logic: sort by status priority
-    return projects.sort((a, b) => {
-      const statusOrder = { draft: 0, in_progress: 1, completed: 2 };
-      return statusOrder[a.status] - statusOrder[b.status];
-    });
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder aux projets");
+    }
+
+    let query = supabase
+      .from("projects")
+      .select(
+        `
+        *,
+        client:clients(
+          id,
+          type,
+          first_name,
+          last_name,
+          company_name,
+          billing_email
+        )
+      `
+      )
+      .eq("user_id", user.value.id)
+      .order("created_at", { ascending: false })
+      .range(
+        (pagination.page - 1) * pagination.pageSize,
+        pagination.page * pagination.pageSize - 1
+      );
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.client_id) {
+      query = query.eq("client_id", filters.client_id);
+    }
+
+    if (filters.search) {
+      const { data: matchingClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("user_id", user.value.id)
+        .or(
+          `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
+        );
+
+      const clientIds = matchingClients?.map((c) => c.id) || [];
+
+      if (clientIds.length > 0) {
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${
+            filters.search
+          }%,client_id.in.(${clientIds.join(",")})`
+        );
+      } else {
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
+      }
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch projects: ${error.message}`);
+    }
+
+    return data || [];
   },
 
   /**
-   * Get project by ID with validation
+   * Get project by ID
    */
   async getProjectById(id: string): Promise<ProjectWithClient> {
-    if (!id?.trim()) {
-      throw new Error("Project ID is required");
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder à ce projet");
     }
 
-    const project = await projectRepository.findById(id);
+    const { data, error } = await supabase
+      .from("projects")
+      .select(
+        `
+        *,
+        client:clients(
+          id,
+          type,
+          first_name,
+          last_name,
+          company_name,
+          billing_email
+        )
+      `
+      )
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .single();
 
-    if (!project) {
-      throw new Error("Project not found");
+    if (error) {
+      throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    return project;
+    return data;
   },
 
   /**
-   * Create new project with validation and conditional password generation
+   * Create new project
    */
   async createProject(
     projectData: Omit<
@@ -58,122 +135,47 @@ export const projectService = {
       | "workflow_started_at"
       | "workflow_completed_at"
       | "workflow_step"
-    > & {
-      require_password?: boolean;
-    }
+    > & { require_password?: boolean }
   ): Promise<ProjectWithClient> {
-    // Get current user from Supabase
+    const supabase = useSupabaseClient();
     const user = useSupabaseUser();
 
     if (!user.value) {
       throw new Error("Vous devez être connecté pour créer un projet");
     }
 
-    if (!projectData.client_id?.trim()) {
-      throw new Error("Client is required");
-    }
-
-    // Extract require_password from projectData
     const { require_password, ...dbProjectData } = projectData;
+    const passwordHash = require_password
+      ? projectService.generatePassword()
+      : "";
 
-    // Generate password only if required
-    const passwordHash = require_password ? this.generatePassword() : "";
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        ...dbProjectData,
+        user_id: user.value.id,
+        password_hash: passwordHash,
+      })
+      .select(
+        `
+        *,
+        client:clients(
+          id,
+          type,
+          first_name,
+          last_name,
+          company_name,
+          billing_email
+        )
+      `
+      )
+      .single();
 
-    // Add user_id and generated fields
-    const dataWithUserAndSecurity = {
-      ...dbProjectData,
-      user_id: user.value.id,
-      password_hash: passwordHash,
-      password_expires_at: null, // Always null now since expiration is removed
-      workflow_started_at: null,
-      workflow_completed_at: null,
-      workflow_step: null,
-    };
-
-    return await projectRepository.create(dataWithUserAndSecurity);
-  },
-
-  /**
-   * Update project with business rules
-   */
-  async updateProject(
-    id: string,
-    updates: Partial<Project> & { require_password?: boolean }
-  ): Promise<Project> {
-    const existingProject = await this.getProjectById(id);
-
-    // Handle password logic for updates
-    const { require_password, ...dbUpdates } = updates;
-
-    if (require_password !== undefined) {
-      if (require_password && !existingProject.password_hash) {
-        // Generate password if now required and doesn't exist
-        dbUpdates.password_hash = this.generatePassword();
-      } else if (!require_password && existingProject.password_hash) {
-        // Remove password if no longer required
-        dbUpdates.password_hash = "";
-      }
+    if (error) {
+      throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    // Business rule: can't change client once project is in progress
-    if (
-      dbUpdates.client_id &&
-      dbUpdates.client_id !== existingProject.client_id &&
-      existingProject.status !== "draft"
-    ) {
-      throw new Error("Cannot change client once project is in progress");
-    }
-
-    // Business rule: can't go back from completed to other statuses
-    if (
-      existingProject.status === "completed" &&
-      dbUpdates.status &&
-      dbUpdates.status !== "completed"
-    ) {
-      throw new Error("Cannot change status of completed project");
-    }
-
-    return await projectRepository.update(id, dbUpdates);
-  },
-
-  /**
-   * Delete project with dependency checks
-   */
-  async deleteProject(id: string): Promise<void> {
-    const project = await this.getProjectById(id);
-
-    // Business rule: can't delete projects that are in progress or completed
-    if (project.status !== "draft") {
-      throw new Error("Cannot delete projects that are not in draft status");
-    }
-
-    // TODO: Check for dependencies (galleries, moodboards, etc.)
-    // This would typically check other tables
-
-    await projectRepository.delete(id);
-  },
-
-  /**
-   * Search projects with enhanced logic
-   */
-  async searchProjects(
-    query: string,
-    status?: "draft" | "in_progress" | "completed",
-    clientId?: string
-  ): Promise<ProjectWithClient[]> {
-    if (!query?.trim()) {
-      return [];
-    }
-
-    const filters: IProjectFilters = {
-      search: query.trim(),
-      status,
-      client_id: clientId,
-    };
-
-    const pagination: IPagination = { page: 1, pageSize: 50 };
-
-    return await this.getProjects(filters, pagination);
+    return data;
   },
 
   /**
@@ -192,8 +194,53 @@ export const projectService = {
   },
 
   /**
-   * Get project status options for UI
+   * Update project
    */
+  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour modifier ce projet");
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .update(updates)
+      .eq("id", id)
+      .eq("user_id", user.value.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update project: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * Delete project
+   */
+  async deleteProject(id: string): Promise<void> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour supprimer ce projet");
+    }
+
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.value.id);
+
+    if (error) {
+      throw new Error(`Failed to delete project: ${error.message}`);
+    }
+  },
+
   getStatusOptions() {
     return [
       {
@@ -220,196 +267,53 @@ export const projectService = {
     ];
   },
 
-  // Workflow methods
   /**
-   * Start the onboarding workflow
+   * Start workflow for a project
    */
-  async startWorkflow(id: string): Promise<Project> {
-    const project = await this.getProjectById(id);
+  async startWorkflow(projectId: string): Promise<void> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
 
-    if (project.workflow_started_at) {
-      throw new Error("Workflow already started");
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour démarrer le workflow");
     }
 
-    return await projectRepository.startWorkflow(id);
+    const { error } = await supabase
+      .from("projects")
+      .update({
+        workflow_started_at: new Date().toISOString(),
+        workflow_step: 1,
+      })
+      .eq("id", projectId)
+      .eq("user_id", user.value.id);
+
+    if (error) {
+      throw new Error(`Failed to start workflow: ${error.message}`);
+    }
   },
 
   /**
-   * Update workflow step
+   * Update workflow step for a project
    */
-  async updateWorkflowStep(id: string, step: WorkflowStep): Promise<Project> {
-    const project = await this.getProjectById(id);
+  async updateWorkflowStep(projectId: string, step: number): Promise<void> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
 
-    if (!project.workflow_started_at) {
-      throw new Error("Workflow not started");
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour modifier le workflow");
     }
 
-    if (step < 1 || step > 4) {
-      throw new Error("Invalid workflow step");
+    const { error } = await supabase
+      .from("projects")
+      .update({
+        workflow_step: step,
+        workflow_completed_at: step === 4 ? new Date().toISOString() : null,
+      })
+      .eq("id", projectId)
+      .eq("user_id", user.value.id);
+
+    if (error) {
+      throw new Error(`Failed to update workflow step: ${error.message}`);
     }
-
-    return await projectRepository.updateWorkflowStep(id, step);
-  },
-
-  /**
-   * Complete the workflow
-   */
-  async completeWorkflow(id: string): Promise<Project> {
-    const project = await this.getProjectById(id);
-
-    if (!project.workflow_started_at) {
-      throw new Error("Workflow not started");
-    }
-
-    if (project.workflow_completed_at) {
-      throw new Error("Workflow already completed");
-    }
-
-    return await projectRepository.completeWorkflow(id);
-  },
-
-  /**
-   * Validate if project can proceed to next workflow step
-   */
-  validateWorkflowProgression(
-    project: ProjectWithClient,
-    targetStep: WorkflowStep
-  ): WorkflowValidation {
-    const currentStep = project.workflow_step || 1;
-    const steps = [
-      { step: 1, module: "proposal" as const },
-      { step: 2, module: "moodboard" as const },
-      { step: 3, module: "selection" as const },
-      { step: 4, module: "gallery" as const },
-    ];
-
-    // Check if trying to go backwards (allowed for navigation, but not for workflow progression)
-    if (targetStep < currentStep) {
-      return {
-        canProceedToNextStep: true, // Allow going backwards for navigation
-        currentStepCompleted: false,
-        previousStepsCompleted: false,
-      };
-    }
-
-    // Check if trying to skip steps
-    if (targetStep > currentStep + 1) {
-      return {
-        canProceedToNextStep: false,
-        currentStepCompleted: false,
-        previousStepsCompleted: false,
-        errorMessage: "Impossible de sauter des étapes",
-      };
-    }
-
-    // Check if current step is completed (only when advancing)
-    if (targetStep > currentStep) {
-      const currentStepInfo = steps.find((s) => s.step === currentStep);
-      if (!currentStepInfo) {
-        return {
-          canProceedToNextStep: false,
-          currentStepCompleted: false,
-          previousStepsCompleted: false,
-          errorMessage: "Étape invalide",
-        };
-      }
-
-      const currentModule = project[currentStepInfo.module];
-      const currentStepCompleted = currentModule?.status === "completed";
-
-      if (!currentStepCompleted) {
-        return {
-          canProceedToNextStep: false,
-          currentStepCompleted: false,
-          previousStepsCompleted: true,
-          errorMessage: `L'étape ${currentStep} doit être terminée avant de continuer`,
-        };
-      }
-    }
-
-    // Check if previous steps are completed (only when advancing)
-    if (targetStep > currentStep) {
-      const previousStepsCompleted = steps
-        .filter((s) => s.step < currentStep)
-        .every((s) => {
-          const module = project[s.module];
-          return module?.status === "completed";
-        });
-
-      if (!previousStepsCompleted) {
-        return {
-          canProceedToNextStep: false,
-          currentStepCompleted: true,
-          previousStepsCompleted: false,
-          errorMessage: "Les étapes précédentes doivent être terminées",
-        };
-      }
-    }
-
-    return {
-      canProceedToNextStep: true,
-      currentStepCompleted: true,
-      previousStepsCompleted: true,
-    };
-  },
-
-  /**
-   * Get workflow step info
-   */
-  getWorkflowStepInfo(
-    project: ProjectWithClient,
-    step: WorkflowStep
-  ): WorkflowStepInfo {
-    const steps = [
-      {
-        step: 1,
-        module: "proposal" as const,
-        title: "Proposition",
-        description: "Devis et contrat",
-      },
-      {
-        step: 2,
-        module: "moodboard" as const,
-        title: "Moodboard",
-        description: "Inspiration visuelle",
-      },
-      {
-        step: 3,
-        module: "selection" as const,
-        title: "Sélection",
-        description: "Choix client",
-      },
-      {
-        step: 4,
-        module: "gallery" as const,
-        title: "Galerie",
-        description: "Livrable final",
-      },
-    ];
-
-    const stepInfo = steps.find((s) => s.step === step);
-    if (!stepInfo) {
-      throw new Error("Invalid workflow step");
-    }
-
-    const currentStep = project.workflow_step || 1;
-    const module = project[stepInfo.module];
-    const isCompleted = module?.status === "completed";
-
-    // Can edit if it's the current step or a future step
-    const canEdit = step >= currentStep;
-
-    // Can delete if it's the current step and not completed
-    const canDelete = step === currentStep && !isCompleted;
-
-    return {
-      step,
-      module: stepInfo.module,
-      title: stepInfo.title,
-      description: stepInfo.description,
-      canEdit,
-      canDelete,
-      isCompleted,
-    };
   },
 };
