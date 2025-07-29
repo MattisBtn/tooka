@@ -7,15 +7,16 @@ export const useClientsStore = defineStore("clients", () => {
   const clients = ref<Client[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-  const hasMore = ref(true);
-  const skip = ref(0);
-  const pageSize = 20;
   const isInitialized = ref(false);
+
+  // Pagination state
+  const currentPage = ref(1);
+  const totalItems = ref(0);
+  const itemsPerPage = 20;
 
   // Filters state
   const searchQuery = ref("");
   const typeFilter = ref<"individual" | "company" | null>(null);
-  const searchTimeout = ref<NodeJS.Timeout | null>(null);
 
   // Modal state
   const showModal = ref(false);
@@ -34,7 +35,7 @@ export const useClientsStore = defineStore("clients", () => {
   const filteredClients = computed(() => clients.value);
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
-  const canLoadMore = computed(() => hasMore.value && !loading.value);
+  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
 
   // Type options for UI
   const typeOptions = [
@@ -46,42 +47,35 @@ export const useClientsStore = defineStore("clients", () => {
   // Actions
   const reset = () => {
     clients.value = [];
-    hasMore.value = true;
-    skip.value = 0;
+    currentPage.value = 1;
+    totalItems.value = 0;
     error.value = null;
     isInitialized.value = false;
   };
 
-  const fetchClients = async (
-    filters: IClientFilters = {},
-    isInitialLoad = false
-  ) => {
+  const fetchClients = async (filters: IClientFilters = {}, page = 1) => {
     if (loading.value) return;
-    if (!isInitialLoad && !hasMore.value) return;
 
     loading.value = true;
     error.value = null;
 
     try {
       const pagination = {
-        page: Math.floor(skip.value / pageSize) + 1,
-        pageSize,
+        page,
+        pageSize: itemsPerPage,
       };
 
-      const data = await clientService.getClients(filters, pagination);
+      const result = await clientService.getClients(filters, pagination);
 
-      if (data.length < pageSize) {
-        hasMore.value = false;
-      }
+      clients.value = result.data;
+      totalItems.value = result.total;
+      currentPage.value = page;
 
-      clients.value = isInitialLoad ? data : [...clients.value, ...data];
-      skip.value += pageSize;
-
-      if (isInitialLoad) {
+      if (page === 1) {
         isInitialized.value = true;
       }
 
-      return data;
+      return result.data;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to fetch clients");
@@ -91,14 +85,10 @@ export const useClientsStore = defineStore("clients", () => {
     }
   };
 
-  const loadMore = async () => {
-    return await fetchClients(getCurrentFilters(), false);
-  };
-
   const refresh = async (filters?: IClientFilters) => {
     reset();
     const filtersToUse = filters || getCurrentFilters();
-    return await fetchClients(filtersToUse, true);
+    return await fetchClients(filtersToUse, 1);
   };
 
   // Initialize store - follows Pinia best practices for Nuxt
@@ -109,6 +99,11 @@ export const useClientsStore = defineStore("clients", () => {
 
     return await refresh(filters);
   };
+
+  // Create debounced search function using VueUse
+  const debouncedSearch = useDebounceFn(async () => {
+    await refresh(getCurrentFilters());
+  }, 300);
 
   // Search and filter actions
   const setSearchQuery = (query: string) => {
@@ -121,14 +116,8 @@ export const useClientsStore = defineStore("clients", () => {
     debouncedSearch();
   };
 
-  const debouncedSearch = () => {
-    if (searchTimeout.value) {
-      clearTimeout(searchTimeout.value);
-    }
-
-    searchTimeout.value = setTimeout(async () => {
-      await refresh(getCurrentFilters());
-    }, 300);
+  const setPage = async (page: number) => {
+    await fetchClients(getCurrentFilters(), page);
   };
 
   // Modal actions
@@ -232,8 +221,12 @@ export const useClientsStore = defineStore("clients", () => {
     clients: readonly(clients),
     loading: readonly(loading),
     error: readonly(error),
-    hasMore: readonly(hasMore),
     isInitialized: readonly(isInitialized),
+
+    // Pagination state
+    currentPage,
+    totalItems: readonly(totalItems),
+    totalPages,
 
     // Filter state
     searchQuery,
@@ -250,19 +243,18 @@ export const useClientsStore = defineStore("clients", () => {
     filteredClients,
     isLoading,
     hasError,
-    canLoadMore,
     typeOptions,
 
     // Actions
     reset,
     initialize,
     fetchClients,
-    loadMore,
     refresh,
 
     // Filter actions
     setSearchQuery,
     setTypeFilter,
+    setPage,
 
     // Modal actions
     openCreateModal,

@@ -12,6 +12,31 @@ export const clientService = {
       throw new Error("Vous devez être connecté pour accéder aux clients");
     }
 
+    // Build base query for counting
+    let countQuery = supabase
+      .from("clients")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.value.id);
+
+    // Apply filters to count query
+    if (filters.type) {
+      countQuery = countQuery.eq("type", filters.type);
+    }
+
+    if (filters.search) {
+      countQuery = countQuery.or(
+        `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
+      );
+    }
+
+    // Get total count
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      throw new Error(`Failed to count clients: ${countError.message}`);
+    }
+
+    // Build query for data
     let query = supabase
       .from("clients")
       .select("*")
@@ -42,12 +67,18 @@ export const clientService = {
 
     // Business logic: sort by priority if needed
     if (filters.type === "company") {
-      return clients.sort((a, b) =>
-        (b.company_name || "").localeCompare(a.company_name || "")
-      );
+      return {
+        data: clients.sort((a, b) =>
+          (b.company_name || "").localeCompare(a.company_name || "")
+        ),
+        total: count || 0,
+      };
     }
 
-    return clients;
+    return {
+      data: clients,
+      total: count || 0,
+    };
   },
 
   /**
@@ -213,7 +244,8 @@ export const clientService = {
 
     const pagination: IPagination = { page: 1, pageSize: 50 };
 
-    return await this.getClients(filters, pagination);
+    const result = await this.getClients(filters, pagination);
+    return result.data;
   },
 
   /**
@@ -225,7 +257,8 @@ export const clientService = {
     // Use a large page size to get all clients at once
     const pagination: IPagination = { page: 1, pageSize: 1000 };
 
-    const clients = await this.getClients(filters, pagination);
+    const result = await this.getClients(filters, pagination);
+    const clients = result.data;
 
     // Sort clients alphabetically by name
     return clients.sort((a, b) => {

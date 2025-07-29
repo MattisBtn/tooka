@@ -12,7 +12,7 @@ export const projectService = {
   async getProjects(
     filters: IProjectFilters = {},
     pagination: IPagination
-  ): Promise<ProjectWithClient[]> {
+  ): Promise<{ data: ProjectWithClient[]; total: number }> {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();
 
@@ -20,6 +20,53 @@ export const projectService = {
       throw new Error("Vous devez être connecté pour accéder aux projets");
     }
 
+    // Build base query for counting
+    let countQuery = supabase
+      .from("projects")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.value.id);
+
+    // Apply filters to count query
+    if (filters.status) {
+      countQuery = countQuery.eq("status", filters.status);
+    }
+
+    if (filters.client_id) {
+      countQuery = countQuery.eq("client_id", filters.client_id);
+    }
+
+    if (filters.search) {
+      const { data: matchingClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("user_id", user.value.id)
+        .or(
+          `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
+        );
+
+      const clientIds = matchingClients?.map((c) => c.id) || [];
+
+      if (clientIds.length > 0) {
+        countQuery = countQuery.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${
+            filters.search
+          }%,client_id.in.(${clientIds.join(",")})`
+        );
+      } else {
+        countQuery = countQuery.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
+      }
+    }
+
+    // Get total count
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      throw new Error(`Failed to count projects: ${countError.message}`);
+    }
+
+    // Build query for data
     let query = supabase
       .from("projects")
       .select(
@@ -80,7 +127,10 @@ export const projectService = {
       throw new Error(`Failed to fetch projects: ${error.message}`);
     }
 
-    return data || [];
+    return {
+      data: data || [],
+      total: count || 0,
+    };
   },
 
   /**

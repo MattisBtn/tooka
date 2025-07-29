@@ -13,7 +13,13 @@
 
     <div ref="tableContainer" class="mt-6">
       <UTable ref="table" :columns="columns" :data="store.filteredProjects" sticky :loading="store.isLoading"
-        :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" class="w-full h-[calc(100vh-200px)]" />
+        :empty-state="{ icon: 'i-lucide-folder', label: 'Aucun projet trouvé' }" class="w-full h-[calc(100vh-300px)]" />
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="store.totalPages > 1" class="mt-6 flex justify-center">
+      <UPagination v-model:page="store.currentPage" :total="store.totalItems" :items-per-page="20"
+        @update:page="handlePageChange" />
     </div>
 
     <!-- Project Modal -->
@@ -36,7 +42,6 @@
 
 <script lang="ts" setup>
 import type { TableColumn } from '@nuxt/ui'
-import { useInfiniteScroll } from '@vueuse/core'
 import { h, resolveComponent } from 'vue'
 import type { ProjectWithClient } from '~/types/project'
 
@@ -161,6 +166,10 @@ const deleteModalDescription = computed(() => {
 })
 
 // Event handlers
+const handlePageChange = async (page: number) => {
+  await store.setPage(page)
+}
+
 const handleProjectSaved = (project: ProjectWithClient) => {
   if (store.selectedProject) {
     store.updateProjectInList(project)
@@ -178,24 +187,6 @@ const confirmDelete = async () => {
     console.error('Error deleting project:', error)
   }
 }
-
-// Setup infinite scroll
-onMounted(() => {
-  const table = ref<ComponentPublicInstance | null>(null)
-
-  useInfiniteScroll(
-    table.value?.$el,
-    async () => {
-      if (store.canLoadMore) {
-        await store.loadMore()
-      }
-    },
-    {
-      distance: 200,
-      canLoadMore: () => store.canLoadMore
-    }
-  )
-})
 </script>
 
 <style></style>

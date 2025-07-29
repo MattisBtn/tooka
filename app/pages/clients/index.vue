@@ -13,7 +13,13 @@
 
     <div ref="tableContainer" class="mt-6">
       <UTable ref="table" :columns="columns" :data="store.filteredClients" sticky :loading="store.isLoading"
-        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" class="w-full h-[calc(100vh-200px)]" />
+        :empty-state="{ icon: 'i-lucide-users', label: 'Aucun client trouvé' }" class="w-full h-[calc(100vh-300px)]" />
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="store.totalPages > 1" class="mt-6 flex justify-center">
+      <UPagination v-model:page="store.currentPage" :total="store.totalItems" :items-per-page="20"
+        @update:page="handlePageChange" />
     </div>
 
     <!-- Client Modal -->
@@ -35,7 +41,6 @@
 
 <script lang="ts" setup>
 import type { TableColumn } from '@nuxt/ui'
-import { useInfiniteScroll } from '@vueuse/core'
 import { h, resolveComponent } from 'vue'
 import type { Client } from '~/types/client'
 
@@ -138,6 +143,11 @@ const deleteModalDescription = computed(() => {
   return `Êtes-vous sûr de vouloir supprimer le client "${clientName}" ? Cette action est irréversible.`
 })
 
+// Event handlers
+const handlePageChange = async (page: number) => {
+  await store.setPage(page)
+}
+
 const confirmDelete = async () => {
   if (!store.clientToDelete) return
 
@@ -147,25 +157,6 @@ const confirmDelete = async () => {
     console.error('Error deleting client:', error)
   }
 }
-
-// Setup infinite scroll
-onMounted(() => {
-  const table = ref<ComponentPublicInstance | null>(null)
-
-  useInfiniteScroll(
-    table.value?.$el,
-    async () => {
-      if (store.canLoadMore) {
-        await store.loadMore()
-      }
-    },
-    {
-      distance: 200,
-      canLoadMore: () => store.canLoadMore
-    }
-  )
-})
 </script>
 
-<style></style>
 <style></style>

@@ -12,15 +12,16 @@ export const useProjectsStore = defineStore("projects", () => {
   const projects = ref<ProjectWithClient[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-  const hasMore = ref(true);
-  const skip = ref(0);
-  const pageSize = 20;
   const isInitialized = ref(false);
+
+  // Pagination state
+  const currentPage = ref(1);
+  const totalItems = ref(0);
+  const itemsPerPage = 20;
 
   // Filters state
   const searchQuery = ref("");
   const statusFilter = ref<"draft" | "in_progress" | "completed" | null>(null);
-  const searchTimeout = ref<NodeJS.Timeout | null>(null);
 
   // Modal state
   const showModal = ref(false);
@@ -39,7 +40,7 @@ export const useProjectsStore = defineStore("projects", () => {
   const filteredProjects = computed(() => projects.value);
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
-  const canLoadMore = computed(() => hasMore.value && !loading.value);
+  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
 
   // Status options for UI
   const statusOptions = [
@@ -52,42 +53,35 @@ export const useProjectsStore = defineStore("projects", () => {
   // Actions
   const reset = () => {
     projects.value = [];
-    hasMore.value = true;
-    skip.value = 0;
+    currentPage.value = 1;
+    totalItems.value = 0;
     error.value = null;
     isInitialized.value = false;
   };
 
-  const fetchProjects = async (
-    filters: IProjectFilters = {},
-    isInitialLoad = false
-  ) => {
+  const fetchProjects = async (filters: IProjectFilters = {}, page = 1) => {
     if (loading.value) return;
-    if (!isInitialLoad && !hasMore.value) return;
 
     loading.value = true;
     error.value = null;
 
     try {
       const pagination = {
-        page: Math.floor(skip.value / pageSize) + 1,
-        pageSize,
+        page,
+        pageSize: itemsPerPage,
       };
 
-      const data = await projectService.getProjects(filters, pagination);
+      const result = await projectService.getProjects(filters, pagination);
 
-      if (data.length < pageSize) {
-        hasMore.value = false;
-      }
+      projects.value = result.data;
+      totalItems.value = result.total;
+      currentPage.value = page;
 
-      projects.value = isInitialLoad ? data : [...projects.value, ...data];
-      skip.value += pageSize;
-
-      if (isInitialLoad) {
+      if (page === 1) {
         isInitialized.value = true;
       }
 
-      return data;
+      return result.data;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to fetch projects");
@@ -97,14 +91,10 @@ export const useProjectsStore = defineStore("projects", () => {
     }
   };
 
-  const loadMore = async () => {
-    return await fetchProjects(getCurrentFilters(), false);
-  };
-
   const refresh = async (filters?: IProjectFilters) => {
     reset();
     const filtersToUse = filters || getCurrentFilters();
-    return await fetchProjects(filtersToUse, true);
+    return await fetchProjects(filtersToUse, 1);
   };
 
   // Initialize store - follows Pinia best practices for Nuxt
@@ -115,6 +105,11 @@ export const useProjectsStore = defineStore("projects", () => {
 
     return await refresh(filters);
   };
+
+  // Create debounced search function using VueUse
+  const debouncedSearch = useDebounceFn(async () => {
+    await refresh(getCurrentFilters());
+  }, 300);
 
   // Search and filter actions
   const setSearchQuery = (query: string) => {
@@ -129,14 +124,8 @@ export const useProjectsStore = defineStore("projects", () => {
     debouncedSearch();
   };
 
-  const debouncedSearch = () => {
-    if (searchTimeout.value) {
-      clearTimeout(searchTimeout.value);
-    }
-
-    searchTimeout.value = setTimeout(async () => {
-      await refresh(getCurrentFilters());
-    }, 300);
+  const setPage = async (page: number) => {
+    await fetchProjects(getCurrentFilters(), page);
   };
 
   // Modal actions
@@ -268,8 +257,12 @@ export const useProjectsStore = defineStore("projects", () => {
     projects: readonly(projects),
     loading: readonly(loading),
     error: readonly(error),
-    hasMore: readonly(hasMore),
     isInitialized: readonly(isInitialized),
+
+    // Pagination state
+    currentPage,
+    totalItems: readonly(totalItems),
+    totalPages,
 
     // Filter state
     searchQuery,
@@ -286,19 +279,18 @@ export const useProjectsStore = defineStore("projects", () => {
     filteredProjects,
     isLoading,
     hasError,
-    canLoadMore,
     statusOptions,
 
     // Actions
     reset,
     initialize,
     fetchProjects,
-    loadMore,
     refresh,
 
     // Filter actions
     setSearchQuery,
     setStatusFilter,
+    setPage,
 
     // Modal actions
     openCreateModal,

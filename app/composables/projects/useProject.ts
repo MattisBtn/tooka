@@ -174,17 +174,6 @@ export const useProject = (projectId: string) => {
     return statusMap[status as keyof typeof statusMap] || status;
   };
 
-  // Toggle module activation
-  const toggleModule = async (
-    moduleName: keyof typeof modules.value,
-    enabled: boolean
-  ) => {
-    modules.value[moduleName].enabled = enabled;
-
-    // TODO: Save to database
-    // await moduleService.updateModuleState(projectId, moduleName, enabled);
-  };
-
   // Update module completion state
   const updateModuleState = (
     moduleName: keyof typeof modules.value,
@@ -249,7 +238,6 @@ export const useProject = (projectId: string) => {
 
     // Actions
     fetchProject,
-    toggleModule,
     updateModuleState,
   };
 };
