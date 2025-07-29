@@ -1,0 +1,403 @@
+---
+alwaysApply: true
+---
+
+# Pinia Store Pattern - Nuxt 3 TypeScript
+
+## Architecture & Structure
+
+### 1.1 Store Organization
+
+**Feature-Based Stores**: Un store par domaine métier, organisé par fonctionnalité.
+
+**Structure Standard**:
+
+```
+~/stores/
+  ├── clients.ts          # Gestion des clients
+  ├── projects.ts         # Gestion des projets
+  ├── galleries.ts        # Gestion des galeries
+  ├── moodboards.ts       # Gestion des moodboards
+  ├── proposals.ts        # Gestion des propositions
+  └── selections.ts       # Gestion des sélections
+```
+
+### 1.2 Dependencies Pattern
+
+**Service Layer**: Chaque store utilise un service dédié pour les opérations CRUD.
+
+```typescript
+// Pattern de dépendance
+import { clientService } from "~/services/clientService";
+import type { Client, IClientFilters } from "~/types/client";
+```
+
+## Store Structure Template
+
+### 2.1 State Management
+
+```typescript
+export const useEntityStore = defineStore("entity", () => {
+  // Core State
+  const entities = ref<Entity[]>([]);
+  const loading = ref(false);
+  const error = ref<Error | null>(null);
+  const isInitialized = ref(false);
+
+  // Pagination State
+  const currentPage = ref(1);
+  const totalItems = ref(0);
+  const itemsPerPage = 20;
+
+  // Filter State
+  const searchQuery = ref("");
+  const statusFilter = ref<EntityStatus | null>(null);
+
+  // Modal State
+  const showModal = ref(false);
+  const selectedEntity = ref<Entity | undefined>(undefined);
+  const showDeleteModal = ref(false);
+  const entityToDelete = ref<Entity | null>(null);
+  const deletionLoading = ref(false);
+});
+```
+
+### 2.2 Getters & Computed
+
+```typescript
+// Filter Helpers
+const getCurrentFilters = (): IEntityFilters => ({
+  search: searchQuery.value.trim() || undefined,
+  status: statusFilter.value || undefined,
+});
+
+// Computed Getters
+const filteredEntities = computed(() => entities.value);
+const isLoading = computed(() => loading.value);
+const hasError = computed(() => error.value !== null);
+const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
+
+// UI Options
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+  { value: "active" as const, label: "Actif", color: "success" },
+];
+```
+
+### 2.3 Actions Pattern
+
+```typescript
+// Reset & Initialization
+const reset = () => {
+  entities.value = [];
+  currentPage.value = 1;
+  totalItems.value = 0;
+  error.value = null;
+  isInitialized.value = false;
+};
+
+// Data Fetching
+const fetchEntities = async (filters: IEntityFilters = {}, page = 1) => {
+  if (loading.value) return;
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const pagination = { page, pageSize: itemsPerPage };
+    const result = await entityService.getEntities(filters, pagination);
+
+    entities.value = result.data;
+    totalItems.value = result.total;
+    currentPage.value = page;
+
+    if (page === 1) {
+      isInitialized.value = true;
+    }
+
+    return result.data;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to fetch entities");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Search & Filter Actions
+const debouncedSearch = useDebounceFn(async () => {
+  await refresh(getCurrentFilters());
+}, 300);
+
+const setSearchQuery = (query: string) => {
+  searchQuery.value = query;
+  debouncedSearch();
+};
+
+const setStatusFilter = (status: EntityStatus | null) => {
+  statusFilter.value = status;
+  debouncedSearch();
+};
+
+// CRUD Operations
+const createEntity = async (entityData: EntityFormData) => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const newEntity = await entityService.createEntity(entityData);
+    entities.value = [newEntity, ...entities.value];
+    closeModal();
+    return newEntity;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to create entity");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const updateEntity = async (id: string, updates: Partial<Entity>) => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const updatedEntity = await entityService.updateEntity(id, updates);
+    const index = entities.value.findIndex((e) => e.id === id);
+    if (index !== -1) {
+      entities.value[index] = updatedEntity;
+    }
+    closeModal();
+    return updatedEntity;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to update entity");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteEntity = async (id: string) => {
+  deletionLoading.value = true;
+
+  try {
+    await entityService.deleteEntity(id);
+    entities.value = entities.value.filter((e) => e.id !== id);
+    closeDeleteModal();
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to delete entity");
+    throw err;
+  } finally {
+    deletionLoading.value = false;
+  }
+};
+```
+
+### 2.4 Modal Management
+
+```typescript
+// Modal Actions
+const openCreateModal = () => {
+  selectedEntity.value = undefined;
+  showModal.value = true;
+};
+
+const openEditModal = (entity: Entity) => {
+  selectedEntity.value = entity;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  selectedEntity.value = undefined;
+};
+
+const openDeleteModal = (entity: Entity) => {
+  entityToDelete.value = entity;
+  showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false;
+  entityToDelete.value = null;
+  deletionLoading.value = false;
+};
+```
+
+### 2.5 Return Statement
+
+```typescript
+return {
+  // State (readonly for external access)
+  entities: readonly(entities),
+  loading: readonly(loading),
+  error: readonly(error),
+  isInitialized: readonly(isInitialized),
+
+  // Pagination State
+  currentPage,
+  totalItems: readonly(totalItems),
+  totalPages,
+
+  // Filter State
+  searchQuery,
+  statusFilter,
+
+  // Modal State
+  showModal,
+  selectedEntity: readonly(selectedEntity),
+  showDeleteModal,
+  entityToDelete: readonly(entityToDelete),
+  deletionLoading: readonly(deletionLoading),
+
+  // Getters
+  filteredEntities,
+  isLoading,
+  hasError,
+  statusOptions,
+
+  // Actions
+  reset,
+  initialize,
+  fetchEntities,
+  refresh,
+  setSearchQuery,
+  setStatusFilter,
+  setPage,
+  openCreateModal,
+  openEditModal,
+  closeModal,
+  openDeleteModal,
+  closeDeleteModal,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+  addEntityToList,
+  updateEntityInList,
+};
+```
+
+## Best Practices
+
+### 3.1 Error Handling
+
+- **Consistent Error Types**: Toujours utiliser `Error` ou des types d'erreur personnalisés
+- **Error State Management**: Maintenir un état d'erreur centralisé
+- **User-Friendly Messages**: Traduire les erreurs techniques en messages utilisateur
+
+### 3.2 Performance Optimization
+
+- **Debounced Search**: Utiliser `useDebounceFn` pour les recherches
+- **Lazy Loading**: Implémenter la pagination avec chargement à la demande
+- **State Immutability**: Utiliser `readonly()` pour l'état externe
+
+### 3.3 Type Safety
+
+- **Strong Typing**: Tous les types doivent être explicitement définis
+- **Interface Consistency**: Utiliser les interfaces des types partagés
+- **Generic Patterns**: Éviter `any`, utiliser des types génériques quand nécessaire
+
+### 3.4 State Management
+
+- **Single Source of Truth**: Un store par domaine métier
+- **Normalized State**: Éviter la duplication de données
+- **Reactive Updates**: Utiliser les réactivités Vue 3
+
+## Service Integration
+
+### 4.1 Service Pattern
+
+```typescript
+// Service Interface
+interface IEntityService {
+  getEntities(
+    filters: IEntityFilters,
+    pagination: IPagination
+  ): Promise<PaginatedResult<Entity>>;
+  getEntity(id: string): Promise<Entity | null>;
+  createEntity(data: EntityFormData): Promise<Entity>;
+  updateEntity(id: string, updates: Partial<Entity>): Promise<Entity>;
+  deleteEntity(id: string): Promise<void>;
+}
+```
+
+### 4.2 Repository Pattern
+
+```typescript
+// Repository Layer
+class EntityRepository {
+  async findMany(
+    filters: IEntityFilters,
+    pagination: IPagination
+  ): Promise<Entity[]> {
+    // Supabase query implementation
+  }
+
+  async findById(id: string): Promise<Entity | null> {
+    // Single entity fetch
+  }
+}
+```
+
+## File Size Guidelines
+
+### 5.1 Store Size Limits
+
+- **Maximum 300 lines** par store
+- **Extract complex logic** vers des composables si nécessaire
+- **Split large stores** par sous-domaine si dépassement
+
+### 5.2 Complexity Red Flags
+
+- **Plus de 5 actions CRUD** → Considérer la séparation
+- **Plus de 3 états de modal** → Extraire la logique modale
+- **Plus de 10 getters** → Réorganiser la structure
+
+## Testing Considerations
+
+### 6.1 Store Testing
+
+```typescript
+// Test Pattern
+describe("useEntityStore", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("should fetch entities", async () => {
+    const store = useEntityStore();
+    await store.fetchEntities();
+    expect(store.entities).toHaveLength(2);
+  });
+});
+```
+
+## Migration & Evolution
+
+### 7.1 Store Evolution
+
+- **Backward Compatibility**: Maintenir l'API publique stable
+- **Gradual Migration**: Évoluer les stores existants progressivement
+- **Documentation**: Documenter les changements d'API
+
+### 7.2 Refactoring Triggers
+
+- **Store > 300 lignes**: Extraire des sous-stores ou composables
+- **Plus de 5 dépendances**: Considérer la séparation des responsabilités
+- **Logique métier complexe**: Déplacer vers les services
+
+## Summary
+
+Ce pattern garantit:
+
+- **Consistency**: Structure uniforme across tous les stores
+- **Maintainability**: Code prévisible et facile à maintenir
+- **Performance**: Optimisations intégrées (debouncing, pagination)
+- **Type Safety**: TypeScript strict avec interfaces claires
+- **Scalability**: Architecture extensible pour la croissance
+- **Testing**: Structure testable avec patterns clairs
