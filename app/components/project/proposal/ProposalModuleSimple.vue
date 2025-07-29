@@ -195,9 +195,9 @@
 </template>
 
 <script lang="ts" setup>
+import { useProject } from '~/composables/projects/useProject'
 import { useProposalManager } from '~/composables/proposals/useProposalManager'
 import { useModuleState } from '~/composables/shared/useModuleState'
-import { useProjectStore } from '~/stores/project'
 import type { ProjectPaymentData, ProposalFormData } from '~/types/proposal'
 
 interface Props {
@@ -228,20 +228,19 @@ const showForm = computed({
 // Utiliser le composable unifié
 const proposalManager = useProposalManager(props.projectId)
 
-// Use project store pour les données de paiement
-const projectStore = useProjectStore()
-const { project, loading: projectLoading } = projectStore
+// Use project composable pour les données de paiement
+const { project, fetchProject, loading: projectLoading } = useProject(props.projectId)
 
 // Computed for project payment data
 const projectPaymentData = computed(() => {
-    if (!project) return undefined
+    if (!project.value) return undefined
 
     return {
-        id: project.id,
-        payment_method: project.payment_method,
-        bank_iban: project.bank_iban,
-        bank_bic: project.bank_bic,
-        bank_beneficiary: project.bank_beneficiary,
+        id: project.value.id,
+        payment_method: project.value.payment_method,
+        bank_iban: project.value.bank_iban,
+        bank_bic: project.value.bank_bic,
+        bank_beneficiary: project.value.bank_beneficiary,
     }
 })
 
@@ -259,7 +258,7 @@ const revisionComment = computed(() => {
 onMounted(async () => {
     await Promise.all([
         proposalManager.load(),
-        projectStore.fetchProject(props.projectId)
+        fetchProject()
     ])
 })
 
