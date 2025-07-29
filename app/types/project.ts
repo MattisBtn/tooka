@@ -9,22 +9,6 @@ export interface IProjectFilters {
   client_id?: string;
 }
 
-export interface IProjectRepository {
-  findMany(
-    filters: IProjectFilters,
-    pagination: IPagination
-  ): Promise<ProjectWithClient[]>;
-  findById(id: string): Promise<ProjectWithClient | null>;
-  create(
-    data: Omit<Project, "id" | "created_at" | "updated_at">
-  ): Promise<ProjectWithClient>;
-  update(id: string, data: Partial<Project>): Promise<Project>;
-  delete(id: string): Promise<void>;
-  startWorkflow(id: string): Promise<Project>;
-  updateWorkflowStep(id: string, step: WorkflowStep): Promise<Project>;
-  completeWorkflow(id: string): Promise<Project>;
-}
-
 export interface IPagination {
   page: number;
   pageSize: number;
