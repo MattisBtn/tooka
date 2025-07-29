@@ -1,9 +1,9 @@
-import { clientService } from "~/services/clientService";
 import type { Client, ClientFormData } from "~/types/client";
 import { clientFormSchema } from "~/types/client";
 
 export const useClientForm = (initialClient?: Client) => {
   const toast = useToast();
+  const store = useClientsStore();
 
   // Reactive state for UForm - no longer readonly
   const state = reactive<Partial<ClientFormData>>({
@@ -81,12 +81,12 @@ export const useClientForm = (initialClient?: Client) => {
         company_name: data.company_name || null,
         first_name: data.first_name || null,
         last_name: data.last_name || null,
-      } as Omit<Client, "id" | "created_at" | "updated_at" | "user_id">;
+      };
 
       let result: Client;
 
       if (isEditMode.value && initialClient) {
-        result = await clientService.updateClient(initialClient.id, clientData);
+        result = await store.updateClient(initialClient.id, clientData);
         toast.add({
           title: "Client modifié",
           description:
@@ -94,7 +94,9 @@ export const useClientForm = (initialClient?: Client) => {
           color: "success",
         });
       } else {
-        result = await clientService.createClient(clientData);
+        result = await store.createClient(
+          clientData as Omit<Client, "id" | "created_at" | "updated_at">
+        );
         toast.add({
           title: "Client créé",
           description: "Le nouveau client a été ajouté avec succès.",

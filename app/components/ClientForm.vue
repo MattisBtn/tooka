@@ -247,13 +247,7 @@ interface Props {
     client?: Client;
 }
 
-interface Emits {
-    (e: "clientSaved", client: Client): void;
-    (e: "cancel"): void;
-}
-
 const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
 
 const {
     state,
@@ -291,10 +285,7 @@ const submitButtonLabel = computed(() =>
 const handleSubmit = async (event: FormSubmitEvent<ClientFormData>) => {
     isSubmitting.value = true;
     try {
-        const result = await onSubmit(event.data);
-        if (result) {
-            emit("clientSaved", result);
-        }
+        await onSubmit(event.data);
     } finally {
         isSubmitting.value = false;
     }
