@@ -28,7 +28,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     maxFiles: 200,
-    maxFileSize: 10 * 1024 * 1024 // 10MB
+    maxFileSize: 100 * 1024 * 1024 // 10MB
 })
 
 const emit = defineEmits<Emits>()

@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
         }
 
         // Validate file size (max 10MB)
-        if (file.data.length > 10 * 1024 * 1024) {
+        if (file.data.length > 100 * 1024 * 1024) {
           errors.push(`${file.filename}: Fichier trop volumineux (max 10MB)`);
           continue;
         }
