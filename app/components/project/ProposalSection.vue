@@ -33,7 +33,7 @@
                         <!-- Status Badge in Header -->
                         <div class="flex items-center gap-2">
                             <UBadge :color="getStatusColor(proposalStore.proposal?.status)" variant="soft"
-                                :label="getStatusLabel(proposalStore.proposal?.status)" />
+                                :label="getStatusLabel(proposalStore.proposal?.status || 'Inconnu', 'proposal')" />
                         </div>
                     </div>
                 </template>
@@ -128,7 +128,8 @@
                     </div>
 
                     <!-- Contextual Actions -->
-                    <div class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                    <div
+                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 ml-auto">
                         <!-- Edit Action - Available for draft and revision_requested -->
                         <UButton v-if="proposalStore.canEdit" icon="i-lucide-edit" size="sm" variant="outline"
                             color="neutral" label="Modifier" @click="proposalStore.openForm()" />
@@ -323,17 +324,6 @@ const getStatusColor = (status?: string): 'neutral' | 'info' | 'warning' | 'succ
         completed: 'success'
     }
     return colorMap[status || 'draft'] || 'neutral'
-}
-
-const getStatusLabel = (status?: string) => {
-    const labelMap: Record<string, string> = {
-        draft: 'Brouillon',
-        awaiting_client: 'En attente client',
-        revision_requested: 'Révision demandée',
-        payment_pending: 'Paiement en attente',
-        completed: 'Acceptée'
-    }
-    return labelMap[status || 'draft'] || status || 'Inconnu'
 }
 
 const getDepositPercentage = () => {
