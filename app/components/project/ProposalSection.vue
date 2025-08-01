@@ -129,7 +129,7 @@
 
                     <!-- Contextual Actions -->
                     <div
-                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 ml-auto">
+                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
                         <!-- Edit Action - Available for draft and revision_requested -->
                         <UButton v-if="proposalStore.canEdit" icon="i-lucide-edit" size="sm" variant="outline"
                             color="neutral" label="Modifier" @click="proposalStore.openForm()" />
@@ -256,6 +256,7 @@
 
 <script lang="ts" setup>
 import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
+import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
@@ -314,17 +315,7 @@ const handleProposalSaved = async (data: {
     }
 };
 
-// Helper functions
-const getStatusColor = (status?: string): 'neutral' | 'info' | 'warning' | 'success' => {
-    const colorMap: Record<string, 'neutral' | 'info' | 'warning' | 'success'> = {
-        draft: 'neutral',
-        awaiting_client: 'info',
-        revision_requested: 'warning',
-        payment_pending: 'info',
-        completed: 'success'
-    }
-    return colorMap[status || 'draft'] || 'neutral'
-}
+
 
 const getDepositPercentage = () => {
     if (!proposalStore.proposal?.deposit_amount || !proposalStore.proposal?.price) return 0;

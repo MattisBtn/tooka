@@ -327,9 +327,8 @@ const handleDelete = async () => {
     }
 }
 
-const handleImageClick = (image: GalleryImage) => {
+const handleImageClick = (_image: GalleryImage) => {
     // Gérer le clic sur image (lightbox, etc.)
-    console.log('Image clicked:', image)
 }
 
 const handleDeleteImage = async (imageId: string) => {

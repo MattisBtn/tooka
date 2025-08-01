@@ -255,9 +255,8 @@ const handleDelete = async () => {
     }
 }
 
-const handleImageClick = (image: MoodboardImage) => {
+const handleImageClick = (_image: MoodboardImage) => {
     // Gérer le clic sur image (lightbox, etc.)
-    console.log('Image clicked:', image)
 }
 
 const handleDeleteImage = async (imageId: string) => {

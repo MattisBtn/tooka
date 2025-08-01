@@ -156,6 +156,41 @@ export const projectService = {
           last_name,
           company_name,
           billing_email
+        ),
+        proposal:proposals!project_id(
+          id,
+          content_json,
+          content_html,
+          status,
+          price,
+          deposit_required,
+          deposit_amount,
+          contract_url,
+          quote_url
+        ),
+        moodboard:moodboards!project_id(
+          id,
+          title,
+          description,
+          status,
+          created_at,
+          updated_at
+        ),
+        selection:selections!project_id(
+          id,
+          max_media_selection,
+          extra_media_price,
+          status,
+          created_at,
+          updated_at
+        ),
+        gallery:galleries!project_id(
+          id,
+          status,
+          payment_required,
+          selection_id,
+          created_at,
+          updated_at
         )
       `
       )
@@ -167,7 +202,24 @@ export const projectService = {
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    return data;
+    // Extract single items from arrays (since relations return arrays)
+    const processedData = {
+      ...data,
+      proposal: Array.isArray(data.proposal)
+        ? data.proposal[0] || null
+        : data.proposal,
+      moodboard: Array.isArray(data.moodboard)
+        ? data.moodboard[0] || null
+        : data.moodboard,
+      selection: Array.isArray(data.selection)
+        ? data.selection[0] || null
+        : data.selection,
+      gallery: Array.isArray(data.gallery)
+        ? data.gallery[0] || null
+        : data.gallery,
+    } as ProjectWithClient;
+
+    return processedData;
   },
 
   /**

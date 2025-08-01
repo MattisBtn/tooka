@@ -33,9 +33,16 @@
 
 <script lang="ts" setup>
 import type { WorkflowStep } from '~/types/project';
+import { getStepStatus, type StepInfo } from '~/utils/formatters';
 
 interface Props {
     currentStep: number
+    project?: {
+        proposal?: { status: string } | null;
+        moodboard?: { status: string } | null;
+        selection?: { status: string } | null;
+        gallery?: { status: string } | null;
+    }
 }
 
 const props = defineProps<Props>()
@@ -50,24 +57,10 @@ const steps = [
     { key: 'gallery', title: 'Galerie', description: 'Livrable final' }
 ]
 
-// Use project setup store
-const store = useProjectSetupStore()
+const getStepDisplayStatus = (stepNumber: WorkflowStep): StepInfo | null => {
+    if (!props.project) return null;
 
-const getStepDisplayStatus = (stepNumber: WorkflowStep): { status: 'completed' | 'in_progress' | 'locked', canView: boolean } => {
-    const stepKey = steps[stepNumber - 1]?.key as keyof typeof store.modules
-    if (!stepKey) return { status: 'locked', canView: false }
-
-    const module = store.modules[stepKey]
-
-    if (module.completed) {
-        return { status: 'completed', canView: true }
-    }
-
-    if (module.enabled) {
-        return { status: 'in_progress', canView: true }
-    }
-
-    return { status: 'locked', canView: true }
+    return getStepStatus(stepNumber, props.project);
 }
 
 const getStepClasses = (stepNumber: WorkflowStep) => {

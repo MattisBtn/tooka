@@ -70,11 +70,6 @@ export default defineEventHandler(async (event) => {
     // We might need to add a new table like "gallery_client_comments" or add a field to galleries table
     const clientComment = body?.comment;
 
-    // For now, we'll just log the comment
-    if (clientComment) {
-      console.log(`Client comment for gallery ${galleryId}:`, clientComment);
-    }
-
     // TODO: Send notification to photographer about revision request
 
     return {
