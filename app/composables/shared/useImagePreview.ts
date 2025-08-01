@@ -1,15 +1,18 @@
-import type { MoodboardImage } from "~/types/moodboard";
+// Type générique pour les images
+export interface PreviewImage {
+  id: string;
+  file_url: string;
+  created_at: string;
+  [key: string]: unknown; // Pour permettre d'autres propriétés spécifiques
+}
 
 export const useImagePreview = () => {
   const isOpen = ref(false);
-  const currentImage = ref<MoodboardImage | null>(null);
-  const images = ref<MoodboardImage[]>([]);
+  const currentImage = ref<PreviewImage | null>(null);
+  const images = ref<PreviewImage[]>([]);
   const currentIndex = ref(0);
 
-  const openPreview = (
-    image: MoodboardImage,
-    allImages: MoodboardImage[] = []
-  ) => {
+  const openPreview = (image: PreviewImage, allImages: PreviewImage[] = []) => {
     currentImage.value = image;
     images.value = allImages;
     currentIndex.value = allImages.findIndex((img) => img.id === image.id);

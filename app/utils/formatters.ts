@@ -21,18 +21,13 @@ export const formatDate = (date: string | Date): string => {
 // Labels des statuts
 export const getStatusLabel = (
   status: string,
-  type: "proposal" | "moodboard" | "selection" | "gallery"
+  _type?: "proposal" | "moodboard" | "selection" | "gallery"
 ): string => {
   const statusMap = {
     draft: "Brouillon",
     awaiting_client: "En attente client",
     revision_requested: "Révision demandée",
-    completed:
-      type === "moodboard"
-        ? "Validé"
-        : type === "selection"
-        ? "Validée"
-        : "Acceptée",
+    completed: "Acceptée",
     payment_pending: "Paiement en attente",
   };
   return statusMap[status as keyof typeof statusMap] || status;

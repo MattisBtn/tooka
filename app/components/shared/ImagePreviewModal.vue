@@ -1,5 +1,5 @@
 <template>
-    <UModal :open="isOpen" :fullscreen="true" :transition="true" @update:open="$emit('update:isOpen', $event)">
+    <UModal :open="isOpen" :fullscreen="true" :transition="true" @update:is-open="$emit('update:isOpen', $event)">
         <template #content>
             <div class="flex h-full bg-black/95">
                 <!-- Close button -->
@@ -43,13 +43,14 @@
 </template>
 
 <script lang="ts" setup>
-import type { MoodboardImage } from '~/types/moodboard'
+import type { PreviewImage } from '~/composables/shared/useImagePreview'
 
 interface Props {
     isOpen: boolean
-    currentImage: MoodboardImage | null
-    images: MoodboardImage[]
+    currentImage: PreviewImage | null
+    images: PreviewImage[]
     currentIndex: number
+    storageBucket?: string // Pour permettre de spécifier le bucket de stockage
 }
 
 interface Emits {
@@ -58,7 +59,10 @@ interface Emits {
     (e: 'update:isOpen', value: boolean): void
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    storageBucket: 'moodboard-images' // Par défaut, mais peut être surchargé
+})
+
 const emit = defineEmits<Emits>()
 
 const closePreview = () => emit('close')
@@ -75,11 +79,11 @@ const getImageUrl = (filePath: string) => {
     try {
         const supabase = useSupabaseClient()
         const { data } = supabase.storage
-            .from('moodboard-images')
+            .from(props.storageBucket)
             .getPublicUrl(filePath)
         return data.publicUrl
     } catch (error) {
-        console.error('Error getting moodboard image URL:', error)
+        console.error('Error getting image URL:', error)
         return `https://via.placeholder.com/800x600?text=Error+Loading+Image`
     }
 }

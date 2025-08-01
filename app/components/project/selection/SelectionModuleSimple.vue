@@ -71,7 +71,7 @@
                 <!-- Image Preview Grid -->
                 <div v-if="selectionManager.hasImages.value" class="space-y-3 mt-4">
                     <h5 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Aperçu des images</h5>
-                    <ProjectSelectionImageGrid :images="Array.from(selectionManager.images.value)" :max-preview="6"
+                    <SelectionImageGrid :images="Array.from(selectionManager.images.value)" :max-preview="6"
                         :can-delete="selectionManager.canEdit.value" :can-toggle-selection="false"
                         :show-selection-state="true" @image-click="handleImageClick"
                         @delete-image="handleDeleteImage" />

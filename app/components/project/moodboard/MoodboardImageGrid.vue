@@ -2,29 +2,25 @@
     <div class="space-y-3">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <div v-for="(image, index) in displayImages" :key="image.id"
-                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105"
-                @click="handleImageClick(image)">
+                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105">
 
                 <!-- Image -->
                 <NuxtImg :src="getImageUrl(image.file_url)" :alt="`Image d'inspiration ${index + 1}`"
                     class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                     loading="lazy" />
 
-                <!-- Hover overlay with actions -->
-                <div
-                    class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
-                    <div class="flex items-center gap-2">
-                        <UButton icon="i-lucide-eye" size="xs" color="primary" variant="solid" title="Voir l'image"
-                            @click.stop="handleImageClick(image)" />
-
-                        <UButton v-if="canDelete && isEditing" icon="i-lucide-trash-2" size="xs" color="error"
-                            variant="solid" title="Supprimer" @click.stop="$emit('delete-image', image.id)" />
-                    </div>
-                </div>
-
                 <!-- Image counter badge -->
                 <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
                     {{ index + 1 }}
+                </div>
+
+                <!-- Action Menu -->
+                <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <UDropdownMenu :items="getImageActions(image)" :ui="{
+                        content: 'min-w-48'
+                    }">
+                        <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
+                    </UDropdownMenu>
                 </div>
             </div>
         </div>
@@ -49,8 +45,8 @@
     <!-- Image Preview Modal -->
     <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="imagePreview.currentImage.value"
         :images="imagePreview.images.value" :current-index="imagePreview.currentIndex.value"
-        @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
-        @go-to="imagePreview.goToImage" />
+        :storage-bucket="'moodboard-images'" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+        @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage" />
 </template>
 
 <script lang="ts" setup>
@@ -74,7 +70,7 @@ const props = withDefaults(defineProps<Props>(), {
     isEditing: false
 })
 
-defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 
 // Local state
 const showAll = ref(false)
@@ -84,7 +80,17 @@ const imagePreview = useImagePreview()
 
 // Handle image click to open preview
 const handleImageClick = (image: MoodboardImage) => {
-    imagePreview.openPreview(image, props.images)
+    // Convert MoodboardImage to PreviewImage format
+    const previewImage = {
+        id: image.id,
+        file_url: image.file_url,
+        created_at: image.created_at
+    }
+    imagePreview.openPreview(previewImage, props.images.map(img => ({
+        id: img.id,
+        file_url: img.file_url,
+        created_at: img.created_at
+    })))
 }
 
 const displayImages = computed(() => {
@@ -107,5 +113,29 @@ const getImageUrl = (filePath: string) => {
         console.error('Error getting moodboard image URL:', error)
         return `https://via.placeholder.com/300x300?text=Error+Loading+Image`
     }
+}
+
+const getImageActions = (image: MoodboardImage) => {
+    const actions = []
+
+    // View image action
+    actions.push({
+        label: 'Voir l\'image',
+        icon: 'i-lucide-eye',
+        onSelect: () => handleImageClick(image)
+    })
+
+    // Delete action
+    if (props.canDelete) {
+        actions.push({ type: 'separator' })
+        actions.push({
+            label: 'Supprimer',
+            icon: 'i-lucide-trash-2',
+            color: 'error',
+            onSelect: () => emit('delete-image', image.id)
+        })
+    }
+
+    return [actions] // Wrap in array for grouped structure
 }
 </script>
