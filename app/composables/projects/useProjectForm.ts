@@ -112,7 +112,7 @@ export const useProjectForm = (initialProject?: ProjectWithClient) => {
 
         // Redirect to setup page for new projects
         setTimeout(() => {
-          navigateTo(`/projects/${result.id}/setup`);
+          navigateTo(`/projects/${result.id}/setup-new`);
         }, 1000);
       }
 

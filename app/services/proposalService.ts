@@ -296,6 +296,35 @@ export const proposalService = {
   },
 
   /**
+   * Get public URL for accessing a file (if bucket is public)
+   * Falls back to signed URL if bucket is private
+   */
+  async getPublicUrl(filePath: string): Promise<string> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder au fichier");
+    }
+
+    try {
+      // Try to get public URL first
+      const { data } = supabase.storage
+        .from("documents")
+        .getPublicUrl(filePath);
+
+      if (data.publicUrl) {
+        return data.publicUrl;
+      }
+    } catch {
+      // If public URL fails, fall back to signed URL
+    }
+
+    // Fall back to signed URL for private buckets
+    return await this.getSignedUrl(filePath);
+  },
+
+  /**
    * Delete file from storage
    */
   async deleteFile(filePath: string): Promise<void> {

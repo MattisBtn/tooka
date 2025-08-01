@@ -40,7 +40,7 @@ export const proposalFormSchema = z.object({
   quote_url: z.string().nullable(),
 });
 
-// Schema de validation pour le projet avec paiement (utilisé dans le formulaire)
+// Schema de validation pour le projet avec paiement
 export const projectPaymentSchema = z
   .object({
     payment_method: z.enum(["stripe", "bank_transfer"]).nullable(),
@@ -50,7 +50,6 @@ export const projectPaymentSchema = z
   })
   .refine(
     (data) => {
-      // Si payment_method est bank_transfer, les champs bancaires sont requis
       if (data.payment_method === "bank_transfer") {
         return data.bank_iban && data.bank_bic && data.bank_beneficiary;
       }
@@ -62,7 +61,7 @@ export const projectPaymentSchema = z
     }
   );
 
-// Types pour l'accès client (utilisés dans useClientProposal)
+// Types pour l'accès client
 export interface ClientProposalAccess {
   project: {
     id: string;
