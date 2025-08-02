@@ -3,9 +3,8 @@
         <!-- Type Selection -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
-                <div
-                    class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-user-group" class="w-4 h-4 text-white" />
+                <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-user-group" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Type de client</h2>
@@ -45,10 +44,8 @@
                                     </p>
                                 </div>
                             </div>
-                            <div v-if="state.type === item.value"
-                                class="flex items-center gap-2 mt-3 text-xs font-medium text-primary-600 dark:text-primary-400">
-                                <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
-                                Sélectionné
+                            <div v-if="state.type === item.value" class="mt-3">
+                                <UBadge color="primary" variant="soft" size="sm" label="Sélectionné" />
                             </div>
                         </div>
                     </div>
@@ -130,7 +127,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UFormField label="Email de facturation" name="billing_email" required>
+                <UFormField label="Email de facturation" name="billing_email">
                     <UInput v-model="state.billing_email" placeholder="contact@exemple.com" type="email"
                         icon="i-heroicons-envelope" />
                 </UFormField>
@@ -157,20 +154,20 @@
                 </div>
             </div>
 
-            <UFormField label="Adresse" name="billing_address" required>
+            <UFormField label="Adresse" name="billing_address">
                 <UInput v-model="state.billing_address" placeholder="123 Rue de la Paix" icon="i-heroicons-home" />
             </UFormField>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <UFormField label="Ville" name="billing_city" required>
+                <UFormField label="Ville" name="billing_city">
                     <UInput v-model="state.billing_city" placeholder="Paris" icon="i-heroicons-building-office-2" />
                 </UFormField>
 
-                <UFormField label="Code postal" name="billing_postal" required>
+                <UFormField label="Code postal" name="billing_postal">
                     <UInput v-model="state.billing_postal" placeholder="75001" icon="i-heroicons-hashtag" />
                 </UFormField>
 
-                <UFormField label="Pays" name="billing_country" required>
+                <UFormField label="Pays" name="billing_country">
                     <UInput v-model="state.billing_country" placeholder="France" icon="i-heroicons-globe-alt" />
                 </UFormField>
             </div>

@@ -140,10 +140,6 @@ export const clientService = {
       throw new Error("Company name is required for company clients");
     }
 
-    if (!clientData.billing_email) {
-      throw new Error("Billing email is required");
-    }
-
     // Add user_id from authenticated user
     const dataWithUserId = {
       ...clientData,

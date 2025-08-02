@@ -104,14 +104,23 @@ const validateBIC = (bic?: string): boolean => {
 // Base schema with common fields
 const baseClientSchema = z.object({
   type: z.enum(["individual", "company"]),
-  billing_email: z.string().email("Email invalide").min(1, "Email requis"),
-  billing_address: z.string().min(1, "Adresse requise"),
-  billing_city: z.string().min(1, "Ville requise"),
-  billing_country: z.string().min(1, "Pays requis"),
+  billing_email: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+      "Email invalide"
+    ),
+  billing_address: z.string().optional(),
+  billing_city: z.string().optional(),
+  billing_country: z.string().optional(),
   billing_postal: z
     .string()
-    .min(1, "Code postal requis")
-    .regex(/^\d{5}$/, "Le code postal doit contenir 5 chiffres"),
+    .optional()
+    .refine(
+      (val) => !val || /^\d{5}$/.test(val),
+      "Le code postal doit contenir 5 chiffres"
+    ),
   billing_phone: z
     .string()
     .optional()

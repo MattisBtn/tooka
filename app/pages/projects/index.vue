@@ -49,6 +49,7 @@ import type { ProjectWithClient } from '~/types/project'
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
+const UDropdown = resolveComponent('UDropdownMenu')
 
 // Store
 const store = useProjectsStore()
@@ -123,29 +124,34 @@ const columns: TableColumn<ProjectWithClient>[] = [
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => {
-      return h(
-        'div',
-        { class: 'flex items-center gap-2' },
+      const items = [
         [
-          h(UButton, {
+          {
+            label: 'Configurer',
             icon: 'i-lucide-settings',
-            size: 'sm',
-            color: 'primary',
-            variant: 'ghost',
-            title: 'Configurer',
-            onClick: () => store.viewProject(row.original.id)
-          }),
-          h(UButton, {
+            onSelect: () => store.viewProject(row.original.id)
+          },
+          {
+            label: 'Supprimer',
             icon: 'i-lucide-trash',
-            size: 'sm',
             color: 'error',
-            variant: 'ghost',
-            title: 'Supprimer',
             disabled: row.original.status !== 'draft',
-            onClick: () => store.openDeleteModal(row.original)
-          })
+            onSelect: () => store.openDeleteModal(row.original)
+          }
         ]
-      )
+      ]
+
+      return h(UDropdown, {
+        items,
+      }, {
+        default: () => h(UButton, {
+          icon: 'i-lucide-more-vertical',
+          size: 'sm',
+          color: 'neutral',
+          variant: 'ghost',
+          'aria-label': 'Actions'
+        })
+      })
     }
   }
 ]

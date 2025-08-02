@@ -46,6 +46,7 @@ import type { Client } from '~/types/client'
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
+const UDropdown = resolveComponent('UDropdownMenu')
 
 // Store
 const store = useClientsStore()
@@ -104,28 +105,33 @@ const columns: TableColumn<Client>[] = [
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => {
-      return h(
-        'div',
-        { class: 'flex items-center gap-2' },
+      const items = [
         [
-          h(UButton, {
+          {
+            label: 'Modifier',
             icon: 'i-lucide-edit',
-            size: 'sm',
-            color: 'primary',
-            variant: 'ghost',
-            title: 'Modifier',
-            onClick: () => store.openEditModal(row.original)
-          }),
-          h(UButton, {
+            onSelect: () => store.openEditModal(row.original)
+          },
+          {
+            label: 'Supprimer',
             icon: 'i-lucide-trash',
-            size: 'sm',
             color: 'error',
-            variant: 'ghost',
-            title: 'Supprimer',
-            onClick: () => store.openDeleteModal(row.original)
-          })
+            onSelect: () => store.openDeleteModal(row.original)
+          }
         ]
-      )
+      ]
+
+      return h(UDropdown, {
+        items,
+      }, {
+        default: () => h(UButton, {
+          icon: 'i-lucide-more-vertical',
+          size: 'sm',
+          color: 'neutral',
+          variant: 'ghost',
+          'aria-label': 'Actions'
+        })
+      })
     }
   }
 ]
