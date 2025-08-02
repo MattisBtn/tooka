@@ -37,16 +37,62 @@
 
             <!-- Form Fields -->
             <div class="space-y-4">
-                <UFormField label="Nombre maximum de médias sélectionnables" name="max_media_selection" required
-                    class="w-full">
-                    <UInput v-model="state.max_media_selection" type="number" :min="1" :max="1000" placeholder="Ex: 30"
-                        :disabled="isFormDisabled" class="w-full" />
-                </UFormField>
+                <!-- Selection Limit Configuration -->
+                <div class="space-y-3">
+                    <UFormField label="Configuration de la limite de sélection" name="max_media_selection"
+                        class="w-full">
+                        <div class="space-y-3">
+                            <!-- Toggle for unlimited selection -->
+                            <div class="flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg">
+                                <UCheckbox v-model="hasSelectionLimit" :disabled="isFormDisabled"
+                                    class="flex-shrink-0" />
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <UIcon name="i-lucide-infinity" class="w-4 h-4 text-primary-500" />
+                                        <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                            Sélection illimitée
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+                                        Le client peut sélectionner autant d'images qu'il souhaite
+                                    </p>
+                                </div>
+                            </div>
 
-                <UFormField label="Prix d'un média supplémentaire (€)" name="extra_media_price" class="w-full">
-                    <UInput v-model="state.extra_media_price" type="number" :min="0" step="0.01" placeholder="Ex: 15.00"
-                        :disabled="isFormDisabled" class="w-full" />
-                </UFormField>
+                            <!-- Limited selection options - only when unlimited is NOT checked -->
+                            <div v-if="!hasSelectionLimit" class="space-y-3">
+                                <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+                                    Définissez le nombre maximum d'images que le client peut sélectionner :
+                                </div>
+
+                                <!-- Quick selection options -->
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <UButton v-for="option in quickLimitOptions" :key="option.value"
+                                        :variant="state.max_media_selection === option.value ? 'solid' : 'outline'"
+                                        :color="state.max_media_selection === option.value ? 'primary' : 'neutral'"
+                                        size="sm" :disabled="isFormDisabled" class="text-xs"
+                                        @click="state.max_media_selection = option.value">
+                                        {{ option.label }}
+                                    </UButton>
+                                </div>
+
+                                <!-- Custom input -->
+                                <div class="flex items-center gap-2">
+                                    <UInput v-model="state.max_media_selection" type="number" :min="1" :max="1000"
+                                        placeholder="Nombre personnalisé" :disabled="isFormDisabled" class="flex-1" />
+                                    <span class="text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
+                                        images max
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </UFormField>
+
+                    <UFormField label="Prix d'un média supplémentaire (€)" name="extra_media_price" class="w-full">
+                        <UInput v-model="state.extra_media_price" type="number" :min="0" step="0.01"
+                            placeholder="Ex: 15.00" :disabled="isFormDisabled" class="w-full" />
+                    </UFormField>
+                </div>
             </div>
 
             <!-- Selection Purpose Info -->
@@ -235,6 +281,7 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
+import { useSelectionStore } from "~/stores/selection";
 import {
     selectionFormSchema,
     type Selection,
@@ -262,6 +309,34 @@ const state = reactive<SelectionFormData>({
     extra_media_price: props.selection?.extra_media_price || null,
     status: (props.selection?.status || "draft") as "draft" | "awaiting_client" | "revision_requested" | "completed" | "payment_pending",
 });
+
+// Selection limit management
+const hasSelectionLimit = computed({
+    get: () => state.max_media_selection === -1, // true when unlimited (-1), false when limited
+    set: (value: boolean) => {
+        if (value) {
+            // When checkbox is checked = unlimited
+            state.max_media_selection = -1; // Unlimited
+        } else {
+            // When checkbox is unchecked = limited
+            if (state.max_media_selection === -1) {
+                state.max_media_selection = 10; // Default to 10 when switching from unlimited to limited
+            }
+        }
+    }
+});
+
+// Quick selection limit options
+const quickLimitOptions = [
+    { value: 5, label: "5 images" },
+    { value: 10, label: "10 images" },
+    { value: 15, label: "15 images" },
+    { value: 20, label: "20 images" },
+    { value: 25, label: "25 images" },
+    { value: 30, label: "30 images" },
+    { value: 50, label: "50 images" },
+    { value: 100, label: "100 images" },
+];
 
 // File upload states
 const selectedFiles = ref<File[]>([]);
@@ -302,8 +377,8 @@ const handleDeleteExistingImage = async (imageId: string) => {
     if (!confirmed) return;
 
     try {
-        const { selectionService } = await import("~/services/selectionService");
-        await selectionService.deleteImage(imageId);
+        const selectionStore = useSelectionStore();
+        await selectionStore.deleteImage(imageId);
 
         // Remove from local state
         images.value = images.value.filter((img) => img.id !== imageId);
@@ -337,11 +412,8 @@ const handleDeleteAllImages = async () => {
     isDeletingAllImages.value = true;
 
     try {
-        const { selectionService } = await import("~/services/selectionService");
-
-        // Delete all images in parallel
-        const deletePromises = images.value.map(img => selectionService.deleteImage(img.id));
-        await Promise.all(deletePromises);
+        const selectionStore = useSelectionStore();
+        await selectionStore.deleteAllImages();
 
         // Clear local state
         images.value = [];

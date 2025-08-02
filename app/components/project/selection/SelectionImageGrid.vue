@@ -77,6 +77,7 @@
 
 <script lang="ts" setup>
 import { useImagePreview, type PreviewImage } from '~/composables/shared/useImagePreview';
+import { useSelectionStore } from '~/stores/selection';
 import type { SelectionImage } from '~/types/selection';
 
 interface Props {
@@ -215,7 +216,7 @@ const handleImageError = (event: Event) => {
 
 const downloadImage = async (filePath: string, isOriginal: boolean = false, imageFormat?: string) => {
     try {
-        const { selectionService } = await import('~/services/selectionService')
+        const selectionStore = useSelectionStore()
 
         // Generate appropriate filename with correct extension
         const timestamp = Date.now()
@@ -228,7 +229,7 @@ const downloadImage = async (filePath: string, isOriginal: boolean = false, imag
 
         const filename = `image_${timestamp}.${extension}`
 
-        await selectionService.downloadImage(filePath, filename, true)
+        await selectionStore.downloadImage(filePath, filename, true)
 
         const toast = useToast()
         toast.add({

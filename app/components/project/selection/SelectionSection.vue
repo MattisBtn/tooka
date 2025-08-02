@@ -49,10 +49,7 @@
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Sélection
                                 max</span>
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ selectionStore.selection?.max_media_selection }} média{{
-                                    selectionStore.selection?.max_media_selection &&
-                                        selectionStore.selection.max_media_selection > 1 ? 's' : ''
-                                }}
+                                {{ selectionStore.formattedSelectionLimit }}
                             </p>
                         </div>
                         <div class="space-y-1">

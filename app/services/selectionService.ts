@@ -112,10 +112,14 @@ export const selectionService = {
     }
 
     if (
-      !selectionData.max_media_selection ||
-      selectionData.max_media_selection < 1
+      selectionData.max_media_selection === undefined ||
+      selectionData.max_media_selection === null ||
+      (selectionData.max_media_selection !== -1 &&
+        selectionData.max_media_selection < 1)
     ) {
-      throw new Error("Le nombre maximum de médias sélectionnables est requis");
+      throw new Error(
+        "Le nombre maximum de médias sélectionnables est requis (minimum 1 ou -1 pour illimité)"
+      );
     }
 
     // Check if selection already exists for this project
@@ -762,6 +766,78 @@ export const selectionService = {
         color: "success",
       },
     ];
+  },
+
+  /**
+   * Get selection limit options for UI
+   */
+  getSelectionLimitOptions() {
+    return [
+      {
+        value: -1,
+        label: "Illimité",
+        description: "Aucune limite",
+        icon: "i-lucide-infinity",
+      },
+      {
+        value: 5,
+        label: "5 images",
+        description: "Sélection limitée à 5 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 10,
+        label: "10 images",
+        description: "Sélection limitée à 10 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 15,
+        label: "15 images",
+        description: "Sélection limitée à 15 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 20,
+        label: "20 images",
+        description: "Sélection limitée à 20 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 25,
+        label: "25 images",
+        description: "Sélection limitée à 25 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 30,
+        label: "30 images",
+        description: "Sélection limitée à 30 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 50,
+        label: "50 images",
+        description: "Sélection limitée à 50 images",
+        icon: "i-lucide-hash",
+      },
+      {
+        value: 100,
+        label: "100 images",
+        description: "Sélection limitée à 100 images",
+        icon: "i-lucide-hash",
+      },
+    ];
+  },
+
+  /**
+   * Format selection limit for display
+   */
+  formatSelectionLimit(maxSelection: number): string {
+    if (maxSelection === -1) {
+      return "Sélection illimitée";
+    }
+    return `${maxSelection} image${maxSelection > 1 ? "s" : ""} maximum`;
   },
 
   /**

@@ -87,11 +87,19 @@ export interface SelectionStatusItem {
   color: string;
 }
 
+// Selection limit options for UI
+export interface SelectionLimitOption {
+  value: number;
+  label: string;
+  description: string;
+  icon: string;
+}
+
 // Validation schema for selection form
 export const selectionFormSchema = z.object({
   max_media_selection: z
     .number()
-    .min(1, "Au moins 1 média doit être sélectionnable")
+    .min(-1, "La valeur doit être -1 (illimité) ou au moins 1")
     .max(1000, "Nombre maximum trop élevé"),
   extra_media_price: z
     .number()

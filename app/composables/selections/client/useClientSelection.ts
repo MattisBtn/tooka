@@ -105,19 +105,25 @@ export const useClientSelection = async (selectionId: string) => {
     return images.value.filter((image) => image.userSelected).length;
   });
 
-  const maxAllowed = computed(() => selection.value?.max_media_selection || 0);
+  const maxAllowed = computed(() => {
+    const limit = selection.value?.max_media_selection || 0;
+    return limit === -1 ? Infinity : limit; // -1 means unlimited
+  });
 
   const extraCount = computed(() => {
+    if (maxAllowed.value === Infinity) return 0; // No extra count for unlimited selection
     return Math.max(0, selectedCount.value - maxAllowed.value);
   });
 
   const extraPrice = computed(() => {
-    if (!selection.value?.extra_media_price) return 0;
+    if (!selection.value?.extra_media_price || maxAllowed.value === Infinity)
+      return 0;
     return extraCount.value * selection.value.extra_media_price;
   });
 
   const canSelectMore = computed(() => {
-    return canInteract.value; // No hard limit, just pricing for extras
+    if (maxAllowed.value === Infinity) return canInteract.value; // Unlimited selection
+    return canInteract.value && selectedCount.value < maxAllowed.value;
   });
 
   // Helper function to enhance images with user selections

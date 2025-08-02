@@ -91,6 +91,19 @@ export const useSelectionStore = defineStore("selection", () => {
     }).format(selection.value.extra_media_price / 100);
   });
 
+  // Format selection limit for display
+  const formattedSelectionLimit = computed(() => {
+    if (!selection.value?.max_media_selection) return "Non défini";
+    return selectionService.formatSelectionLimit(
+      selection.value.max_media_selection
+    );
+  });
+
+  // Check if selection has unlimited selection
+  const hasUnlimitedSelection = computed(() => {
+    return selection.value?.max_media_selection === -1;
+  });
+
   // Conversion summary
   const conversionSummary = computed(() => {
     if (!selection.value?.images)
@@ -419,6 +432,53 @@ export const useSelectionStore = defineStore("selection", () => {
     }
   };
 
+  const downloadImage = async (
+    filePath: string,
+    filename?: string,
+    forceDownload: boolean = true
+  ) => {
+    try {
+      await selectionService.downloadImage(filePath, filename, forceDownload);
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to download image");
+      throw err;
+    }
+  };
+
+  const deleteAllImages = async () => {
+    if (!selection.value?.images || selection.value.images.length === 0) {
+      return;
+    }
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      // Delete all images in parallel
+      const deletePromises = selection.value.images.map((img) =>
+        selectionService.deleteImage(img.id)
+      );
+      await Promise.all(deletePromises);
+
+      // Clear images from selection
+      if (selection.value) {
+        selection.value = {
+          ...selection.value,
+          images: [],
+          imageCount: 0,
+          selectedCount: 0,
+        };
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to delete all images");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     selection: readonly(selection),
     loading: readonly(loading),
@@ -433,6 +493,8 @@ export const useSelectionStore = defineStore("selection", () => {
     selectedCount,
     hasImages,
     formattedExtraMediaPrice,
+    formattedSelectionLimit,
+    hasUnlimitedSelection,
     conversionSummary,
     hasConversionsInProgress,
     canPerformActions,
@@ -442,6 +504,8 @@ export const useSelectionStore = defineStore("selection", () => {
     updateSelection,
     deleteSelection,
     deleteImage,
+    downloadImage,
+    deleteAllImages,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
     backgroundUploading: readonly(backgroundUploading),

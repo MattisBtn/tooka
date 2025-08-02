@@ -30,7 +30,12 @@
                         class="hidden lg:flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                         <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         <span class="text-sm font-medium text-amber-700 dark:text-amber-300">
-                            {{ selectedCount }} / {{ maxAllowed }}
+                            <template v-if="maxAllowed === Infinity">
+                                {{ selectedCount }} / ∞
+                            </template>
+                            <template v-else>
+                                {{ selectedCount }} / {{ maxAllowed }}
+                            </template>
                         </span>
                         <span v-if="extraCount > 0" class="text-xs text-amber-600 dark:text-amber-400">
                             (+{{ extraCount }} extra)

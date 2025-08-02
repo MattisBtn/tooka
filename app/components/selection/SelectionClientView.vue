@@ -18,8 +18,14 @@
                     <!-- Selection Instructions -->
                     <div class="max-w-2xl mx-auto mb-8">
                         <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
-                            Sélectionnez vos images préférées en cliquant dessus.
-                            Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses.
+                            <template v-if="maxAllowed === Infinity">
+                                Sélectionnez vos images préférées en cliquant dessus.
+                                Vous pouvez choisir autant d'images que vous souhaitez.
+                            </template>
+                            <template v-else>
+                                Sélectionnez vos images préférées en cliquant dessus.
+                                Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses.
+                            </template>
                         </p>
                     </div>
 
@@ -35,14 +41,18 @@
                                     Images sélectionnées
                                 </div>
                                 <div class="text-lg font-bold text-amber-700 dark:text-amber-300">
-                                    {{ selectedCount }} / {{ maxAllowed }}
+                                    <template v-if="maxAllowed === Infinity">
+                                        {{ selectedCount }} / ∞
+                                    </template>
+                                    <template v-else>
+                                        {{ selectedCount }} / {{ maxAllowed }}
+                                    </template>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Extra count -->
-                        <div
-v-if="extraCount > 0"
+                        <div v-if="extraCount > 0"
                             class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
                             <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                                 <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-white" />
@@ -58,8 +68,7 @@ v-if="extraCount > 0"
                         </div>
 
                         <!-- Extra price -->
-                        <div
-v-if="extraPrice > 0"
+                        <div v-if="extraPrice > 0"
                             class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
                             <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
                                 <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
@@ -114,8 +123,7 @@ v-if="extraPrice > 0"
             </div>
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <SelectionImageCard
-v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
+                <SelectionImageCard v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
                     :can-interact="canInteract" @toggle-selection="$emit('toggle-selection', image.id)" />
             </div>
 
