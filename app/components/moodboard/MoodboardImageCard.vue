@@ -3,8 +3,7 @@
         class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden">
         <!-- Image with hover interactions -->
         <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group">
-            <MoodboardImageClient :image="image" :moodboard-id="moodboardId"
-                class="w-full h-full transition-transform duration-300" />
+            <MoodboardImageClient :image="image" class="w-full h-full transition-transform duration-300" />
 
             <!-- Gradient overlay for interactions -->
             <div v-if="canInteract || hasReactions || hasComments"
@@ -34,11 +33,11 @@
                     <!-- Love reaction -->
                     <button v-if="canInteract" :class="[
                         'flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-all backdrop-blur-sm',
-                        image.userReaction === 'love'
+                        (image.reactions?.love || 0) > 0
                             ? 'bg-red-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
                     ]" @click="$emit('react', 'love')">
-                        <UIcon name="i-lucide-heart" :class="image.userReaction === 'love' ? 'fill-current' : ''"
+                        <UIcon name="i-lucide-heart" :class="(image.reactions?.love || 0) > 0 ? 'fill-current' : ''"
                             class="w-4 h-4" />
                         <span v-if="image.reactions?.love">{{ image.reactions.love }}</span>
                     </button>
@@ -51,11 +50,11 @@
                     <!-- Like reaction -->
                     <button v-if="canInteract" :class="[
                         'flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-all backdrop-blur-sm',
-                        image.userReaction === 'like'
+                        (image.reactions?.like || 0) > 0
                             ? 'bg-green-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
                     ]" @click="$emit('react', 'like')">
-                        <UIcon name="i-lucide-thumbs-up" :class="image.userReaction === 'like' ? 'fill-current' : ''"
+                        <UIcon name="i-lucide-thumbs-up" :class="(image.reactions?.like || 0) > 0 ? 'fill-current' : ''"
                             class="w-4 h-4" />
                         <span v-if="image.reactions?.like">{{ image.reactions.like }}</span>
                     </button>
@@ -68,12 +67,12 @@
                     <!-- Dislike reaction -->
                     <button v-if="canInteract" :class="[
                         'flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-all backdrop-blur-sm',
-                        image.userReaction === 'dislike'
+                        (image.reactions?.dislike || 0) > 0
                             ? 'bg-orange-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
                     ]" @click="$emit('react', 'dislike')">
                         <UIcon name="i-lucide-thumbs-down"
-                            :class="image.userReaction === 'dislike' ? 'fill-current' : ''" class="w-4 h-4" />
+                            :class="(image.reactions?.dislike || 0) > 0 ? 'fill-current' : ''" class="w-4 h-4" />
                         <span v-if="image.reactions?.dislike">{{ image.reactions.dislike }}</span>
                     </button>
                     <div v-else-if="image.reactions?.dislike"

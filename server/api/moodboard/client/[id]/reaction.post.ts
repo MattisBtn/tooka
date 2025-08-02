@@ -4,6 +4,7 @@ import { z } from "zod";
 const reactionSchema = z.object({
   imageId: z.string().uuid(),
   reaction: z.enum(["love", "like", "dislike"]),
+  action: z.enum(["add", "remove"]).default("add"),
 });
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const { imageId, reaction } = validation.data;
+  const { imageId, reaction, action } = validation.data;
 
   try {
     const supabase = await serverSupabaseClient(event);
@@ -71,28 +72,53 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // For anonymous reactions, we'll just add the reaction without session tracking
-    // This means multiple reactions of the same type can be added by the same user
-    const { error: insertError } = await supabase
-      .from("moodboard_reactions")
-      .insert({
-        image_id: imageId,
-        reaction_type: reaction,
-      });
+    if (action === "add") {
+      // For anonymous reactions, we'll just add the reaction without session tracking
+      // This means multiple reactions of the same type can be added by the same user
+      const { error: insertError } = await supabase
+        .from("moodboard_reactions")
+        .insert({
+          image_id: imageId,
+          reaction_type: reaction,
+        });
 
-    if (insertError) {
-      console.error("Database insert error:", insertError);
-      throw createError({
-        statusCode: 500,
-        message: `Erreur lors de la création de la réaction: ${insertError.message}`,
-      });
+      if (insertError) {
+        console.error("Database insert error:", insertError);
+        throw createError({
+          statusCode: 500,
+          message: `Erreur lors de la création de la réaction: ${insertError.message}`,
+        });
+      }
+
+      return {
+        success: true,
+        action: "created",
+        reaction,
+      };
+    } else {
+      // Remove reaction - delete one instance of this reaction type
+      const { error: deleteError } = await supabase
+        .from("moodboard_reactions")
+        .delete()
+        .eq("image_id", imageId)
+        .eq("reaction_type", reaction)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (deleteError) {
+        console.error("Database delete error:", deleteError);
+        throw createError({
+          statusCode: 500,
+          message: `Erreur lors de la suppression de la réaction: ${deleteError.message}`,
+        });
+      }
+
+      return {
+        success: true,
+        action: "removed",
+        reaction,
+      };
     }
-
-    return {
-      success: true,
-      action: "created",
-      reaction,
-    };
   } catch (error) {
     if (error && typeof error === "object" && "statusCode" in error) {
       throw error;

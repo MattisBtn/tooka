@@ -42,14 +42,19 @@ interface Emits {
     (e: 'update:modelValue', files: File[]): void
 }
 
-const { imageUploadRules } = useUploadRules()
-
 const props = withDefaults(defineProps<Props>(), {
-    maxFiles: imageUploadRules.maxFiles,
-    maxFileSize: imageUploadRules.maxFileSize
+    maxFiles: 10,
+    maxFileSize: 10 * 1024 * 1024 // 10MB default
 })
 
 const emit = defineEmits<Emits>()
+
+// Get upload rules after props are defined
+const { imageUploadRules } = useUploadRules()
+
+// Use computed to get the actual values with fallbacks
+const maxFiles = computed(() => props.maxFiles ?? imageUploadRules.maxFiles)
+const maxFileSize = computed(() => props.maxFileSize ?? imageUploadRules.maxFileSize)
 
 // Local state - use computed to avoid recursive updates
 const selectedFiles = computed({

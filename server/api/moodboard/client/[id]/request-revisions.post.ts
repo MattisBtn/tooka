@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
       .from("moodboards")
       .update({
         status: "revision_requested",
+        revision_last_comment: body.comment || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", moodboardId);
@@ -64,19 +65,13 @@ export default defineEventHandler(async (event) => {
       throw new Error(`Failed to update moodboard: ${updateError.message}`);
     }
 
-    // If there's a comment, we could store it in a comments table
-    // For now, we'll just return success with the comment included
-    // TODO: Implement moodboard_comments table and store the revision comment
-
-    // TODO: Optionally send notification to photographer with the comment
-    // This could be implemented later with email notifications
-
     return {
       success: true,
       message: "Demande de révision envoyée avec succès",
       moodboard: {
         id: moodboardId,
         status: "revision_requested",
+        revision_last_comment: body.comment || null,
       },
       comment: body.comment || null,
     };

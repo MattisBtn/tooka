@@ -34,7 +34,6 @@ import { useUploadRules } from '~/composables/shared/useUploadRules';
 
 interface Props {
     disabled?: boolean
-    progress?: number
 }
 
 interface Emits {
@@ -43,7 +42,6 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     disabled: false,
-    progress: 0,
 })
 
 // Expose props for template usage

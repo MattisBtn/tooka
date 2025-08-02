@@ -144,6 +144,7 @@ const statusConfig = {
     awaiting_client: { label: "En attente de votre retour", color: "warning" as const, icon: "i-lucide-clock" },
     revision_requested: { label: "Révision demandée", color: "info" as const, icon: "i-lucide-edit" },
     completed: { label: "Validé", color: "success" as const, icon: "i-lucide-check-circle" },
+    payment_pending: { label: "Paiement en attente", color: "warning" as const, icon: "i-lucide-credit-card" },
 };
 
 const statusLabel = computed(() =>

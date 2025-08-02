@@ -3,29 +3,32 @@
         <div class="min-h-screen bg-white dark:bg-neutral-900">
             <!-- Headers avec conditions mutuellement exclusives -->
             <!-- Moodboard Header - affiché seulement quand tout est chargé et authentifié -->
-            <MoodboardHeader v-if="moodboard && isAuthenticated && project" :project="project" :moodboard="moodboard"
-                :is-authenticated="isAuthenticated" :show-logout-button="project?.hasPassword && isAuthenticated"
-                @validate="handleValidate" @request-revisions="handleRequestRevisions" @logout="handleLogout" />
+            <MoodboardHeader v-if="store.moodboard && store.isAuthenticated && store.project" :project="store.project"
+                :moodboard="store.moodboard" :is-authenticated="store.isAuthenticated"
+                :show-logout-button="store.project?.hasPassword && store.isAuthenticated" @validate="handleValidate"
+                @request-revisions="handleRequestRevisions" @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
             <SharedSimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
-            <div :class="{ 'pt-16': moodboard && isAuthenticated && project }">
+            <div :class="{ 'pt-16': store.moodboard && store.isAuthenticated && store.project }">
                 <!-- Password form if needed -->
-                <SharedClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
-                    :moodboard-id="moodboardId" :error="authError" :config="passwordConfig"
+                <SharedClientPasswordForm v-if="store.needsPassword && !store.isAuthenticated" :project="store.project"
+                    :moodboard-id="moodboardId" :error="store.authError" :config="passwordConfig"
                     @authenticated="handleAuthentication" />
 
                 <!-- Moodboard view -->
-                <MoodboardClientView v-else-if="moodboard && isAuthenticated && project" :moodboard-id="moodboardId"
-                    :moodboard="moodboard" :project="project" :images="mutableImages" :has-more="hasMore"
-                    :loading-more="loadingMore" :can-interact="canInteract" :uploading-images="uploadingImages"
-                    :upload-progress="uploadProgress" @load-more="loadMore" @upload-images="handleUploadImages"
-                    @add-comment="handleAddComment" @react-to-image="handleReactToImage" />
+                <MoodboardClientView v-else-if="store.moodboard && store.isAuthenticated && store.project"
+                    :moodboard-id="moodboardId" :moodboard="store.moodboard" :project="store.project"
+                    :images="mutableImages" :has-more="store.hasMore" :loading-more="store.loadingMore"
+                    :can-interact="store.canInteract" :uploading-images="actions.uploadingImages.value"
+                    :upload-progress="actions.uploadProgress.value" @load-more="store.loadMore"
+                    @upload-images="handleUploadImages" @add-comment="handleAddComment"
+                    @react-to-image="handleReactToImage" />
 
                 <!-- Loading state -->
-                <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
+                <div v-else-if="store.loading" class="min-h-screen flex items-center justify-center">
                     <div class="text-center">
                         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-pink-600 animate-spin mx-auto mb-4" />
                         <p class="text-neutral-600 dark:text-neutral-400">Chargement du moodboard...</p>
@@ -37,11 +40,12 @@
             </div>
 
             <!-- Action Modals -->
-            <MoodboardActionModals v-model:show-validate-dialog="showValidateDialog"
-                v-model:show-request-revisions-dialog="showRequestRevisionsDialog"
-                v-model:revision-comment="revisionComment" :validating-moodboard="validatingMoodboard"
-                :requesting-revisions="requestingRevisions" @validate="validateMoodboard"
-                @request-revisions="requestRevisions" />
+            <MoodboardActionModals v-model:show-validate-dialog="actions.showValidateDialog.value"
+                v-model:show-request-revisions-dialog="actions.showRequestRevisionsDialog.value"
+                v-model:revision-comment="actions.revisionComment.value"
+                :validating-moodboard="actions.validatingMoodboard.value"
+                :requesting-revisions="actions.requestingRevisions.value" @validate="actions.validateMoodboard"
+                @request-revisions="actions.requestRevisions" />
 
             <!-- Footer -->
             <SharedClientFooter :config="footerConfig" />
@@ -50,10 +54,11 @@
 </template>
 
 <script setup lang="ts">
-import { useClientMoodboard } from '~/composables/moodboards/client/useClientMoodboard'
+import { useClientMoodboardActions } from '~/composables/moodboards/client/useClientMoodboardActions'
 import { useClientConfig } from '~/composables/shared/useClientConfig'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
+import { useClientMoodboardStore } from '~/stores/public/moodboard'
 
 definePageMeta({
     layout: false,
@@ -76,87 +81,51 @@ const { getMoodboardErrorConfig, getMoodboardFooterConfig } = useClientConfig();
 const errorConfig = getMoodboardErrorConfig();
 const footerConfig = getMoodboardFooterConfig();
 
-// Use client moodboard composable with all functionality
-const {
-    // Core data
-    project,
-    moodboard,
-    images,
-    loading,
-    loadingMore,
-    error,
-    needsPassword,
-    isAuthenticated,
-    authError,
-    hasMore,
-    canInteract,
+// Use client moodboard store and actions
+const store = useClientMoodboardStore()
+const actions = useClientMoodboardActions()
 
-    // Action states
-    validatingMoodboard,
-    requestingRevisions,
-    uploadingImages,
-    uploadProgress,
-
-    // Modal states
-    showValidateDialog,
-    showRequestRevisionsDialog,
-
-    // Form state
-    revisionComment,
-
-    // Core actions
-    verifyPassword,
-    loadMore,
-
-    // Client actions
-    validateMoodboard,
-    requestRevisions,
-    uploadImages,
-    addComment,
-    reactToImage,
-
-    // Auth methods
-    logout,
-} = await useClientMoodboard(moodboardId)
+// Load moodboard data
+await store.loadMoodboard(moodboardId)
 
 // Handle password authentication
 const handleAuthentication = async (password: string) => {
-    await verifyPassword(password)
+    await store.verifyPassword(password)
 }
 
 // Handle logout
 const handleLogout = () => {
-    logout()
+    store.logout()
 }
 
 // Handle validate action from header
 const handleValidate = () => {
-    showValidateDialog.value = true
+    actions.showValidateDialog.value = true
 }
 
 // Handle request revisions action from header
 const handleRequestRevisions = () => {
-    showRequestRevisionsDialog.value = true
+    actions.showRequestRevisionsDialog.value = true
 }
 
 // Handle image upload
 const handleUploadImages = async (files: File[]) => {
-    await uploadImages(files)
+    await actions.uploadImages(files)
 }
 
 // Handle add comment
 const handleAddComment = async (imageId: string, comment: string) => {
-    await addComment(imageId, comment)
+    await actions.addComment(imageId, comment)
 }
 
 // Handle image reaction
 const handleReactToImage = async (imageId: string, reaction: 'love' | 'like' | 'dislike') => {
-    await reactToImage(imageId, reaction)
+    await actions.reactToImage(imageId, reaction)
 }
 
 // Convert readonly images to mutable for component props
 const mutableImages = computed(() => {
-    return images.value.map(image => ({
+    return store.images.map(image => ({
         ...image,
         comments: image.comments ? Array.from(image.comments) : []
     }))
@@ -165,7 +134,7 @@ const mutableImages = computed(() => {
 // SEO meta
 useHead({
     title: computed(() =>
-        moodboard.value ? `${project.value?.title} - Moodboard` : 'Moodboard'
+        store.moodboard ? `${store.project?.title} - Moodboard` : 'Moodboard'
     ),
     meta: [
         { name: 'robots', content: 'noindex, nofollow' }, // Private moodboards
@@ -173,7 +142,7 @@ useHead({
 })
 
 // Handle errors
-if (error.value) {
+if (store.error) {
     throw createError({
         statusCode: 404,
         message: 'Moodboard non trouvé',

@@ -25,7 +25,7 @@
 
                     <!-- Upload section for interactive mode -->
                     <div v-if="canInteract" class="mt-12">
-                        <MoodboardImageUpload :disabled="uploadingImages" :progress="uploadProgress"
+                        <MoodboardImageUpload :disabled="uploadingImages"
                             @files-selected="$emit('upload-images', $event)" />
                     </div>
                 </div>
@@ -89,7 +89,6 @@ interface Props {
     loadingMore: boolean
     canInteract: boolean
     uploadingImages: boolean
-    uploadProgress: number
 }
 
 interface Emits {
@@ -105,16 +104,19 @@ const emit = defineEmits<Emits>()
 // Container ref for infinite scroll
 const moodboardContainer = ref<HTMLElement | null>(null)
 
-// Infinite scroll setup
+// Debounced load more function to prevent excessive calls
+const loadMoreDebounced = useDebounceFn(async () => {
+    if (props.hasMore && !props.loadingMore) {
+        emit('load-more')
+    }
+}, 300)
+
+// Infinite scroll setup with better protection
 onMounted(() => {
     if (moodboardContainer.value) {
         useInfiniteScroll(
             moodboardContainer.value,
-            async () => {
-                if (props.hasMore && !props.loadingMore) {
-                    emit('load-more')
-                }
-            },
+            loadMoreDebounced,
             {
                 distance: 400, // Load more when 400px from bottom
                 canLoadMore: () => props.hasMore && !props.loadingMore
