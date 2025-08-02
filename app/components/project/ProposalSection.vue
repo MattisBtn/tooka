@@ -166,7 +166,7 @@
                             class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white" />
                         </div>
-                        <div>
+                        <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Proposition
                             </h3>
@@ -294,6 +294,9 @@ const handleProposalSaved = async (data: {
                 data.proposal as ProposalFormData,
                 data.projectUpdated ? data.project as ProjectPaymentData : undefined
             );
+
+            await projectSetupStore.refreshProject()
+
         }
 
         const toast = useToast();
@@ -433,6 +436,9 @@ const handleDelete = async () => {
 
     try {
         await proposalStore.deleteProposal(proposalStore.proposal.id)
+
+        // Refresh project to sync module states
+        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

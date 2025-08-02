@@ -140,7 +140,7 @@
                             class="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-solar-gallery-bold" class="w-5 h-5 text-white" />
                         </div>
-                        <div>
+                        <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Galerie
                             </h3>
@@ -288,6 +288,8 @@ const handleGallerySaved = async (data: {
                 data.project as ProjectPaymentData,
                 data.selectedFiles
             );
+
+            await projectSetupStore.refreshProject()
         }
 
         const toast = useToast();
@@ -339,6 +341,9 @@ const handleDelete = async () => {
 
     try {
         await galleryStore.deleteGallery(galleryStore.gallery.id)
+
+        // Refresh project to sync module states
+        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

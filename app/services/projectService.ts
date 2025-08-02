@@ -298,7 +298,10 @@ export const projectService = {
   /**
    * Update project
    */
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  async updateProject(
+    id: string,
+    updates: Partial<Project> & { require_password?: boolean }
+  ): Promise<Project> {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();
 
@@ -306,9 +309,23 @@ export const projectService = {
       throw new Error("Vous devez être connecté pour modifier ce projet");
     }
 
+    // Extract require_password from updates as it's not a database column
+    const { require_password, ...dbUpdates } = updates;
+
+    // Handle password generation/removal based on require_password
+    if (require_password !== undefined) {
+      if (require_password) {
+        // Generate new password if required and not already set
+        dbUpdates.password_hash = projectService.generatePassword();
+      } else {
+        // Remove password if not required
+        dbUpdates.password_hash = "";
+      }
+    }
+
     const { data, error } = await supabase
       .from("projects")
-      .update(updates)
+      .update(dbUpdates)
       .eq("id", id)
       .eq("user_id", user.value.id)
       .select()

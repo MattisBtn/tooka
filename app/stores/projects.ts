@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
 import type {
   IProjectFilters,
-  Project,
   ProjectFormData,
   ProjectWithClient,
 } from "~/types/project";
@@ -134,11 +133,6 @@ export const useProjectsStore = defineStore("projects", () => {
     showModal.value = true;
   };
 
-  const openEditModal = (project: ProjectWithClient) => {
-    selectedProject.value = project;
-    showModal.value = true;
-  };
-
   const closeModal = () => {
     showModal.value = false;
     selectedProject.value = undefined;
@@ -198,12 +192,7 @@ export const useProjectsStore = defineStore("projects", () => {
 
   const updateProject = async (
     id: string,
-    updates: Partial<
-      Pick<
-        Project,
-        "title" | "description" | "client_id" | "status" | "initial_price"
-      >
-    >
+    updates: Partial<ProjectFormData>
   ) => {
     loading.value = true;
     error.value = null;
@@ -294,7 +283,6 @@ export const useProjectsStore = defineStore("projects", () => {
 
     // Modal actions
     openCreateModal,
-    openEditModal,
     closeModal,
     openDeleteModal,
     closeDeleteModal,

@@ -108,8 +108,8 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useProjectForm } from '~/composables/projects/useProjectForm';
 import type { ProjectFormData, ProjectWithClient } from '~/types/project';
+import { projectFormSchema } from '~/types/project';
 
 interface Props {
     project?: ProjectWithClient
@@ -123,31 +123,61 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const {
-    state,
-    schema,
-    isEditMode,
-    loadingClients,
-    clientOptions,
-    loadAllClients,
-    onSubmit,
-} = useProjectForm(props.project)
+// Store
+const store = useProjectsStore()
+const clientsStore = useClientsStore()
 
-// Local loading state for better UX
+// Form state
+const state = reactive<ProjectFormData>({
+    title: props.project?.title || '',
+    description: props.project?.description || '',
+    client_id: props.project?.client_id || '',
+    status: props.project?.status || 'draft',
+    initial_price: props.project?.initial_price || null,
+    require_password: props.project?.password_hash ? true : false
+})
+
+// Schema from types
+const schema = projectFormSchema
+
+// Local loading state
 const isSubmitting = ref(false)
+
+// Computed
+const isEditMode = computed(() => !!props.project)
+const loadingClients = computed(() => clientsStore.isLoading)
+const clientOptions = computed(() =>
+    clientsStore.clients.map(client => ({
+        value: client.id,
+        label: client.type === 'individual'
+            ? `${client.first_name || ''} ${client.last_name || ''}`.trim()
+            : client.company_name || ''
+    }))
+)
 
 const submitButtonLabel = computed(() =>
     isEditMode.value ? "Modifier le projet" : "Créer le projet"
 )
 
-// Handle form submission
+// Methods
+const loadAllClients = async () => {
+    if (clientsStore.clients.length === 0) {
+        await clientsStore.initialize()
+    }
+}
+
 const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
     isSubmitting.value = true
     try {
-        const result = await onSubmit(event.data)
-        if (result) {
-            emit('project-saved', result)
+        let result: ProjectWithClient
+
+        if (isEditMode.value && props.project) {
+            result = await store.updateProject(props.project.id, event.data)
+        } else {
+            result = await store.createProject(event.data)
         }
+
+        emit('project-saved', result)
     } finally {
         isSubmitting.value = false
     }
@@ -158,7 +188,3 @@ onMounted(async () => {
     await loadAllClients()
 })
 </script>
-
-<style scoped>
-/* Add any custom styles here */
-</style>

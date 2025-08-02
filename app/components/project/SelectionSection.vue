@@ -134,7 +134,7 @@
                             class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-lucide-mouse-pointer-click" class="w-5 h-5 text-white" />
                         </div>
-                        <div>
+                        <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Sélection
                             </h3>
@@ -261,6 +261,9 @@ const handleSelectionSaved = async (data: {
                 data.selection as SelectionFormData,
                 data.selectedFiles
             );
+
+            await projectSetupStore.refreshProject()
+
         }
 
         const toast = useToast();
@@ -312,6 +315,9 @@ const handleDelete = async () => {
 
     try {
         await selectionStore.deleteSelection(selectionStore.selection.id)
+
+        // Refresh project to sync module states
+        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

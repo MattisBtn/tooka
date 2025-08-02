@@ -48,7 +48,7 @@ export const getStatusColor = (
 };
 
 // Step status utilities
-export type StepStatus = "locked" | "in_progress" | "completed";
+export type StepStatus = "locked" | "in_progress" | "completed" | "not_started";
 
 export interface StepInfo {
   status: StepStatus;
@@ -57,6 +57,68 @@ export interface StepInfo {
   moduleExists: boolean;
   moduleStatus?: string;
 }
+
+// Helper function to determine if a status is advanced (non-draft)
+const isAdvancedStatus = (status: string): boolean => {
+  return [
+    "awaiting_client",
+    "revision_requested",
+    "completed",
+    "payment_pending",
+  ].includes(status);
+};
+
+// Helper function to check if project is new (all modules in draft or don't exist)
+const isNewProject = (project: {
+  proposal?: { status: string } | null;
+  moodboard?: { status: string } | null;
+  selection?: { status: string } | null;
+  gallery?: { status: string } | null;
+}): boolean => {
+  const modules = [
+    project.proposal,
+    project.moodboard,
+    project.selection,
+    project.gallery,
+  ];
+  const existingModules = modules.filter(Boolean);
+
+  // If no modules exist, it's a new project
+  if (existingModules.length === 0) return true;
+
+  // If all existing modules are in draft, it's a new project
+  return existingModules.every((module) => module?.status === "draft");
+};
+
+// Helper function to check if a step is locked due to advanced modules
+const isStepLockedByAdvancedModules = (
+  stepNumber: 1 | 2 | 3 | 4,
+  project: {
+    proposal?: { status: string } | null;
+    moodboard?: { status: string } | null;
+    selection?: { status: string } | null;
+    gallery?: { status: string } | null;
+  }
+): boolean => {
+  const moduleMap = {
+    1: "proposal",
+    2: "moodboard",
+    3: "selection",
+    4: "gallery",
+  } as const;
+
+  // Check if any module after the current step is advanced
+  for (let i = stepNumber + 1; i <= 4; i++) {
+    const moduleKey = moduleMap[i as keyof typeof moduleMap];
+    const module = project[moduleKey as keyof typeof project];
+
+    if (module && isAdvancedStatus(module.status)) {
+      return true; // This step is locked because a later step is advanced
+    }
+  }
+
+  return false;
+};
 
 // Determine step status based on project modules
 export const getStepStatus = (
@@ -78,34 +140,51 @@ export const getStepStatus = (
   const moduleKey = moduleMap[stepNumber];
   const module = project[moduleKey];
 
+  // Check if this is a new project
+  const isNew = isNewProject(project);
+
+  // Check if step is locked by advanced modules
+  const isLocked = isStepLockedByAdvancedModules(stepNumber, project);
+
   // Module doesn't exist
   if (!module) {
     return {
-      status: "locked",
+      status: isNew ? "not_started" : isLocked ? "locked" : "not_started",
       canView: true,
-      canEdit: false,
+      canEdit: !isLocked, // Can edit if not locked
       moduleExists: false,
     };
   }
 
   // Module exists, check status
   const moduleStatus = module.status;
+  const isAdvanced = isAdvancedStatus(moduleStatus);
 
   if (moduleStatus === "completed") {
     return {
       status: "completed",
       canView: true,
-      canEdit: true,
+      canEdit: false, // Completed modules cannot be edited
       moduleExists: true,
       moduleStatus,
     };
   }
 
-  // Module exists but not completed
+  if (isAdvanced) {
+    return {
+      status: "in_progress",
+      canView: true,
+      canEdit: false, // Advanced modules cannot be edited
+      moduleExists: true,
+      moduleStatus,
+    };
+  }
+
+  // Module is in draft
   return {
-    status: "in_progress",
+    status: isLocked ? "locked" : "in_progress",
     canView: true,
-    canEdit: true,
+    canEdit: !isLocked, // Can edit if not locked by advanced modules
     moduleExists: true,
     moduleStatus,
   };

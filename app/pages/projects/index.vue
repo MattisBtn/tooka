@@ -22,6 +22,8 @@
         @update:page="handlePageChange" />
     </div>
 
+
+
     <!-- Project Modal -->
     <ProjectModal :model-value="store.showModal" :project="store.selectedProject" @update:model-value="store.closeModal"
       @project-saved="handleProjectSaved" />
@@ -134,14 +136,6 @@ const columns: TableColumn<ProjectWithClient>[] = [
             onClick: () => store.viewProject(row.original.id)
           }),
           h(UButton, {
-            icon: 'i-lucide-edit',
-            size: 'sm',
-            color: 'primary',
-            variant: 'ghost',
-            title: 'Modifier',
-            onClick: () => store.openEditModal(row.original)
-          }),
-          h(UButton, {
             icon: 'i-lucide-trash',
             size: 'sm',
             color: 'error',
@@ -177,6 +171,8 @@ const handleProjectSaved = (project: ProjectWithClient) => {
     store.addProjectToList(project)
   }
 }
+
+
 
 const confirmDelete = async () => {
   if (!store.projectToDelete) return

@@ -24,7 +24,7 @@
             <!-- Project Summary -->
             <ProjectSummary :project="store.project" :client-display-name="store.clientDisplayName"
                 :status-info="store.statusInfo || null" :formatted-price="store.formattedPrice"
-                :formatted-created-at="store.formattedCreatedAt" />
+                :formatted-created-at="store.formattedCreatedAt" :can-edit-project="store.canEditProject" />
 
             <!-- Project Stepper -->
             <div class="space-y-6">
@@ -33,8 +33,7 @@
                     </h3>
                 </div>
 
-                <ProjectSetupStepper :current-step="currentStep" :project="store.project"
-                    @step-changed="handleStepChange" />
+                <ProjectSetupStepper :current-step="currentStep" @step-changed="handleStepChange" />
             </div>
 
             <!-- Proposal Section -->

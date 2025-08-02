@@ -113,7 +113,7 @@
                             class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
                             <UIcon name="i-lucide-image" class="w-5 h-5 text-white" />
                         </div>
-                        <div>
+                        <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Moodboard
                             </h3>
@@ -240,6 +240,9 @@ const handleMoodboardSaved = async (data: {
                 data.moodboard as MoodboardFormData,
                 data.selectedFiles
             );
+
+            await projectSetupStore.refreshProject()
+
         }
 
         const toast = useToast();
@@ -291,6 +294,9 @@ const handleDelete = async () => {
 
     try {
         await moodboardStore.deleteMoodboard(moodboardStore.moodboard.id)
+
+        // Refresh project to sync module states
+        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

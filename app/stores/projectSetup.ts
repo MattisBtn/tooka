@@ -1,35 +1,12 @@
 import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
 import type { ProjectWithClient } from "~/types/project";
-import { formatDate, formatPrice, getStatusLabel } from "~/utils/formatters";
+import { formatDate, formatPrice } from "~/utils/formatters";
 
 export const useProjectSetupStore = defineStore("projectSetup", () => {
   const project = ref<ProjectWithClient | null>(null);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-
-  const modules = ref({
-    proposal: {
-      enabled: false,
-      completed: false,
-      summary: null as string | null,
-    },
-    moodboard: {
-      enabled: false,
-      completed: false,
-      summary: null as string | null,
-    },
-    selection: {
-      enabled: false,
-      completed: false,
-      summary: null as string | null,
-    },
-    gallery: {
-      enabled: false,
-      completed: false,
-      summary: null as string | null,
-    },
-  });
 
   // Getters
   const isLoading = computed(() => loading.value);
@@ -56,18 +33,6 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
   );
 
   // Actions
-  const reset = () => {
-    project.value = null;
-    loading.value = false;
-    error.value = null;
-    modules.value = {
-      proposal: { enabled: false, completed: false, summary: null },
-      moodboard: { enabled: false, completed: false, summary: null },
-      selection: { enabled: false, completed: false, summary: null },
-      gallery: { enabled: false, completed: false, summary: null },
-    };
-  };
-
   const fetchProject = async (projectId: string) => {
     if (loading.value) return;
 
@@ -77,7 +42,6 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     try {
       const data = await projectService.getProjectById(projectId);
       project.value = data;
-      updateModuleStatesFromProject(data);
       return data;
     } catch (err) {
       error.value =
@@ -88,97 +52,76 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     }
   };
 
-  const extractProposalTitle = (content_json: unknown): string => {
-    if (!content_json || !Array.isArray(content_json)) return "Proposition";
-    const titleComponent = content_json.find((comp: unknown) => {
-      const component = comp as { type?: string; content?: string };
-      return component.type === "title";
-    });
-    const component = titleComponent as { content?: string } | undefined;
-    return component?.content || "Proposition";
-  };
+  // Check if project can be edited (all modules must be in draft status)
+  const canEditProject = computed(() => {
+    if (!project.value) return false;
 
-  const updateModuleStatesFromProject = (projectData: ProjectWithClient) => {
-    // Proposal
-    if (projectData.proposal) {
-      modules.value.proposal.enabled = true;
-      modules.value.proposal.completed = true;
-      const proposalTitle = extractProposalTitle(
-        projectData.proposal.content_json
+    // Check if any module is not in draft status
+    const hasNonDraftModule =
+      (project.value.proposal && project.value.proposal.status !== "draft") ||
+      (project.value.moodboard && project.value.moodboard.status !== "draft") ||
+      (project.value.selection && project.value.selection.status !== "draft") ||
+      (project.value.gallery && project.value.gallery.status !== "draft");
+
+    return !hasNonDraftModule;
+  });
+
+  // Edit project inline
+  const updateProjectInline = async (updates: {
+    title?: string;
+    description?: string | null;
+    client_id?: string;
+    initial_price?: number | null;
+    require_password?: boolean;
+  }) => {
+    if (!project.value || !canEditProject.value) {
+      throw new Error(
+        "Le projet ne peut pas être modifié car certaines étapes ne sont plus en brouillon"
       );
-      modules.value.proposal.summary = `Proposition "${proposalTitle}" (${getStatusLabel(
-        projectData.proposal.status,
-        "proposal"
-      )})`;
-    } else {
-      modules.value.proposal.completed = false;
-      modules.value.proposal.summary = null;
     }
 
-    // Moodboard
-    if (projectData.moodboard) {
-      modules.value.moodboard.enabled = true;
-      modules.value.moodboard.completed = true;
-      modules.value.moodboard.summary = `Moodboard "${
-        projectData.moodboard.title
-      }" (${getStatusLabel(projectData.moodboard.status, "moodboard")})`;
-    } else {
-      modules.value.moodboard.completed = false;
-      modules.value.moodboard.summary = null;
-    }
+    loading.value = true;
+    error.value = null;
 
-    // Selection
-    if (projectData.selection) {
-      modules.value.selection.enabled = true;
-      modules.value.selection.completed = true;
-      modules.value.selection.summary = `Sélection de ${
-        projectData.selection.max_media_selection
-      } média${
-        projectData.selection.max_media_selection > 1 ? "s" : ""
-      } (${getStatusLabel(projectData.selection.status, "selection")})`;
-    } else {
-      modules.value.selection.completed = false;
-      modules.value.selection.summary = null;
-    }
-
-    // Gallery
-    if (projectData.gallery) {
-      modules.value.gallery.enabled = true;
-      modules.value.gallery.completed = true;
-      modules.value.gallery.summary = `Galerie (${getStatusLabel(
-        projectData.gallery.status,
-        "gallery"
-      )})`;
-    } else {
-      modules.value.gallery.completed = false;
-      modules.value.gallery.summary = null;
+    try {
+      const updatedProject = await projectService.updateProject(
+        project.value.id,
+        updates
+      );
+      project.value = { ...project.value, ...updatedProject };
+      return updatedProject;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to update project");
+      throw err;
+    } finally {
+      loading.value = false;
     }
   };
 
-  const updateModuleState = (
-    moduleName: keyof typeof modules.value,
-    updates: Partial<{
-      enabled: boolean;
-      completed: boolean;
-      summary: string | null;
-    }>
-  ) => {
-    Object.assign(modules.value[moduleName], updates);
+  const refreshProject = async () => {
+    if (!project.value?.id) return;
+
+    try {
+      await fetchProject(project.value.id);
+    } catch (err) {
+      console.error("Error refreshing project:", err);
+    }
   };
 
   return {
     project: readonly(project),
     loading: readonly(loading),
     error: readonly(error),
-    modules,
     isLoading,
     hasError,
     clientDisplayName,
     statusInfo,
     formattedPrice,
     formattedCreatedAt,
-    reset,
+    canEditProject,
     fetchProject,
-    updateModuleState,
+    updateProjectInline,
+    refreshProject,
   };
 });
