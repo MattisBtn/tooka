@@ -65,6 +65,9 @@
                     <h3 class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                         Images existantes ({{ images.length }})
                     </h3>
+                    <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error"
+                        label="Supprimer toutes les images" :loading="isDeletingAllImages"
+                        @click="handleDeleteAllImages" />
                 </div>
 
                 <ProjectMoodboardImageGrid :images="Array.from(images)" :can-delete="true" :is-editing="true"
@@ -157,6 +160,7 @@ const selectedFiles = ref<File[]>([]);
 
 // Existing images management
 const images = ref<MoodboardImage[]>([...(props.existingImages || [])]);
+const isDeletingAllImages = ref(false);
 
 // Validation schema
 const schema = moodboardFormSchema;
@@ -198,6 +202,43 @@ const handleDeleteExistingImage = async (imageId: string) => {
             icon: "i-lucide-alert-circle",
             color: "error",
         });
+    }
+};
+
+// Handle delete all images
+const handleDeleteAllImages = async () => {
+    const confirmed = window.confirm(
+        `Êtes-vous sûr de vouloir supprimer toutes les images (${images.value.length}) ? Cette action est irréversible.`
+    );
+    if (!confirmed) return;
+
+    isDeletingAllImages.value = true;
+
+    try {
+        const { moodboardService } = await import("~/services/moodboardService");
+        await moodboardService.deleteAllImages(props.moodboard?.id || '');
+
+        // Clear local state
+        images.value = [];
+
+        const toast = useToast();
+        toast.add({
+            title: "Images supprimées",
+            description: "Toutes les images ont été supprimées avec succès.",
+            icon: "i-lucide-check-circle",
+            color: "success",
+        });
+    } catch (err) {
+        console.error("Error deleting all images:", err);
+        const toast = useToast();
+        toast.add({
+            title: "Erreur",
+            description: err instanceof Error ? err.message : "Une erreur est survenue lors de la suppression.",
+            icon: "i-lucide-alert-circle",
+            color: "error",
+        });
+    } finally {
+        isDeletingAllImages.value = false;
     }
 };
 

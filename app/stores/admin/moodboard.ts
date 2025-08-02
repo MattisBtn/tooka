@@ -71,6 +71,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         title: moodboardData.title,
         description: moodboardData.description || null,
         status: moodboardData.status,
+        revision_last_comment: null,
       };
 
       const result = await moodboardService.createMoodboard(
@@ -118,6 +119,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         title: moodboardData.title,
         description: moodboardData.description || null,
         status: moodboardData.status,
+        revision_last_comment: null,
       };
 
       const result = await moodboardService.updateMoodboard(
@@ -195,6 +197,34 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     }
   };
 
+  const deleteAllImages = async () => {
+    if (!moodboard.value?.images || moodboard.value.images.length === 0) {
+      return;
+    }
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      await moodboardService.deleteAllImages(moodboard.value.id);
+
+      // Clear images from moodboard
+      if (moodboard.value) {
+        moodboard.value = {
+          ...moodboard.value,
+          images: [],
+          imageCount: 0,
+        };
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to delete all images");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     moodboard: readonly(moodboard),
     loading: readonly(loading),
@@ -213,6 +243,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     updateMoodboard,
     deleteMoodboard,
     deleteImage,
+    deleteAllImages,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
   };

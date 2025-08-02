@@ -332,6 +332,13 @@ export const moodboardService = {
   },
 
   /**
+   * Delete all images from moodboard
+   */
+  async deleteAllImages(moodboardId: string): Promise<void> {
+    await moodboardImageRepository.deleteMany(moodboardId);
+  },
+
+  /**
    * Get moodboard status options for UI
    */
   getStatusOptions() {
