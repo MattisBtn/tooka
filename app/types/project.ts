@@ -40,6 +40,19 @@ export const projectFormSchema = z.object({
 
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
 
+// Edit schema for inline editing
+export const projectEditSchema = z.object({
+  title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
+  description: z.string().nullable().optional(),
+  client_id: z.string().min(1, "Client requis"),
+  initial_price: z
+    .number()
+    .min(0, "Le prix doit être positif")
+    .optional()
+    .nullable(),
+  require_password: z.boolean().default(false),
+});
+
 // Project with client information for display
 export interface ProjectWithClient extends Project {
   client?: {

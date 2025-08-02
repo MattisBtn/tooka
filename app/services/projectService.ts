@@ -156,6 +156,41 @@ export const projectService = {
           last_name,
           company_name,
           billing_email
+        ),
+        proposal:proposals!project_id(
+          id,
+          content_json,
+          content_html,
+          status,
+          price,
+          deposit_required,
+          deposit_amount,
+          contract_url,
+          quote_url
+        ),
+        moodboard:moodboards!project_id(
+          id,
+          title,
+          description,
+          status,
+          created_at,
+          updated_at
+        ),
+        selection:selections!project_id(
+          id,
+          max_media_selection,
+          extra_media_price,
+          status,
+          created_at,
+          updated_at
+        ),
+        gallery:galleries!project_id(
+          id,
+          status,
+          payment_required,
+          selection_id,
+          created_at,
+          updated_at
         )
       `
       )
@@ -167,7 +202,24 @@ export const projectService = {
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
 
-    return data;
+    // Extract single items from arrays (since relations return arrays)
+    const processedData = {
+      ...data,
+      proposal: Array.isArray(data.proposal)
+        ? data.proposal[0] || null
+        : data.proposal,
+      moodboard: Array.isArray(data.moodboard)
+        ? data.moodboard[0] || null
+        : data.moodboard,
+      selection: Array.isArray(data.selection)
+        ? data.selection[0] || null
+        : data.selection,
+      gallery: Array.isArray(data.gallery)
+        ? data.gallery[0] || null
+        : data.gallery,
+    } as ProjectWithClient;
+
+    return processedData;
   },
 
   /**
@@ -246,7 +298,10 @@ export const projectService = {
   /**
    * Update project
    */
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  async updateProject(
+    id: string,
+    updates: Partial<Project> & { require_password?: boolean }
+  ): Promise<Project> {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();
 
@@ -254,9 +309,23 @@ export const projectService = {
       throw new Error("Vous devez être connecté pour modifier ce projet");
     }
 
+    // Extract require_password from updates as it's not a database column
+    const { require_password, ...dbUpdates } = updates;
+
+    // Handle password generation/removal based on require_password
+    if (require_password !== undefined) {
+      if (require_password) {
+        // Generate new password if required and not already set
+        dbUpdates.password_hash = projectService.generatePassword();
+      } else {
+        // Remove password if not required
+        dbUpdates.password_hash = "";
+      }
+    }
+
     const { data, error } = await supabase
       .from("projects")
-      .update(updates)
+      .update(dbUpdates)
       .eq("id", id)
       .eq("user_id", user.value.id)
       .select()

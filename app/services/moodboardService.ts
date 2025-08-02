@@ -24,7 +24,8 @@ export const moodboardService = {
         draft: 0,
         awaiting_client: 1,
         revision_requested: 2,
-        completed: 3,
+        payment_pending: 3,
+        completed: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -123,7 +124,7 @@ export const moodboardService = {
     id: string,
     updates: Partial<Moodboard>,
     shouldValidate?: boolean
-  ): Promise<{ moodboard: Moodboard; projectUpdated: boolean }> {
+  ): Promise<{ moodboard: MoodboardWithDetails; projectUpdated: boolean }> {
     const existingMoodboard = await this.getMoodboardById(id);
 
     // Handle validation status change
@@ -154,6 +155,7 @@ export const moodboardService = {
         draft: ["awaiting_client"],
         awaiting_client: ["draft", "revision_requested"],
         revision_requested: ["draft", "awaiting_client"],
+        payment_pending: ["draft", "awaiting_client"],
         completed: [], // completed moodboards cannot be modified
       };
 
@@ -177,10 +179,20 @@ export const moodboardService = {
     // Update moodboard
     const moodboard = await moodboardRepository.update(id, finalUpdates);
 
+    // Get images for the updated moodboard
+    const images = await moodboardImageRepository.findByMoodboardId(id);
+
+    // Return moodboard with details
+    const moodboardWithDetails: MoodboardWithDetails = {
+      ...moodboard,
+      images,
+      imageCount: images.length,
+    };
+
     // Project is considered updated when moodboard is sent to client
     const projectUpdated = finalUpdates.status === "awaiting_client";
 
-    return { moodboard, projectUpdated };
+    return { moodboard: moodboardWithDetails, projectUpdated };
   },
 
   /**

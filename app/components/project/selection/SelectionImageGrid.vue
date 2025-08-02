@@ -35,56 +35,74 @@
         </div>
 
         <!-- Images Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div v-for="image in images" :key="image.id"
-                class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border-2 transition-all duration-200"
-                :class="getImageClasses(image)">
-                <!-- Image Display -->
-                <img v-if="image.conversion_status === 'completed' || !image.requires_conversion"
-                    :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
-                    class="w-full h-full object-cover" @error="handleImageError">
+        <div class="space-y-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div v-for="(image, index) in displayImages" :key="image.id"
+                    class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer"
+                    :class="getImageClasses(image)">
 
-                <!-- Conversion Placeholder -->
-                <div v-else class="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
-                    <div class="text-center">
-                        <UIcon :name="getConversionIcon(image.conversion_status)"
-                            :class="getConversionIconClass(image.conversion_status)" class="w-8 h-8 mx-auto mb-2" />
-                        <p class="text-xs text-neutral-600 dark:text-neutral-400">
-                            {{ getConversionStatusText(image.conversion_status) }}
-                        </p>
+                    <!-- Image Display -->
+                    <img v-if="image.conversion_status === 'completed' || !image.requires_conversion"
+                        :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
+                        class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
+                        @error="handleImageError">
+
+                    <!-- Conversion Placeholder -->
+                    <div v-else
+                        class="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                        <div class="text-center">
+                            <UIcon :name="getConversionIcon(image.conversion_status)"
+                                :class="getConversionIconClass(image.conversion_status)" class="w-8 h-8 mx-auto mb-2" />
+                            <p class="text-xs text-neutral-600 dark:text-neutral-400">
+                                {{ getConversionStatusText(image.conversion_status) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- RAW Badge -->
+                    <div v-if="image.requires_conversion"
+                        class="absolute top-2 left-2 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded shadow-lg">
+                        {{ (image.source_format || 'RAW').toUpperCase() }}
+                    </div>
+
+                    <!-- Selection Indicator -->
+                    <div v-if="(canToggleSelection || showSelectionState) && (image.conversion_status === 'completed' || !image.requires_conversion)"
+                        class="absolute bottom-2 left-2">
+                        <!-- Interactive button for clients -->
+                        <UButton v-if="canToggleSelection"
+                            :icon="image.is_selected ? 'i-lucide-check-circle' : 'i-lucide-circle'"
+                            :color="image.is_selected ? 'success' : 'neutral'"
+                            :variant="image.is_selected ? 'solid' : 'outline'" size="sm"
+                            @click.stop="handleToggleSelection(image.id, !image.is_selected)" />
+                        <!-- Read-only indicator for photographers -->
+                        <div v-else-if="showSelectionState && image.is_selected"
+                            class="flex items-center justify-center w-8 h-8 rounded-full shadow-lg bg-green-500">
+                            <UIcon name="i-lucide-check" class="w-4 h-4 text-white" />
+                        </div>
+                    </div>
+
+                    <!-- Image counter badge -->
+                    <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                        {{ index + 1 }}
+                    </div>
+
+                    <!-- Action Menu -->
+                    <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <UDropdownMenu :items="getImageActions(image)" :ui="{
+                            content: 'min-w-48'
+                        }">
+                            <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
+                        </UDropdownMenu>
                     </div>
                 </div>
+            </div>
 
-                <!-- RAW Badge -->
-                <div v-if="image.requires_conversion"
-                    class="absolute top-2 left-2 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded shadow-lg">
-                    {{ (image.source_format || 'RAW').toUpperCase() }}
-                </div>
-
-                <!-- Selection Indicator -->
-                <div v-if="(canToggleSelection || showSelectionState) && (image.conversion_status === 'completed' || !image.requires_conversion)"
-                    class="absolute bottom-2 left-2">
-                    <!-- Interactive button for clients -->
-                    <UButton v-if="canToggleSelection"
-                        :icon="image.is_selected ? 'i-lucide-check-circle' : 'i-lucide-circle'"
-                        :color="image.is_selected ? 'success' : 'neutral'"
-                        :variant="image.is_selected ? 'solid' : 'outline'" size="sm"
-                        @click="handleToggleSelection(image.id, !image.is_selected)" />
-                    <!-- Read-only indicator for photographers -->
-                    <div v-else-if="showSelectionState && image.is_selected"
-                        class="flex items-center justify-center w-8 h-8 rounded-full shadow-lg bg-green-500">
-                        <UIcon name="i-lucide-check" class="w-4 h-4 text-white" />
-                    </div>
-                </div>
-
-                <!-- Action Menu -->
-                <div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <UDropdownMenu :items="getImageActions(image)" :ui="{
-                        content: 'min-w-48'
-                    }">
-                        <UButton icon="i-lucide-more-vertical" color="neutral" variant="solid" size="sm" />
-                    </UDropdownMenu>
-                </div>
+            <!-- Show more/less button if there are more images -->
+            <div v-if="images.length > maxPreview" class="text-center">
+                <UButton :icon="showAll ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" variant="outline"
+                    color="neutral"
+                    :label="showAll ? 'Voir moins' : `Voir ${images.length - maxPreview} image${images.length - maxPreview > 1 ? 's' : ''} de plus`"
+                    @click="showAll = !showAll" />
             </div>
         </div>
     </div>
@@ -95,14 +113,22 @@
             Aucune image dans cette sélection
         </p>
     </div>
+
+    <!-- Image Preview Modal -->
+    <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="imagePreview.currentImage.value"
+        :images="imagePreview.images.value" :current-index="imagePreview.currentIndex.value"
+        :storage-bucket="'selection-images'" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+        @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage" />
 </template>
 
 <script lang="ts" setup>
 import { useConversionSummary } from '~/composables/selections/user/useSelection';
+import { useImagePreview, type PreviewImage } from '~/composables/shared/useImagePreview';
 import type { SelectionImage } from '~/types/selection';
 
 interface Props {
     images: SelectionImage[]
+    maxPreview?: number
     canDelete?: boolean
     canToggleSelection?: boolean // Only for client interface - allows interactive selection
     showSelectionState?: boolean // For photographer interface - shows client selection state in read-only mode
@@ -114,6 +140,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    maxPreview: 6,
     canDelete: false,
     canToggleSelection: false,
     showSelectionState: false,
@@ -123,6 +150,40 @@ const emit = defineEmits<Emits>()
 
 // Computed properties
 const conversionSummary = useConversionSummary(computed(() => props.images))
+
+// Image preview composable
+const imagePreview = useImagePreview()
+
+// Local state for show more/less
+const showAll = ref(false)
+
+// Handle image click to open preview
+const handleImageClick = (image: SelectionImage) => {
+    // Only show preview for completed conversions or non-conversion images
+    if (image.conversion_status === 'completed' || !image.requires_conversion) {
+        // Convert SelectionImage to PreviewImage format
+        const previewImage: PreviewImage = {
+            id: image.id,
+            file_url: image.file_url,
+            created_at: image.created_at
+        }
+        imagePreview.openPreview(previewImage, props.images
+            .filter(img => img.conversion_status === 'completed' || !img.requires_conversion)
+            .map(img => ({
+                id: img.id,
+                file_url: img.file_url,
+                created_at: img.created_at
+            })))
+    }
+}
+
+// Computed for display images
+const displayImages = computed(() => {
+    if (showAll.value || props.images.length <= props.maxPreview) {
+        return props.images
+    }
+    return props.images.slice(0, props.maxPreview)
+})
 
 // Helper methods
 const getImageUrl = (image: SelectionImage): string => {
@@ -219,6 +280,15 @@ const getConversionStatusText = (status: string | null): string => {
 
 const getImageActions = (image: SelectionImage) => {
     const actions = []
+
+    // View image action (only for completed conversions)
+    if (image.conversion_status === 'completed' || !image.requires_conversion) {
+        actions.push({
+            label: 'Voir l\'image',
+            icon: 'i-lucide-eye',
+            onSelect: () => handleImageClick(image)
+        })
+    }
 
     // Download actions
     if (image.conversion_status === 'completed' || !image.requires_conversion) {

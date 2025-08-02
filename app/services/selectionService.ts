@@ -31,7 +31,8 @@ export const selectionService = {
         draft: 0,
         awaiting_client: 1,
         revision_requested: 2,
-        completed: 3,
+        payment_pending: 3,
+        completed: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -153,7 +154,7 @@ export const selectionService = {
     id: string,
     updates: Partial<Selection>,
     shouldValidate?: boolean
-  ): Promise<{ selection: Selection; projectUpdated: boolean }> {
+  ): Promise<{ selection: SelectionWithDetails; projectUpdated: boolean }> {
     const existingSelection = await this.getSelectionById(id);
 
     // Handle validation status change
@@ -207,13 +208,27 @@ export const selectionService = {
     // Update selection
     const selection = await selectionRepository.update(id, finalUpdates);
 
+    // Get images for the updated selection
+    const images = await selectionImageRepository.findBySelectionId(id);
+
+    // Count selected images
+    const selectedCount = images.filter((img) => img.is_selected).length;
+
+    // Return selection with details
+    const selectionWithDetails: SelectionWithDetails = {
+      ...selection,
+      images,
+      imageCount: images.length,
+      selectedCount,
+    };
+
     // Clear cache for this project
     selectionCache.delete(existingSelection.project_id);
 
     // Project is considered updated when selection is sent to client
     const projectUpdated = finalUpdates.status === "awaiting_client";
 
-    return { selection, projectUpdated };
+    return { selection: selectionWithDetails, projectUpdated };
   },
 
   /**

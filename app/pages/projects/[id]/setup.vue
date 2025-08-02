@@ -4,53 +4,68 @@
         <UBreadcrumb :items="breadcrumbItems" class="mb-6" />
 
         <!-- Loading State -->
-        <div v-if="loading" class="flex items-center justify-center py-12">
+        <div v-if="store.isLoading" class="flex items-center justify-center py-12">
             <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
         </div>
 
         <!-- Error State -->
-        <div v-else-if="error" class="text-center py-12">
+        <div v-else-if="store.hasError" class="text-center py-12">
             <UAlert color="error" variant="soft" icon="i-lucide-alert-circle" title="Erreur"
-                :description="error.message" />
+                :description="store.error?.message" />
         </div>
 
         <!-- Main Content -->
-        <div v-else-if="project" class="space-y-8">
+        <div v-else-if="store.project" class="space-y-8">
             <!-- Page Header -->
             <PageHeader badge="Configuration" badge-color="primary" badge-variant="soft" badge-icon="i-lucide-settings"
-                :title="project.title" subtitle="Configurez les modules et fonctionnalités de votre projet" separator />
+                :title="store.project.title" subtitle="Configurez les modules et fonctionnalités de votre projet"
+                separator />
 
             <!-- Project Summary -->
-            <ProjectSummary :project="project" :client-display-name="clientDisplayName"
-                :status-info="statusInfo || null" :formatted-price="formattedPrice"
-                :formatted-created-at="formattedCreatedAt" />
+            <ProjectSummary :project="store.project" :client-display-name="store.clientDisplayName"
+                :status-info="store.statusInfo || null" :formatted-price="store.formattedPrice"
+                :formatted-created-at="store.formattedCreatedAt" :can-edit-project="store.canEditProject" />
 
-            <!-- Module Onboarding -->
-            <ProjectModuleOnboarding :project-id="projectId"
-                :project-initial-price="project?.initial_price || undefined" />
+            <!-- Project Stepper -->
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Configuration des modules
+                    </h3>
+                </div>
+
+                <ProjectSetupStepper :current-step="currentStep" @step-changed="handleStepChange" />
+            </div>
+
+            <!-- Proposal Section -->
+            <ProjectProposalSection v-if="currentStep === 1" />
+
+            <!-- Moodboard Section -->
+            <ProjectMoodboardSection v-if="currentStep === 2" />
+
+            <!-- Selection Section -->
+            <ProjectSelectionSection v-if="currentStep === 3" />
+
+            <!-- Gallery Section -->
+            <ProjectGallerySection v-if="currentStep === 4" />
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
 import type { BreadcrumbItem } from '@nuxt/ui'
-import { useProject } from '~/composables/projects/useProject'
+import type { WorkflowStep } from '~/types/project'
 
 // Get project ID from route
 const route = useRoute()
 const projectId = route.params.id as string
 
-// Use project composable
-const {
-    loading,
-    error,
-    project,
-    clientDisplayName,
-    statusInfo,
-    formattedPrice,
-    formattedCreatedAt,
-    fetchProject,
-} = useProject(projectId)
+// Use project setup store
+const store = useProjectSetupStore()
+
+// Current step state
+const currentStep = ref<WorkflowStep>(1)
+
+
 
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
@@ -60,20 +75,27 @@ const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
         to: '/projects'
     },
     {
-        label: project.value?.title || 'Configuration du projet',
+        label: store.project?.title || 'Configuration du projet',
         icon: 'i-lucide-settings'
     }
 ])
 
 // Meta tags
 useHead({
-    title: computed(() => project.value ? `Configuration - ${project.value.title}` : 'Configuration du projet'),
+    title: computed(() => store.project ? `Configuration - ${store.project.title}` : 'Configuration du projet'),
 })
+
+// Methods
+const handleStepChange = (stepNumber: number) => {
+    currentStep.value = stepNumber as WorkflowStep
+}
+
+
 
 // Initialize
 onMounted(async () => {
     try {
-        await fetchProject()
+        await store.fetchProject(projectId)
     } catch (err) {
         console.error('Error loading project:', err)
     }
