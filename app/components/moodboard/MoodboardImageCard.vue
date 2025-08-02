@@ -18,13 +18,13 @@
                 <div v-if="canInteract || hasComments">
                     <UButton v-if="hasComments" variant="solid" color="neutral" size="sm" icon="i-lucide-message-circle"
                         class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900"
-                        @click="showCommentModal = true">
+                        @click.stop="showCommentModal = true">
                         {{ image.comments?.length }} commentaire{{ (image.comments?.length || 0) > 1 ? 's' : '' }}
                     </UButton>
                     <UButton v-else-if="canInteract" variant="solid" color="neutral" size="sm"
                         icon="i-lucide-message-circle-plus"
                         class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900"
-                        @click="showCommentModal = true">
+                        @click.stop="showCommentModal = true">
                         Commenter
                     </UButton>
                 </div>
@@ -37,7 +37,7 @@
                         (image.reactions?.love || 0) > 0
                             ? 'bg-red-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
-                    ]" @click="$emit('react', 'love')">
+                    ]" @click.stop="$emit('react', 'love')">
                         <UIcon name="i-lucide-heart" :class="(image.reactions?.love || 0) > 0 ? 'fill-current' : ''"
                             class="w-4 h-4" />
                         <span v-if="image.reactions?.love">{{ image.reactions.love }}</span>
@@ -54,7 +54,7 @@
                         (image.reactions?.like || 0) > 0
                             ? 'bg-green-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
-                    ]" @click="$emit('react', 'like')">
+                    ]" @click.stop="$emit('react', 'like')">
                         <UIcon name="i-lucide-thumbs-up" :class="(image.reactions?.like || 0) > 0 ? 'fill-current' : ''"
                             class="w-4 h-4" />
                         <span v-if="image.reactions?.like">{{ image.reactions.like }}</span>
@@ -71,7 +71,7 @@
                         (image.reactions?.dislike || 0) > 0
                             ? 'bg-orange-500/80 text-white'
                             : 'bg-white/20 hover:bg-white/30 text-white'
-                    ]" @click="$emit('react', 'dislike')">
+                    ]" @click.stop="$emit('react', 'dislike')">
                         <UIcon name="i-lucide-thumbs-down"
                             :class="(image.reactions?.dislike || 0) > 0 ? 'fill-current' : ''" class="w-4 h-4" />
                         <span v-if="image.reactions?.dislike">{{ image.reactions.dislike }}</span>
