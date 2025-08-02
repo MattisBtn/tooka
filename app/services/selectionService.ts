@@ -582,6 +582,150 @@ export const selectionService = {
     }
   },
 
+  /**
+   * Download selected images from selection as ZIP file
+   */
+  async downloadSelectedImagesAsZip(selectionId: string): Promise<void> {
+    const selectionWithImages = await this.getSelectionByProjectId(
+      (
+        await this.getSelectionById(selectionId)
+      ).project_id
+    );
+
+    if (!selectionWithImages) {
+      throw new Error("Sélection non trouvée");
+    }
+
+    // Filter only selected images
+    const selectedImages = (selectionWithImages.images || []).filter(
+      (img) => img.is_selected
+    );
+
+    if (selectedImages.length === 0) {
+      throw new Error("Aucune image sélectionnée par le client");
+    }
+
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      let processedCount = 0;
+      let errorCount = 0;
+
+      // Process images in batches to avoid memory issues
+      const batchSize = 5;
+      for (let i = 0; i < selectedImages.length; i += batchSize) {
+        const batch = selectedImages.slice(i, i + batchSize);
+
+        await Promise.all(
+          batch.map(async (image) => {
+            try {
+              // Get the appropriate file URL (original if available, otherwise converted)
+              const fileUrl = image.source_file_url || image.file_url;
+              const fileFormat = image.source_format || "jpg";
+              const originalFilename =
+                image.source_filename ||
+                image.file_url?.split("/").pop() ||
+                `image_${image.id}`;
+
+              // Generate a clean filename
+              const cleanFilename = this.generateCleanFilename(
+                originalFilename,
+                fileFormat,
+                image.id
+              );
+
+              // Download the file as blob
+              const blob = await selectionImageRepository.downloadImageBlob(
+                fileUrl
+              );
+
+              // Add to ZIP with proper filename
+              zip.file(cleanFilename, blob);
+
+              processedCount++;
+            } catch (error) {
+              console.error(`Failed to process image ${image.id}:`, error);
+              errorCount++;
+            }
+          })
+        );
+      }
+
+      if (processedCount === 0) {
+        throw new Error("Aucune image n'a pu être traitée");
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+
+      // Create download link
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `selection_${selectionId}_selected_${
+        new Date().toISOString().split("T")[0]
+      }.zip`;
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Cleanup
+      URL.revokeObjectURL(url);
+
+      // Show success message
+      const toast = useToast();
+      toast.add({
+        title: "ZIP téléchargé",
+        description: `${processedCount} image(s) sélectionnée(s) dans le ZIP${
+          errorCount > 0 ? `, ${errorCount} échouée(s)` : ""
+        }`,
+        icon: "i-lucide-check-circle",
+        color: "success",
+      });
+    } catch (error) {
+      console.error("ZIP creation failed:", error);
+      const toast = useToast();
+      toast.add({
+        title: "Erreur de création du ZIP",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Erreur lors de la création du ZIP",
+        icon: "i-lucide-alert-circle",
+        color: "error",
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Generate clean filename for ZIP
+   */
+  generateCleanFilename(
+    originalFilename: string,
+    format: string,
+    imageId: string
+  ): string {
+    // Remove extension and clean the filename
+    const nameWithoutExt = originalFilename.replace(/\.[^/.]+$/, "");
+    const cleanName = nameWithoutExt
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+
+    // Ensure unique filename with proper extension
+    const extension = format.toLowerCase();
+    return `${cleanName || `image_${imageId}`}.${extension}`;
+  },
+
   // toggleImageSelection removed - selections are now handled client-side until validation
 
   /**

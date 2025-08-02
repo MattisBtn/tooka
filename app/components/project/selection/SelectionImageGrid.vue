@@ -56,6 +56,8 @@
                     :label="showAll ? 'Voir moins' : `Voir ${images.length - maxPreview} image${images.length - maxPreview > 1 ? 's' : ''} de plus`"
                     @click="showAll = !showAll" />
             </div>
+
+
         </div>
     </div>
 
@@ -104,6 +106,8 @@ const imagePreview = useImagePreview()
 
 // Local state for show more/less
 const showAll = ref(false)
+
+
 
 // Handle image click to open preview
 const handleImageClick = (image: SelectionImage) => {
@@ -244,4 +248,6 @@ const downloadImage = async (filePath: string, isOriginal: boolean = false, imag
         })
     }
 }
+
+
 </script>

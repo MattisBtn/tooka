@@ -96,11 +96,16 @@
 
                     <!-- Images Preview -->
                     <div v-if="selectionStore.hasImages" class="space-y-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center justify-between">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Aperçu
                                 des
                                 images</span>
+                            <UButton v-if="selectionStore.selectedCount > 0" icon="i-lucide-download" size="xs"
+                                variant="ghost" color="neutral" :loading="selectionStore.isDownloadingZip"
+                                :disabled="selectionStore.isDownloadingZip" @click="handleDownloadSelectedAsZip">
+                                Télécharger sélection (ZIP)
+                            </UButton>
                         </div>
                         <ProjectSelectionImageGrid :images="Array.from(selectionStore.selection?.images || [])"
                             :can-delete="false" :can-toggle-selection="false" :max-preview="6"
@@ -340,6 +345,21 @@ const handleDelete = async () => {
         toast.add({
             title: 'Erreur',
             description: 'Une erreur est survenue lors de la suppression.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        })
+    }
+}
+
+const handleDownloadSelectedAsZip = async () => {
+    try {
+        await selectionStore.downloadSelectedImagesAsZip()
+    } catch (error) {
+        console.error('ZIP download failed:', error)
+        const toast = useToast()
+        toast.add({
+            title: 'Erreur de téléchargement ZIP',
+            description: error instanceof Error ? error.message : 'Erreur lors du téléchargement du ZIP',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })

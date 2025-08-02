@@ -1,0 +1,421 @@
+---
+alwaysApply: true
+---
+
+# Architecture Patterns & Best Practices
+
+## 🏗️ Séparation des Responsabilités
+
+### Composants (UI Layer)
+
+- **Rôle** : Présentation et interaction utilisateur uniquement
+- **Interdictions** :
+  - ❌ Appeler directement les services
+  - ❌ Gérer la logique métier
+  - ❌ Manipuler les données brutes
+  - ❌ Gérer l'état global
+
+### Stores (State Management)
+
+- **Rôle** : Gestion de l'état global et orchestration des services
+- **Responsabilités** :
+  - ✅ Centraliser l'état de l'application
+  - ✅ Appeler les services appropriés
+  - ✅ Gérer les états de chargement/erreur
+  - ✅ Exposer des méthodes pour les composants
+
+### Services (Business Logic)
+
+- **Rôle** : Logique métier et communication avec l'API
+- **Responsabilités** :
+  - ✅ Gérer les appels API
+  - ✅ Transformer les données
+  - ✅ Gérer les erreurs métier
+  - ✅ Implémenter la logique business
+
+## 📋 Patterns Recommandés
+
+### 1. Flux de Données Correct
+
+```
+Composant → Store → Service → Repository/API
+```
+
+### 2. Structure de Store Typique
+
+```typescript
+// ✅ Bon pattern
+export const useMyStore = defineStore("myStore", () => {
+  // État
+  const data = ref(null);
+  const loading = ref(false);
+  const error = ref(null);
+
+  // Actions métier
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      const service = await import("~/services/myService");
+      data.value = await service.getData();
+    } catch (err) {
+      error.value = err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  return {
+    data: readonly(data),
+    loading: readonly(loading),
+    error: readonly(error),
+    fetchData,
+  };
+});
+```
+
+### 3. Structure de Composant Correcte
+
+```typescript
+// ✅ Bon pattern
+const handleAction = async () => {
+  try {
+    await store.actionMethod();
+  } catch (error) {
+    // Gestion UI de l'erreur uniquement
+    toast.add({ title: "Erreur", color: "error" });
+  }
+};
+```
+
+## ❌ Anti-Patterns à Éviter
+
+### 1. Service Direct dans Composant
+
+```typescript
+// ❌ MAUVAIS
+const handleAction = async () => {
+  const { myService } = await import("~/services/myService");
+  await myService.doSomething();
+};
+```
+
+### 2. Logique Métier dans Composant
+
+```typescript
+// ❌ MAUVAIS
+const processData = (data) => {
+  // Logique métier ici
+  return data.map((item) => ({ ...item, processed: true }));
+};
+```
+
+### 3. État Local Redondant
+
+```typescript
+// ❌ MAUVAIS
+const localLoading = ref(false); // Si le store a déjà loading
+```
+
+## 🔧 Bonnes Pratiques Supplémentaires
+
+### 1. Gestion des Erreurs
+
+- **Store** : Capture et stocke les erreurs
+- **Composant** : Affiche les erreurs de manière appropriée
+- **Service** : Lève des erreurs avec des messages clairs
+
+### 2. États de Chargement
+
+- Centraliser dans le store
+- Éviter les états locaux redondants
+- Utiliser des computed pour les états dérivés
+
+### 3. Imports Dynamiques
+
+- Toujours utiliser `await import()` pour les services
+- Éviter les imports statiques des services dans les composants
+
+### 4. Props et Émits
+
+- Props : Données descendantes
+- Émits : Événements ascendants
+- Éviter les props pour les callbacks
+
+### 5. Composables
+
+- Réutiliser la logique commune
+- Séparer les préoccupations
+- Éviter les composables trop gros
+
+## 🎯 Exemples Concrets
+
+### ✅ Bon Pattern (Selection)
+
+```typescript
+// Store
+const downloadAllImagesAsZip = async () => {
+  const { selectionService } = await import("~/services/selectionService");
+  await selectionService.downloadAllImagesAsZip(selection.value.id);
+};
+
+// Composant
+const handleDownload = async () => {
+  try {
+    await selectionStore.downloadAllImagesAsZip();
+  } catch (error) {
+    toast.add({ title: "Erreur", color: "error" });
+  }
+};
+```
+
+### ❌ Anti-Pattern
+
+```typescript
+// Composant
+const handleDownload = async () => {
+  const { selectionService } = await import("~/services/selectionService");
+  await selectionService.downloadAllImagesAsZip(selectionId);
+};
+```
+
+## 📝 Checklist de Vérification
+
+Avant de commiter, vérifiez :
+
+- [ ] Les composants n'appellent pas directement les services
+- [ ] La logique métier est dans les services/stores
+- [ ] Les composants sont focalisés sur l'UI
+- [ ] Les états sont centralisés dans les stores
+- [ ] Pas de duplication de logique
+- [ ] Gestion d'erreurs appropriée à chaque niveau
+
+## 🚀 Optimisations Avancées
+
+### 1. Cache et Performance
+
+- Utiliser des computed pour les données dérivées
+- Implémenter du cache dans les stores
+- Éviter les recalculs inutiles
+
+### 2. Tests
+
+- Tester les services indépendamment
+- Mocker les stores pour tester les composants
+- Tester la logique métier séparément de l'UI
+
+### 3. TypeScript
+
+- Typage strict des stores
+- Interfaces claires pour les services
+- Props typées pour les composants
+
+Cette architecture garantit une maintenance facile, une réutilisabilité maximale et une séparation claire des responsabilités.
+
+# Architecture Patterns & Best Practices
+
+## 🏗️ Séparation des Responsabilités
+
+### Composants (UI Layer)
+
+- **Rôle** : Présentation et interaction utilisateur uniquement
+- **Interdictions** :
+  - ❌ Appeler directement les services
+  - ❌ Gérer la logique métier
+  - ❌ Manipuler les données brutes
+  - ❌ Gérer l'état global
+
+### Stores (State Management)
+
+- **Rôle** : Gestion de l'état global et orchestration des services
+- **Responsabilités** :
+  - ✅ Centraliser l'état de l'application
+  - ✅ Appeler les services appropriés
+  - ✅ Gérer les états de chargement/erreur
+  - ✅ Exposer des méthodes pour les composants
+
+### Services (Business Logic)
+
+- **Rôle** : Logique métier et communication avec l'API
+- **Responsabilités** :
+  - ✅ Gérer les appels API
+  - ✅ Transformer les données
+  - ✅ Gérer les erreurs métier
+  - ✅ Implémenter la logique business
+
+## 📋 Patterns Recommandés
+
+### 1. Flux de Données Correct
+
+```
+Composant → Store → Service → Repository/API
+```
+
+### 2. Structure de Store Typique
+
+```typescript
+// ✅ Bon pattern
+export const useMyStore = defineStore("myStore", () => {
+  // État
+  const data = ref(null);
+  const loading = ref(false);
+  const error = ref(null);
+
+  // Actions métier
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      const service = await import("~/services/myService");
+      data.value = await service.getData();
+    } catch (err) {
+      error.value = err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  return {
+    data: readonly(data),
+    loading: readonly(loading),
+    error: readonly(error),
+    fetchData,
+  };
+});
+```
+
+### 3. Structure de Composant Correcte
+
+```typescript
+// ✅ Bon pattern
+const handleAction = async () => {
+  try {
+    await store.actionMethod();
+  } catch (error) {
+    // Gestion UI de l'erreur uniquement
+    toast.add({ title: "Erreur", color: "error" });
+  }
+};
+```
+
+## ❌ Anti-Patterns à Éviter
+
+### 1. Service Direct dans Composant
+
+```typescript
+// ❌ MAUVAIS
+const handleAction = async () => {
+  const { myService } = await import("~/services/myService");
+  await myService.doSomething();
+};
+```
+
+### 2. Logique Métier dans Composant
+
+```typescript
+// ❌ MAUVAIS
+const processData = (data) => {
+  // Logique métier ici
+  return data.map((item) => ({ ...item, processed: true }));
+};
+```
+
+### 3. État Local Redondant
+
+```typescript
+// ❌ MAUVAIS
+const localLoading = ref(false); // Si le store a déjà loading
+```
+
+## 🔧 Bonnes Pratiques Supplémentaires
+
+### 1. Gestion des Erreurs
+
+- **Store** : Capture et stocke les erreurs
+- **Composant** : Affiche les erreurs de manière appropriée
+- **Service** : Lève des erreurs avec des messages clairs
+
+### 2. États de Chargement
+
+- Centraliser dans le store
+- Éviter les états locaux redondants
+- Utiliser des computed pour les états dérivés
+
+### 3. Imports Dynamiques
+
+- Toujours utiliser `await import()` pour les services
+- Éviter les imports statiques des services dans les composants
+
+### 4. Props et Émits
+
+- Props : Données descendantes
+- Émits : Événements ascendants
+- Éviter les props pour les callbacks
+
+### 5. Composables
+
+- Réutiliser la logique commune
+- Séparer les préoccupations
+- Éviter les composables trop gros
+
+## 🎯 Exemples Concrets
+
+### ✅ Bon Pattern (Selection)
+
+```typescript
+// Store
+const downloadAllImagesAsZip = async () => {
+  const { selectionService } = await import("~/services/selectionService");
+  await selectionService.downloadAllImagesAsZip(selection.value.id);
+};
+
+// Composant
+const handleDownload = async () => {
+  try {
+    await selectionStore.downloadAllImagesAsZip();
+  } catch (error) {
+    toast.add({ title: "Erreur", color: "error" });
+  }
+};
+```
+
+### ❌ Anti-Pattern
+
+```typescript
+// Composant
+const handleDownload = async () => {
+  const { selectionService } = await import("~/services/selectionService");
+  await selectionService.downloadAllImagesAsZip(selectionId);
+};
+```
+
+## 📝 Checklist de Vérification
+
+Avant de commiter, vérifiez :
+
+- [ ] Les composants n'appellent pas directement les services
+- [ ] La logique métier est dans les services/stores
+- [ ] Les composants sont focalisés sur l'UI
+- [ ] Les états sont centralisés dans les stores
+- [ ] Pas de duplication de logique
+- [ ] Gestion d'erreurs appropriée à chaque niveau
+
+## 🚀 Optimisations Avancées
+
+### 1. Cache et Performance
+
+- Utiliser des computed pour les données dérivées
+- Implémenter du cache dans les stores
+- Éviter les recalculs inutiles
+
+### 2. Tests
+
+- Tester les services indépendamment
+- Mocker les stores pour tester les composants
+- Tester la logique métier séparément de l'UI
+
+### 3. TypeScript
+
+- Typage strict des stores
+- Interfaces claires pour les services
+- Props typées pour les composants
+
+Cette architecture garantit une maintenance facile, une réutilisabilité maximale et une séparation claire des responsabilités.

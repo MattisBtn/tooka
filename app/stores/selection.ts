@@ -47,6 +47,7 @@ export const useSelectionStore = defineStore("selection", () => {
   const showForm = ref(false);
   const formLoading = ref(false);
   const backgroundUploading = ref(false);
+  const isDownloadingZip = ref(false);
 
   // Upload progress tracking
   const uploadProgress = ref({
@@ -218,6 +219,24 @@ export const useSelectionStore = defineStore("selection", () => {
 
   const incrementFailedCount = () => {
     uploadProgress.value.failedFiles++;
+  };
+
+  const downloadSelectedImagesAsZip = async () => {
+    if (!selection.value?.id) {
+      throw new Error("Aucune sélection disponible");
+    }
+
+    isDownloadingZip.value = true;
+
+    try {
+      const { selectionService } = await import("~/services/selectionService");
+      await selectionService.downloadSelectedImagesAsZip(selection.value.id);
+    } catch (error) {
+      console.error("ZIP download failed:", error);
+      throw error;
+    } finally {
+      isDownloadingZip.value = false;
+    }
   };
 
   const loadSelection = async (projectId: string) => {
@@ -426,6 +445,7 @@ export const useSelectionStore = defineStore("selection", () => {
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
     backgroundUploading: readonly(backgroundUploading),
+    isDownloadingZip: readonly(isDownloadingZip),
     uploadProgress: readonly(uploadProgress),
     uploadProgressPercentage,
     uploadProgressSteps,
@@ -435,5 +455,6 @@ export const useSelectionStore = defineStore("selection", () => {
     incrementUploadCount,
     incrementConvertedCount,
     incrementFailedCount,
+    downloadSelectedImagesAsZip,
   };
 });
