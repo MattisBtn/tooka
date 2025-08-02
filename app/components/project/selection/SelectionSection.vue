@@ -12,6 +12,9 @@
 
         <!-- Existing Selection -->
         <div v-else-if="selectionStore.exists" class="space-y-4">
+            <!-- Upload Progress Indicator -->
+            <ProjectSelectionUploadProgress />
+
             <UCard variant="outline">
                 <template #header>
                     <div class="flex items-center justify-between">
@@ -247,6 +250,9 @@ const handleSelectionSaved = async (data: {
     selectedFiles?: File[]
 }) => {
     try {
+        // Fermer la modal immédiatement
+        selectionStore.closeForm();
+
         if (selectionStore.exists && selectionStore.selection) {
             // Update existing selection
             await selectionStore.updateSelection(
@@ -285,6 +291,8 @@ const handleSelectionSaved = async (data: {
         });
     }
 };
+
+
 
 const handleDeleteImage = async (imageId: string) => {
     const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')

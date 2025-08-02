@@ -266,109 +266,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
   },
 
   /**
-   * Get public URL for selection image (since bucket is public)
-   */
-  getPublicUrl(filePath: string): string {
-    const supabase = useSupabaseClient();
-
-    const { data } = supabase.storage
-      .from("selection-images")
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
-  },
-
-  /**
-   * Get signed URL for secure download
-   */
-  async getSignedUrl(
-    filePath: string,
-    expiresIn: number = 3600
-  ): Promise<string> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à l'image");
-    }
-
-    const { data, error } = await supabase.storage
-      .from("selection-images")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      throw new Error(`Failed to generate signed URL: ${error.message}`);
-    }
-
-    return data.signedUrl;
-  },
-
-  /**
-   * Download image as blob for forced download
-   */
-  async downloadImageBlob(filePath: string): Promise<Blob> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour télécharger l'image");
-    }
-
-    const { data, error } = await supabase.storage
-      .from("selection-images")
-      .download(filePath);
-
-    if (error) {
-      throw new Error(`Failed to download image: ${error.message}`);
-    }
-
-    return data;
-  },
-
-  /**
-   * Subscribe to real-time changes for selection images
-   */
-  subscribeToSelectionImages(
-    selectionId: string,
-    callback: (payload: SelectionImageRealtimePayload) => void
-  ) {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour s'abonner aux changements"
-      );
-    }
-
-    const subscription = supabase
-      .channel(`selection_images_${selectionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "selection_images",
-          filter: `selection_id=eq.${selectionId}`,
-        },
-        (payload) => {
-          callback({
-            eventType: payload.eventType as "INSERT" | "UPDATE" | "DELETE",
-            new: payload.new as SelectionImage,
-            old: payload.old as SelectionImage,
-          });
-        }
-      )
-      .subscribe();
-
-    return {
-      unsubscribe: () => {
-        return supabase.removeChannel(subscription);
-      },
-    };
-  },
-
-  /**
    * Update conversion status for multiple images
    */
   async updateConversionStatus(
@@ -447,5 +344,108 @@ export const selectionImageRepository: ISelectionImageRepository = {
     }
 
     return data || [];
+  },
+
+  /**
+   * Get public URL for selection image (since bucket is public)
+   */
+  getPublicUrl(filePath: string): string {
+    const supabase = useSupabaseClient();
+
+    const { data } = supabase.storage
+      .from("selection-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  },
+
+  /**
+   * Get signed URL for secure download
+   */
+  async getSignedUrl(
+    filePath: string,
+    expiresIn: number = 3600
+  ): Promise<string> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour accéder à l'image");
+    }
+
+    const { data, error } = await supabase.storage
+      .from("selection-images")
+      .createSignedUrl(filePath, expiresIn);
+
+    if (error) {
+      throw new Error(`Failed to generate signed URL: ${error.message}`);
+    }
+
+    return data.signedUrl;
+  },
+
+  /**
+   * Download image as blob for forced download
+   */
+  async downloadImageBlob(filePath: string): Promise<Blob> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour télécharger l'image");
+    }
+
+    const { data, error } = await supabase.storage
+      .from("selection-images")
+      .download(filePath);
+
+    if (error) {
+      throw new Error(`Failed to download image: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * Subscribe to real-time updates for selection images
+   */
+  subscribeToSelectionImages(
+    selectionId: string,
+    callback: (payload: SelectionImageRealtimePayload) => void
+  ) {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error(
+        "Vous devez être connecté pour souscrire aux mises à jour"
+      );
+    }
+
+    const subscription = supabase
+      .channel(`selection_images_${selectionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "selection_images",
+          filter: `selection_id=eq.${selectionId}`,
+        },
+        (payload) => {
+          callback({
+            eventType: payload.eventType as "INSERT" | "UPDATE" | "DELETE",
+            new: payload.new as SelectionImage,
+            old: payload.old as SelectionImage,
+          });
+        }
+      )
+      .subscribe();
+
+    return {
+      unsubscribe: () => {
+        return supabase.removeChannel(subscription);
+      },
+    };
   },
 };

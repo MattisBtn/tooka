@@ -4,7 +4,7 @@
         <UFileUpload v-model="selectedFiles" multiple
             accept="image/*,.nef,.dng,.raw,.cr2,.arw,.raf,.orf,.rw2,.crw,.pef,.srw,.x3f" :max="maxFiles"
             :max-size="maxFileSize" label="Glissez-déposez vos images de sélection ici"
-            :description="`Formats supportés: JPG, PNG, WebP, NEF, DNG, RAW, CR2, ARW, RAF, ORF, RW2, CRW, PEF, SRW, X3F • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
+            :description="`Formats supportés: JPG, PNG, WebP, ARW, CR2, DNG, NEF, RAW • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
             icon="i-lucide-images" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
             @error="handleUploadError" />
 

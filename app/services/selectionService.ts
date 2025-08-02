@@ -255,7 +255,7 @@ export const selectionService = {
   },
 
   /**
-   * Upload multiple images to selection
+   * Upload images to selection
    */
   async uploadImages(
     selectionId: string,
@@ -268,27 +268,31 @@ export const selectionService = {
       throw new Error("Vous devez être connecté pour uploader des images");
     }
 
-    if (!files.length) {
-      throw new Error("Aucun fichier sélectionné");
-    }
-
-    // Verify selection exists and belongs to user
-    const _selection = await this.getSelectionById(selectionId);
-
     const uploadedImages: SelectionImage[] = [];
     const errors: string[] = [];
 
+    // Import store for progress tracking
+    const { useSelectionStore } = await import("~/stores/selection");
+    const selectionStore = useSelectionStore();
+
     for (const file of files) {
       try {
+        // Update progress: start uploading this file
+        selectionStore.updateFileProgress(file.name, "uploading");
+
         // Validate file type
-        if (!file.type.startsWith("image/")) {
+        if (!file.type.startsWith("image/") && !this.isRawFormat(file.name)) {
           errors.push(`${file.name}: Type de fichier non supporté`);
+          selectionStore.updateFileProgress(file.name, "failed");
+          selectionStore.incrementFailedCount();
           continue;
         }
 
-        // Validate file size (max 10MB)
+        // Validate file size (max 100MB)
         if (file.size > 100 * 1024 * 1024) {
-          errors.push(`${file.name}: Fichier trop volumineux (max 10MB)`);
+          errors.push(`${file.name}: Fichier trop volumineux (max 100MB)`);
+          selectionStore.updateFileProgress(file.name, "failed");
+          selectionStore.incrementFailedCount();
           continue;
         }
 
@@ -298,26 +302,6 @@ export const selectionService = {
           .toString(36)
           .substring(7)}.${fileExt}`;
         const filePath = `${user.value.id}/selections/${selectionId}/${fileName}`;
-
-        // Detect if file is RAW format
-        const rawFormats = [
-          "nef",
-          "dng",
-          "raw",
-          "cr2",
-          "arw",
-          "raf",
-          "orf",
-          "rw2",
-          "crw",
-          "pef",
-          "srw",
-          "x3f",
-        ];
-        const isRawFormat = rawFormats.includes(fileExt);
-
-        // Determine source format from file extension
-        const sourceFormat = fileExt || file.type.split("/")[1] || "unknown";
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
@@ -329,68 +313,145 @@ export const selectionService = {
 
         if (uploadError) {
           errors.push(`${file.name}: ${uploadError.message}`);
+          selectionStore.updateFileProgress(file.name, "failed");
+          selectionStore.incrementFailedCount();
           continue;
         }
 
-        // Create database record with conversion info
+        // Mark as uploaded
+        selectionStore.updateFileProgress(file.name, "uploaded");
+        selectionStore.incrementUploadCount();
+
+        // Check if file is RAW format
+        const isRawFormat = this.isRawFormat(file.name);
+
+        // Create database record
         const imageData = {
           selection_id: selectionId,
           file_url: filePath,
           is_selected: false,
-          source_file_url: filePath, // For now, same as file_url (will be different after conversion)
-          source_filename: file.name,
-          source_format: sourceFormat,
-          target_format: isRawFormat ? "jpeg" : sourceFormat, // Convert RAW to JPEG, others keep original format
-          requires_conversion: isRawFormat,
-          conversion_status: (isRawFormat ? "pending" : "completed") as
-            | "pending"
-            | "completed", // RAW files need conversion, others are ready
+          conversion_status: null,
+          requires_conversion: false,
+          source_file_url: null,
+          source_filename: null,
+          source_format: null,
+          target_format: null,
         };
 
         const image = await selectionImageRepository.create(imageData);
         uploadedImages.push(image);
+
+        // If RAW file, trigger conversion
+        if (isRawFormat) {
+          try {
+            // Mark as converting
+            selectionStore.updateFileProgress(file.name, "converting");
+
+            // Generate signed URL for the RAW file
+            const { data: signedUrlData } = await supabase.storage
+              .from("selection-images")
+              .createSignedUrl(filePath, 60); // 60 seconds for conversion
+
+            if (signedUrlData?.signedUrl) {
+              // Convert RAW to JPEG
+              const conversionResult = await this.convertRawToJpeg(
+                signedUrlData.signedUrl,
+                filePath,
+                selectionId
+              );
+
+              // Update the image record with conversion info
+              const updatedImage = await selectionImageRepository.update(
+                image.id,
+                {
+                  file_url: conversionResult.jpegFilePath, // Use JPEG as main file
+                  source_file_url: filePath, // Keep RAW as source
+                  source_filename: file.name,
+                  source_format: fileExt.toUpperCase(),
+                  target_format: "JPEG",
+                  requires_conversion: true,
+                  conversion_status: "completed",
+                }
+              );
+
+              // Update the uploaded image in the array
+              const index = uploadedImages.findIndex(
+                (img) => img.id === image.id
+              );
+              if (index !== -1) {
+                uploadedImages[index] = updatedImage;
+              }
+
+              // Mark as converted
+              selectionStore.updateFileProgress(file.name, "converted");
+              selectionStore.incrementConvertedCount();
+            }
+          } catch (conversionError) {
+            console.error(
+              `Conversion failed for ${file.name}:`,
+              conversionError
+            );
+            // Don't fail the upload, just log the conversion error
+            errors.push(
+              `${file.name}: Conversion échouée (fichier RAW conservé)`
+            );
+            selectionStore.updateFileProgress(file.name, "failed");
+            selectionStore.incrementFailedCount();
+          }
+        } else {
+          // For non-RAW files, mark as converted immediately
+          selectionStore.updateFileProgress(file.name, "converted");
+          selectionStore.incrementConvertedCount();
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Erreur inconnue";
         errors.push(`${file.name}: ${errorMessage}`);
+        selectionStore.updateFileProgress(file.name, "failed");
+        selectionStore.incrementFailedCount();
       }
-    }
-
-    if (errors.length > 0 && uploadedImages.length === 0) {
-      throw new Error(`Échec de l'upload: ${errors.join(", ")}`);
     }
 
     if (errors.length > 0) {
-      console.warn("Some uploads failed:", errors);
-    }
-
-    // Trigger conversion for RAW images
-    const rawImageIds = uploadedImages
-      .filter((img) => img.requires_conversion)
-      .map((img) => img.id);
-
-    if (rawImageIds.length > 0) {
-      // Queue images for conversion using repository
-      try {
-        await selectionImageRepository.updateConversionStatus(
-          rawImageIds,
-          "queued"
-        );
-
-        // Trigger conversion asynchronously (don't wait for completion)
-        const { conversionService } = await import(
-          "~/services/conversionService"
-        );
-        conversionService.convertImages(rawImageIds).catch((error) => {
-          console.error("Background conversion failed:", error);
-        });
-      } catch (error) {
-        console.warn("Failed to queue images for conversion:", error);
-        // Don't throw error as upload was successful
-      }
+      console.warn("Upload errors:", errors);
+      // Note: We don't throw here to allow partial success
     }
 
     return uploadedImages;
+  },
+
+  /**
+   * Check if file is RAW format
+   */
+  isRawFormat(filename: string): boolean {
+    const rawFormats = ["nef", "dng", "raw", "cr2", "arw"];
+    const fileExt = filename.split(".").pop()?.toLowerCase() || "";
+    return rawFormats.includes(fileExt);
+  },
+
+  /**
+   * Convert RAW file to JPEG using external conversion service
+   */
+  async convertRawToJpeg(
+    rawFileUrl: string,
+    rawFilePath: string,
+    selectionId: string
+  ): Promise<{
+    rawUrl: string;
+    jpegUrl: string;
+    rawFilePath: string;
+    jpegFilePath: string;
+  }> {
+    const response = await $fetch("/api/selection/convert", {
+      method: "POST",
+      body: {
+        rawFileUrl,
+        rawFilePath,
+        selectionId,
+      },
+    });
+
+    return response;
   },
 
   /**
@@ -518,48 +579,6 @@ export const selectionService = {
         icon: "i-lucide-alert-triangle",
         color: "warning",
       });
-    }
-  },
-
-  /**
-   * Retry conversion for failed images
-   */
-  async retryConversion(imageId: string): Promise<void> {
-    // Update status to queued using repository
-    await selectionImageRepository.updateConversionStatus([imageId], "queued");
-
-    // Trigger conversion using conversion service
-    const { conversionService } = await import("~/services/conversionService");
-    await conversionService.convertImage(imageId);
-  },
-
-  /**
-   * Trigger conversion for all pending RAW images in a selection
-   */
-  async convertSelectionImages(selectionId: string): Promise<void> {
-    // Get images that need conversion from repository
-    const rawImages =
-      await selectionImageRepository.getImagesRequiringConversion(selectionId, [
-        "pending",
-        "failed",
-      ]);
-
-    if (!rawImages || rawImages.length === 0) {
-      throw new Error("Aucune image à convertir trouvée");
-    }
-
-    // Update status to queued
-    const imageIds = rawImages.map((img) => img.id);
-    await selectionImageRepository.updateConversionStatus(imageIds, "queued");
-
-    // Trigger conversion using conversion service
-    const { conversionService } = await import("~/services/conversionService");
-    const response = await conversionService.convertImages(imageIds);
-
-    if (response.summary.failed > 0) {
-      throw new Error(
-        `${response.summary.failed} conversion(s) ont échoué sur ${response.summary.total}`
-      );
     }
   },
 

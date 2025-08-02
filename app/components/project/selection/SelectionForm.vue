@@ -89,6 +89,9 @@
                             - {{ selectedCount }} sélectionnée{{ selectedCount > 1 ? 's' : '' }} par le client
                         </span>
                     </h3>
+                    <UButton v-if="canEditSelection" icon="i-lucide-trash-2" size="sm" variant="outline" color="error"
+                        label="Supprimer toutes les images" :loading="isDeletingAllImages"
+                        @click="handleDeleteAllImages" />
                 </div>
 
                 <ProjectSelectionImageGrid :images="Array.from(images)" :can-delete="canEditSelection"
@@ -168,6 +171,8 @@
                         <li>• <strong>Sélection :</strong> Seul le client peut sélectionner ses images préférées</li>
                         <li>• <strong>Votre rôle :</strong> Fournir un choix varié et de qualité pour faciliter la
                             sélection</li>
+                        <li>• <strong>Formats RAW :</strong> Les fichiers RAW (NEF, DNG, CR2, ARW) seront
+                            automatiquement convertis en JPEG</li>
                     </ul>
                 </template>
             </UAlert>
@@ -265,6 +270,7 @@ const uploadProgress = ref(0);
 
 // Existing images management
 const images = ref<SelectionImage[]>([...(props.existingImages || [])]);
+const isDeletingAllImages = ref(false);
 
 // Validation schema
 const schema = selectionFormSchema;
@@ -318,6 +324,46 @@ const handleDeleteExistingImage = async (imageId: string) => {
             icon: "i-lucide-alert-circle",
             color: "error",
         });
+    }
+};
+
+// Handle delete all images
+const handleDeleteAllImages = async () => {
+    const confirmed = window.confirm(
+        `Êtes-vous sûr de vouloir supprimer toutes les images (${images.value.length}) ? Cette action est irréversible.`
+    );
+    if (!confirmed) return;
+
+    isDeletingAllImages.value = true;
+
+    try {
+        const { selectionService } = await import("~/services/selectionService");
+
+        // Delete all images in parallel
+        const deletePromises = images.value.map(img => selectionService.deleteImage(img.id));
+        await Promise.all(deletePromises);
+
+        // Clear local state
+        images.value = [];
+
+        const toast = useToast();
+        toast.add({
+            title: "Images supprimées",
+            description: "Toutes les images ont été supprimées avec succès.",
+            icon: "i-lucide-check-circle",
+            color: "success",
+        });
+    } catch (err) {
+        console.error("Error deleting all images:", err);
+        const toast = useToast();
+        toast.add({
+            title: "Erreur",
+            description: err instanceof Error ? err.message : "Une erreur est survenue lors de la suppression.",
+            icon: "i-lucide-alert-circle",
+            color: "error",
+        });
+    } finally {
+        isDeletingAllImages.value = false;
     }
 };
 
