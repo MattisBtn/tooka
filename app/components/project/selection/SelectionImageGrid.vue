@@ -77,7 +77,7 @@
 
 <script lang="ts" setup>
 import { useImagePreview, type PreviewImage } from '~/composables/shared/useImagePreview';
-import { useSelectionStore } from '~/stores/selection';
+import { useSelectionStore } from '~/stores/admin/selection';
 import type { SelectionImage } from '~/types/selection';
 
 interface Props {

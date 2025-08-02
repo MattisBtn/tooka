@@ -13,8 +13,9 @@
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': moodboard && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <MoodboardPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
-                    :moodboard-id="moodboardId" :error="authError" @authenticated="handleAuthentication" />
+                <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
+                    :moodboard-id="moodboardId" :error="authError" :config="passwordConfig"
+                    @authenticated="handleAuthentication" />
 
                 <!-- Moodboard view -->
                 <MoodboardClientView v-else-if="moodboard && isAuthenticated && project" :moodboard-id="moodboardId"
@@ -80,6 +81,7 @@
 
 <script setup lang="ts">
 import { useClientMoodboard } from '~/composables/moodboards/client/useClientMoodboard'
+import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 
 definePageMeta({
     layout: false,
@@ -88,6 +90,10 @@ definePageMeta({
 // Get moodboard ID from route
 const route = useRoute()
 const moodboardId = route.params.id as string
+
+// Get password form configuration
+const { getMoodboardConfig } = usePasswordFormConfig();
+const passwordConfig = getMoodboardConfig();
 
 // Use client moodboard composable with all functionality
 const {

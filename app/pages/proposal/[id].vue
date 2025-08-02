@@ -14,8 +14,8 @@
             <!-- Content with top padding when header is fixed -->
             <div :class="{ 'pt-16': proposal && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <ProposalPasswordForm v-if="needsPassword" :project="project" :proposal-id="proposalId"
-                    :error="authError || null" @authenticated="handleAuthentication" />
+                <ClientPasswordForm v-if="needsPassword" :project="project" :module-id="proposalId"
+                    :error="authError || null" :config="passwordConfig" @authenticated="handleAuthentication" />
 
                 <!-- Proposal view -->
                 <ProposalClientView v-else-if="proposal && project && isAuthenticated" :proposal-id="proposalId"
@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { useClientProposal } from '~/composables/proposals/client/useClientProposal';
+import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 
 definePageMeta({
     layout: false,
@@ -99,6 +100,10 @@ definePageMeta({
 // Get proposal ID from route
 const route = useRoute();
 const proposalId = route.params.id as string;
+
+// Get password form configuration
+const { getProposalConfig } = usePasswordFormConfig();
+const passwordConfig = getProposalConfig();
 
 // Use client proposal composable
 const {

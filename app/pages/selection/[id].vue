@@ -3,8 +3,7 @@
         <div class="min-h-screen bg-white dark:bg-neutral-900">
             <!-- Headers avec conditions mutuellement exclusives -->
             <!-- Selection Header - affiché seulement quand tout est chargé et authentifié -->
-            <SelectionHeader
-v-if="selection && isAuthenticated && project" :project="project" :selection="selection"
+            <SelectionHeader v-if="selection && isAuthenticated && project" :project="project" :selection="selection"
                 :is-authenticated="isAuthenticated" :show-logout-button="project?.hasPassword && isAuthenticated"
                 :selected-count="selectedCount" :max-allowed="maxAllowed" :extra-count="extraCount"
                 :extra-price="extraPrice" @validate="handleValidate" @request-revisions="handleRequestRevisions"
@@ -16,17 +15,16 @@ v-if="selection && isAuthenticated && project" :project="project" :selection="se
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': selection && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <SelectionPasswordForm
-v-if="needsPassword && !isAuthenticated" :project="project"
-                    :selection-id="selectionId" :error="authError" @authenticated="handleAuthentication" />
+                <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
+                    :selection-id="selectionId" :error="authError" :config="passwordConfig"
+                    @authenticated="handleAuthentication" />
 
                 <!-- Selection view -->
-                <SelectionClientView
-v-else-if="selection && isAuthenticated && project" :selection-id="selectionId"
+                <SelectionClientView v-else-if="selection && isAuthenticated && project" :selection-id="selectionId"
                     :selection="selection" :project="project" :images="mutableImages" :has-more="hasMore"
                     :loading-more="loadingMore" :can-interact="canInteract" :selected-count="selectedCount"
-                    :max-allowed="maxAllowed" :extra-count="extraCount" :extra-price="extraPrice"
-                    @load-more="loadMore" @toggle-selection="handleToggleSelection" />
+                    :max-allowed="maxAllowed" :extra-count="extraCount" :extra-price="extraPrice" @load-more="loadMore"
+                    @toggle-selection="handleToggleSelection" />
 
                 <!-- Loading state -->
                 <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
@@ -42,8 +40,7 @@ v-else-if="selection && isAuthenticated && project" :selection-id="selectionId"
                         <div class="space-y-6">
                             <div
                                 class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                                <UIcon
-name="i-heroicons-exclamation-triangle"
+                                <UIcon name="i-heroicons-exclamation-triangle"
                                     class="w-8 h-8 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
@@ -63,8 +60,7 @@ name="i-heroicons-exclamation-triangle"
             </div>
 
             <!-- Action Modals -->
-            <SelectionActionModals
-v-model:show-validate-dialog="showValidateDialog"
+            <SelectionActionModals v-model:show-validate-dialog="showValidateDialog"
                 v-model:show-request-revisions-dialog="showRequestRevisionsDialog"
                 v-model:revision-comment="revisionComment" :validating-selection="validatingSelection"
                 :requesting-revisions="requestingRevisions" :selected-count="selectedCount" :max-allowed="maxAllowed"
@@ -88,6 +84,7 @@ v-model:show-validate-dialog="showValidateDialog"
 
 <script setup lang="ts">
 import { useClientSelection } from '~/composables/selections/client/useClientSelection'
+import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 
 definePageMeta({
     layout: false,
@@ -96,6 +93,10 @@ definePageMeta({
 // Get selection ID from route
 const route = useRoute()
 const selectionId = route.params.id as string
+
+// Get password form configuration
+const { getSelectionConfig } = usePasswordFormConfig();
+const passwordConfig = getSelectionConfig();
 
 // Use client selection composable with all functionality
 const {

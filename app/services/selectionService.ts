@@ -276,7 +276,7 @@ export const selectionService = {
     const errors: string[] = [];
 
     // Import store for progress tracking
-    const { useSelectionStore } = await import("~/stores/selection");
+    const { useSelectionStore } = await import("~/stores/admin/selection");
     const selectionStore = useSelectionStore();
 
     for (const file of files) {

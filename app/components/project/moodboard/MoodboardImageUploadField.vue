@@ -1,8 +1,8 @@
 <template>
     <div class="space-y-4">
         <!-- File Upload using UFileUpload -->
-        <UFileUpload v-model="selectedFiles" multiple accept="image/*" :max="maxFiles" :max-size="maxFileSize"
-            label="Glissez-déposez vos images d'inspiration ici"
+        <UFileUpload v-model="selectedFiles" multiple accept="image/jpeg, image/png, image/webp" :max="maxFiles"
+            :max-size="maxFileSize" label="Glissez-déposez vos images d'inspiration ici"
             :description="`Formats supportés: JPG, PNG, WebP • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
             icon="i-lucide-palette" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
             @error="handleUploadError" />

@@ -281,7 +281,7 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useSelectionStore } from "~/stores/selection";
+import { useSelectionStore } from "~/stores/admin/selection";
 import {
     selectionFormSchema,
     type Selection,

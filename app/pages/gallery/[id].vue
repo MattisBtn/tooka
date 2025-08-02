@@ -16,8 +16,8 @@
       <!-- Content with top padding when header is fixed -->
       <div :class="{ 'pt-16': gallery && isAuthenticated && project }">
         <!-- Password form if needed -->
-        <GalleryPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :gallery-id="galleryId"
-          :error="authError" @authenticated="handleAuthentication" />
+        <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :module-id="galleryId"
+          :error="authError" :config="passwordConfig" @authenticated="handleAuthentication" />
 
         <!-- Gallery view -->
         <GalleryClientView v-else-if="gallery && isAuthenticated && project" :gallery-id="galleryId" :gallery="gallery"
@@ -80,6 +80,7 @@
 
 <script setup lang="ts">
 import { useClientGallery } from '~/composables/galleries/client/useClientGallery';
+import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 
 definePageMeta({
   layout: false,
@@ -88,6 +89,10 @@ definePageMeta({
 // Get gallery ID from route
 const route = useRoute();
 const galleryId = route.params.id as string;
+
+// Get password form configuration
+const { getGalleryConfig } = usePasswordFormConfig();
+const passwordConfig = getGalleryConfig();
 
 // Use client gallery composable with all functionality
 const {
