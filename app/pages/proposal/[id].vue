@@ -9,7 +9,7 @@
                 @logout="handleLogout" />
 
             <!-- Simple header for other states -->
-            <ProposalSimpleHeader v-if="!proposal || !isAuthenticated || !project" />
+            <SimpleHeader v-if="!proposal || !isAuthenticated || !project" :config="simpleHeaderConfig" />
 
             <!-- Content with top padding when header is fixed -->
             <div :class="{ 'pt-16': proposal && isAuthenticated && project }">
@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { useClientProposal } from '~/composables/proposals/client/useClientProposal';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
+import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 
 definePageMeta({
     layout: false,
@@ -104,6 +105,10 @@ const proposalId = route.params.id as string;
 // Get password form configuration
 const { getProposalConfig } = usePasswordFormConfig();
 const passwordConfig = getProposalConfig();
+
+// Get simple header configuration
+const { getProposalConfig: getProposalHeaderConfig } = useSimpleHeaderConfig();
+const simpleHeaderConfig = getProposalHeaderConfig();
 
 // Use client proposal composable
 const {

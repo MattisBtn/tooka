@@ -11,7 +11,7 @@
         @download="handleDownload" @logout="handleLogout" />
 
       <!-- Simple header for other states -->
-      <GallerySimpleHeader v-if="!gallery || !isAuthenticated || !project" />
+      <SimpleHeader v-if="!gallery || !isAuthenticated || !project" :config="simpleHeaderConfig" />
 
       <!-- Content with top padding when header is fixed -->
       <div :class="{ 'pt-16': gallery && isAuthenticated && project }">
@@ -81,6 +81,7 @@
 <script setup lang="ts">
 import { useClientGallery } from '~/composables/galleries/client/useClientGallery';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
+import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 
 definePageMeta({
   layout: false,
@@ -93,6 +94,10 @@ const galleryId = route.params.id as string;
 // Get password form configuration
 const { getGalleryConfig } = usePasswordFormConfig();
 const passwordConfig = getGalleryConfig();
+
+// Get simple header configuration
+const { getGalleryConfig: getGalleryHeaderConfig } = useSimpleHeaderConfig();
+const simpleHeaderConfig = getGalleryHeaderConfig();
 
 // Use client gallery composable with all functionality
 const {

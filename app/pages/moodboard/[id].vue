@@ -8,7 +8,7 @@
                 @validate="handleValidate" @request-revisions="handleRequestRevisions" @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
-            <MoodboardSimpleHeader v-else />
+            <SimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': moodboard && isAuthenticated && project }">
@@ -82,6 +82,7 @@
 <script setup lang="ts">
 import { useClientMoodboard } from '~/composables/moodboards/client/useClientMoodboard'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
+import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
 
 definePageMeta({
     layout: false,
@@ -94,6 +95,10 @@ const moodboardId = route.params.id as string
 // Get password form configuration
 const { getMoodboardConfig } = usePasswordFormConfig();
 const passwordConfig = getMoodboardConfig();
+
+// Get simple header configuration
+const { getMoodboardConfig: getMoodboardHeaderConfig } = useSimpleHeaderConfig();
+const simpleHeaderConfig = getMoodboardHeaderConfig();
 
 // Use client moodboard composable with all functionality
 const {

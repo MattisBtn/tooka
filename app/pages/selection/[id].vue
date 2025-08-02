@@ -10,7 +10,7 @@
                 @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
-            <SelectionSimpleHeader v-else />
+            <SimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': selection && isAuthenticated && project }">
@@ -85,6 +85,7 @@
 <script setup lang="ts">
 import { useClientSelection } from '~/composables/selections/client/useClientSelection'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
+import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
 
 definePageMeta({
     layout: false,
@@ -97,6 +98,10 @@ const selectionId = route.params.id as string
 // Get password form configuration
 const { getSelectionConfig } = usePasswordFormConfig();
 const passwordConfig = getSelectionConfig();
+
+// Get simple header configuration
+const { getSelectionConfig: getSelectionHeaderConfig } = useSimpleHeaderConfig();
+const simpleHeaderConfig = getSelectionHeaderConfig();
 
 // Use client selection composable with all functionality
 const {
