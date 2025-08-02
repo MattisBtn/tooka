@@ -50,7 +50,7 @@
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <MoodboardImageCard v-for="image in images" :key="image.id" :image="image" :moodboard-id="moodboardId"
                     :can-interact="canInteract" @react="$emit('react-to-image', image.id, $event)"
-                    @comment="$emit('add-comment', image.id, $event)" />
+                    @comment="$emit('add-comment', image.id, $event)" @open-preview="openImagePreview" />
             </div>
 
             <!-- Loading indicator -->
@@ -69,11 +69,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- Image Preview Modal -->
+        <MoodboardImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
+            :images="images" :current-index="imagePreview.currentIndex.value" :moodboard-id="moodboardId"
+            @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
+            @go-to="imagePreview.goToImage" @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { useInfiniteScroll } from '@vueuse/core';
+import { useImagePreview } from '~/composables/shared/useImagePreview';
 import type {
     ClientMoodboardAccess,
     MoodboardImageWithInteractions,
@@ -104,12 +111,39 @@ const emit = defineEmits<Emits>()
 // Container ref for infinite scroll
 const moodboardContainer = ref<HTMLElement | null>(null)
 
+// Image preview composable
+const imagePreview = useImagePreview()
+
+// Computed for current preview image
+const currentPreviewImage = computed(() => {
+    if (!imagePreview.currentImage.value || !props.images.length) return null
+    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null
+})
+
 // Debounced load more function to prevent excessive calls
 const loadMoreDebounced = useDebounceFn(async () => {
     if (props.hasMore && !props.loadingMore) {
         emit('load-more')
     }
 }, 300)
+
+// Image preview methods
+const openImagePreview = (image: MoodboardImageWithInteractions) => {
+    // Convert MoodboardImageWithInteractions to PreviewImage format
+    const previewImages = props.images.map(img => ({
+        id: img.id,
+        file_url: img.file_url,
+        created_at: img.created_at
+    }))
+
+    const previewImage = {
+        id: image.id,
+        file_url: image.file_url,
+        created_at: image.created_at
+    }
+
+    imagePreview.openPreview(previewImage, previewImages)
+}
 
 // Infinite scroll setup with better protection
 onMounted(() => {

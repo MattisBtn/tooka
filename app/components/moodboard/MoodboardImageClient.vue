@@ -1,5 +1,5 @@
 <template>
-    <div class="w-full h-full">
+    <div class="w-full h-full" @click="$emit('click', $event)">
         <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="`Image de moodboard`" :class="imageClasses"
             @error="handleImageError" />
         <div v-else class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
@@ -17,9 +17,15 @@ interface Props {
     fullSize?: boolean;
 }
 
+interface Emits {
+    (e: 'click', event: MouseEvent): void
+}
+
 const props = withDefaults(defineProps<Props>(), {
     fullSize: false,
 });
+
+defineEmits<Emits>()
 
 // Get image URL directly from actions
 const actions = useClientMoodboardActions();

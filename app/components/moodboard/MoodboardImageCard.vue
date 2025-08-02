@@ -2,8 +2,9 @@
     <div
         class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden">
         <!-- Image with hover interactions -->
-        <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group">
-            <MoodboardImageClient :image="image" class="w-full h-full transition-transform duration-300" />
+        <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group" @click="openImagePreview">
+            <MoodboardImageClient :image="image" class="w-full h-full transition-transform duration-300 cursor-pointer"
+                @click.stop="openImagePreview" />
 
             <!-- Gradient overlay for interactions -->
             <div v-if="canInteract || hasReactions || hasComments"
@@ -102,6 +103,7 @@ interface Props {
 interface Emits {
     react: [reaction: 'love' | 'like' | 'dislike']
     comment: [comment: string]
+    'open-preview': [image: MoodboardImageWithInteractions]
 }
 
 const props = defineProps<Props>()
@@ -123,6 +125,11 @@ const hasComments = computed(() => {
 // Comment methods
 const handleCommentAdded = (content: string) => {
     emit('comment', content)
+}
+
+// Image preview methods
+const openImagePreview = () => {
+    emit('open-preview', props.image)
 }
 </script>
 
