@@ -1,22 +1,11 @@
 <template>
-    <UForm id="gallery-form" :schema="schema" :state="state" class="relative space-y-6" @submit="handleSubmit">
-        <!-- Loading Overlay -->
-        <div v-if="isSubmitting || uploading"
-            class="absolute inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-            <div class="text-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500 mx-auto mb-2" />
-                <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    {{ uploading ? 'Upload en cours...' : 'Sauvegarde...' }}
-                </p>
-            </div>
-        </div>
-
+    <UForm id="gallery-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
         <!-- Gallery Configuration -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
                     class="w-8 h-8 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-settings" class="w-4 h-4 text-white" />
+                    <UIcon name="i-solar-gallery-bold" class="w-4 h-4 text-white" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration de la galerie
@@ -183,7 +172,7 @@
                     </h3>
                 </div>
 
-                <ProjectGalleryImageGrid :images="Array.from(images)" :can-delete="true"
+                <ProjectGalleryImageGrid :images="Array.from(images)" :can-delete="true" :is-editing="true"
                     @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
@@ -196,28 +185,6 @@
                     <template v-else>Uploader des images</template>
                 </h3>
                 <ProjectGalleryImageUploadField v-model="selectedFiles" :max-files="200" />
-            </div>
-
-            <!-- Upload Progress -->
-            <div v-if="uploading"
-                class="space-y-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                <div class="flex items-center gap-3">
-                    <UIcon name="i-lucide-upload" class="w-5 h-5 text-orange-500 animate-pulse" />
-                    <div class="flex-1">
-                        <div
-                            class="flex items-center justify-between text-sm font-medium text-orange-900 dark:text-orange-100">
-                            <span>Upload des images en cours...</span>
-                            <span>{{ uploadProgress }}%</span>
-                        </div>
-                        <div class="mt-2 w-full bg-orange-200 dark:bg-orange-800 rounded-full h-2">
-                            <div class="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                                :style="{ width: `${uploadProgress}%` }" />
-                        </div>
-                        <p class="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                            Veuillez patienter, ne fermez pas cette page...
-                        </p>
-                    </div>
-                </div>
             </div>
 
             <!-- Summary -->
@@ -236,34 +203,22 @@
             </div>
         </div>
 
-        <USeparator />
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+            <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
 
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <UIcon name="i-lucide-info" class="w-4 h-4" />
-                <span>Vous pouvez modifier les paramètres et gérer les images</span>
-            </div>
+            <UButton type="submit" label="Sauvegarder comme brouillon" color="neutral" variant="outline"
+                :loading="isSubmitting && submitAsDraft" @click="submitAsDraft = true" />
 
-            <div class="flex items-center gap-3">
-                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting || uploading"
-                    @click="$emit('cancel')" />
-                <UButton type="submit" variant="outline" color="neutral"
-                    :loading="(isSubmitting && submitAsDraft) || uploading"
-                    :disabled="(isSubmitting && !submitAsDraft) || uploading || isPaymentInfoMissing"
-                    icon="i-lucide-save" label="Enregistrer en brouillon" @click="submitAsDraft = true" />
-                <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                    :disabled="(isSubmitting && submitAsDraft) || uploading || isPaymentInfoMissing"
-                    icon="i-lucide-send" label="Valider et envoyer" @click="submitAsDraft = false" />
-            </div>
+            <UButton type="submit" label="Envoyer au client" color="primary" :loading="isSubmitting && !submitAsDraft"
+                @click="submitAsDraft = false" />
         </div>
     </UForm>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useGalleryForm } from "~/composables/galleries/user/useGalleryForm";
-import type { Gallery, GalleryImage, GalleryPricing, ProjectPaymentData } from "~/types/gallery";
+import { galleryFormSchema, type Gallery, type GalleryFormData, type GalleryImage, type GalleryPricing, type ProjectPaymentData } from "~/types/gallery";
 
 interface ProposalPaymentInfo {
     payment_method: 'stripe' | 'bank_transfer' | null;
@@ -271,26 +226,24 @@ interface ProposalPaymentInfo {
     deposit_amount: number | null;
 }
 
-interface Project {
-    id: string;
-    payment_method: 'stripe' | 'bank_transfer' | null;
-    bank_iban: string | null;
-    bank_bic: string | null;
-    bank_beneficiary: string | null;
-}
-
 interface Props {
     gallery?: Gallery;
     projectId: string;
-    pricing?: GalleryPricing;
     existingImages?: GalleryImage[];
+    pricing?: GalleryPricing;
     proposalPaymentInfo?: ProposalPaymentInfo;
-    project?: Project;
+    project?: {
+        id: string;
+        payment_method: 'stripe' | 'bank_transfer' | null;
+        bank_iban: string | null;
+        bank_bic: string | null;
+        bank_beneficiary: string | null;
+    };
 }
 
 interface Emits {
     (e: "gallery-saved", data: {
-        gallery: Gallery;
+        gallery: GalleryFormData;
         project: ProjectPaymentData;
         projectUpdated: boolean;
         selectedFiles?: File[]
@@ -301,38 +254,38 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Use the gallery form composable
-const {
-    state,
-    projectState,
-    schema,
-    selectedFiles: _selectedFiles,
-    images,
-    uploading,
-    uploadProgress,
-    hasSelectedFiles,
-    hasExistingImages,
-    totalImageCount,
-    formattedBasePrice,
-    formattedDepositPaid,
-    formattedRemainingAmount,
-    pricing,
-    paymentMethodInfo,
-    isPaymentInfoRequired,
-    isPaymentInfoMissing,
-    addFiles,
-    clearFiles,
-    removeExistingImage,
-} = useGalleryForm(props.gallery, props.existingImages, props.pricing, props.proposalPaymentInfo, props.project);
-
-// Create a writable version for the upload field
-const selectedFiles = computed({
-    get: () => [..._selectedFiles.value],
-    set: (files: File[]) => {
-        clearFiles();
-        addFiles(files);
-    }
+// Form state
+const state = reactive<GalleryFormData>({
+    payment_required: props.gallery?.payment_required ?? true,
+    selection_id: props.gallery?.selection_id || null,
+    status: props.gallery?.status || "draft",
 });
+
+// Project state for payment info
+const projectState = reactive<ProjectPaymentData>({
+    payment_method: props.project?.payment_method || null,
+    bank_iban: props.project?.bank_iban || null,
+    bank_bic: props.project?.bank_bic || null,
+    bank_beneficiary: props.project?.bank_beneficiary || null,
+});
+
+// File upload states
+const selectedFiles = ref<File[]>([]);
+
+// Existing images management
+const images = ref<GalleryImage[]>([...(props.existingImages || [])]);
+
+// Validation schema
+const schema = galleryFormSchema;
+
+// Local loading state for form submission
+const isSubmitting = ref(false);
+const submitAsDraft = ref(false);
+
+// Computed
+const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
+const hasExistingImages = computed(() => images.value.length > 0);
+const totalImageCount = computed(() => images.value.length + selectedFiles.value.length);
 
 // Payment method options for USelectMenu
 const paymentMethodOptions = [
@@ -348,43 +301,101 @@ const paymentMethod = computed({
     }
 });
 
-// Local loading state for form submission
-const isSubmitting = ref(false);
-const submitAsDraft = ref(false);
+// Pricing computed
+const pricing = computed(() => props.pricing);
+const formattedBasePrice = computed(() => {
+    if (!pricing.value?.basePrice) return "Non défini";
+    return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+    }).format(pricing.value.basePrice);
+});
+
+const formattedDepositPaid = computed(() => {
+    if (!pricing.value?.depositPaid) return "Aucun acompte";
+    return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+    }).format(pricing.value.depositPaid);
+});
+
+const formattedRemainingAmount = computed(() => {
+    if (!pricing.value?.remainingAmount) return "Gratuit";
+    return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+    }).format(pricing.value.remainingAmount);
+});
+
+// Payment info computed
+const isPaymentInfoRequired = computed(() => state.payment_required && (pricing.value?.remainingAmount ?? 0) > 0);
+const isPaymentInfoMissing = computed(() => {
+    if (!isPaymentInfoRequired.value) return false;
+    if (projectState.payment_method === 'bank_transfer') {
+        return !projectState.bank_iban || !projectState.bank_bic || !projectState.bank_beneficiary;
+    }
+    return !projectState.payment_method;
+});
+
+const paymentMethodInfo = computed(() => {
+    if (!props.proposalPaymentInfo?.payment_method) return null;
+    return paymentMethodOptions.find(option => option.value === props.proposalPaymentInfo?.payment_method);
+});
 
 // Handle existing image deletion
 const handleDeleteExistingImage = async (imageId: string) => {
-    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.');
+    const confirmed = window.confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.');
     if (!confirmed) return;
 
-    await removeExistingImage(imageId);
+    try {
+        const { galleryService } = await import("~/services/galleryService");
+        await galleryService.deleteImage(imageId);
+
+        // Remove from local state
+        images.value = images.value.filter((img) => img.id !== imageId);
+
+        const toast = useToast();
+        toast.add({
+            title: "Image supprimée",
+            description: "L'image a été supprimée avec succès.",
+            icon: "i-lucide-check-circle",
+            color: "success",
+        });
+    } catch (err) {
+        console.error("Error deleting image:", err);
+        const toast = useToast();
+        toast.add({
+            title: "Erreur",
+            description: err instanceof Error ? err.message : "Une erreur est survenue lors de la suppression.",
+            icon: "i-lucide-alert-circle",
+            color: "error",
+        });
+    }
 };
 
 // Handle form submission
-const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
+const handleSubmit = async (_event: FormSubmitEvent<GalleryFormData>) => {
     isSubmitting.value = true;
-
     try {
-        const shouldValidate = !submitAsDraft.value;
+        // Determine the new status based on user action
+        let newStatus: "draft" | "awaiting_client";
 
-        // Create gallery data with proper structure
-        const galleryData = {
-            ...event.data,
-            status: submitAsDraft.value ? "draft" : "awaiting_client",
-            project_id: props.projectId,
-            id: props.gallery?.id || '',
-            created_at: props.gallery?.created_at || '',
-            updated_at: props.gallery?.updated_at || '',
-        } as Gallery;
+        if (submitAsDraft.value) {
+            newStatus = "draft";
+        } else {
+            newStatus = "awaiting_client";
+        }
 
         // Emit the gallery data to parent component for handling
         emit("gallery-saved", {
-            gallery: galleryData,
+            gallery: {
+                ...state,
+                status: newStatus,
+            },
             project: projectState,
-            projectUpdated: shouldValidate,
+            projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
-
     } finally {
         isSubmitting.value = false;
     }

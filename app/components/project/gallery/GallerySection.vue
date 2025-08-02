@@ -288,7 +288,9 @@ const handleGallerySaved = async (data: {
                 data.project as ProjectPaymentData,
                 data.selectedFiles
             );
+        }
 
+        if (data.projectUpdated) {
             await projectSetupStore.refreshProject()
         }
 

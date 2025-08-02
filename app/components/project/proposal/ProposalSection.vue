@@ -94,7 +94,7 @@
                                     <span class="text-neutral-600 dark:text-neutral-400">Bénéficiaire:</span>
                                     <span class="text-neutral-900 dark:text-neutral-100">{{
                                         projectSetupStore.project?.bank_beneficiary
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -294,9 +294,10 @@ const handleProposalSaved = async (data: {
                 data.proposal as ProposalFormData,
                 data.projectUpdated ? data.project as ProjectPaymentData : undefined
             );
+        }
 
+        if (data.projectUpdated) {
             await projectSetupStore.refreshProject()
-
         }
 
         const toast = useToast();

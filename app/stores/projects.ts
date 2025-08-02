@@ -151,7 +151,7 @@ export const useProjectsStore = defineStore("projects", () => {
 
   // Navigation action
   const viewProject = (id: string) => {
-    navigateTo(`/projects/${id}/setup-new`);
+    navigateTo(`/projects/${id}/setup`);
   };
 
   // CRUD actions

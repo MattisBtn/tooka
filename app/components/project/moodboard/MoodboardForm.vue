@@ -1,38 +1,27 @@
 <template>
-    <UForm id="moodboard-form" :schema="schema" :state="state" class="relative space-y-6" @submit="handleSubmit">
-        <!-- Loading Overlay -->
-        <div v-if="isSubmitting || uploading"
-            class="absolute inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-            <div class="text-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500 mx-auto mb-2" />
-                <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    {{ uploading ? 'Upload en cours...' : 'Sauvegarde...' }}
-                </p>
-            </div>
-        </div>
-
-        <!-- Moodboard Configuration -->
+    <UForm id="moodboard-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
+        <!-- Moodboard Information -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
                     class="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-settings" class="w-4 h-4 text-white" />
+                    <UIcon name="i-lucide-image" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration du moodboard
+                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations du moodboard
                     </h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Titre, description et contenu
-                        d'inspiration</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Titre, description et images d'inspiration
+                    </p>
                 </div>
             </div>
 
             <!-- Form Fields -->
-            <div class="space-y-4">
-                <UFormField label="Titre du moodboard" name="title" required class="w-full">
+            <div class="grid grid-cols-1 gap-4">
+                <UFormField label="Titre du moodboard" name="title" required>
                     <UInput v-model="state.title" placeholder="Ex: Inspiration photographique mariage" class="w-full" />
                 </UFormField>
 
-                <UFormField label="Description" name="description" class="w-full">
+                <UFormField label="Description" name="description">
                     <UTextarea v-model="state.description" :rows="3"
                         placeholder="Décrivez l'ambiance, le style ou les éléments que vous souhaitez transmettre..."
                         resize class="w-full" />
@@ -78,7 +67,7 @@
                     </h3>
                 </div>
 
-                <ProjectMoodboardImageGrid :images="Array.from(images)" :can-delete="true"
+                <ProjectMoodboardImageGrid :images="Array.from(images)" :can-delete="true" :is-editing="true"
                     @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
@@ -91,28 +80,6 @@
                     <template v-else>Uploader des images d'inspiration</template>
                 </h3>
                 <ProjectMoodboardImageUploadField v-model="selectedFiles" :max-files="50" />
-            </div>
-
-            <!-- Upload Progress -->
-            <div v-if="uploading"
-                class="space-y-3 p-4 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-200 dark:border-pink-800">
-                <div class="flex items-center gap-3">
-                    <UIcon name="i-lucide-upload" class="w-5 h-5 text-pink-500 animate-pulse" />
-                    <div class="flex-1">
-                        <div
-                            class="flex items-center justify-between text-sm font-medium text-pink-900 dark:text-pink-100">
-                            <span>Upload des images en cours...</span>
-                            <span>{{ uploadProgress }}%</span>
-                        </div>
-                        <div class="mt-2 w-full bg-pink-200 dark:bg-pink-800 rounded-full h-2">
-                            <div class="bg-pink-600 h-2 rounded-full transition-all duration-300"
-                                :style="{ width: `${uploadProgress}%` }" />
-                        </div>
-                        <p class="text-xs text-pink-700 dark:text-pink-300 mt-1">
-                            Veuillez patienter, ne fermez pas cette page...
-                        </p>
-                    </div>
-                </div>
             </div>
 
             <!-- Summary -->
@@ -143,68 +110,22 @@
             </UAlert>
         </div>
 
-        <USeparator />
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+            <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
 
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <UIcon name="i-lucide-info" class="w-4 h-4" />
-                <span v-if="isEditMode && props.moodboard?.status === 'revision_requested'">
-                    Le client a demandé des révisions - vous pouvez modifier le moodboard et le renvoyer ou le repasser
-                    en
-                    brouillon
-                </span>
-                <span v-else-if="isEditMode && props.moodboard?.status === 'awaiting_client'">
-                    Moodboard envoyé au client - vous pouvez continuer à le modifier ou le repasser en brouillon
-                </span>
-                <span v-else-if="isEditMode && props.moodboard?.status === 'draft'">
-                    Moodboard en brouillon - vous pouvez le modifier librement et l'envoyer au client quand il sera prêt
-                </span>
-                <span v-else>
-                    Le moodboard reste modifiable en permanence pour une collaboration continue avec le client
-                </span>
-            </div>
+            <UButton type="submit" label="Sauvegarder comme brouillon" color="neutral" variant="outline"
+                :loading="isSubmitting && submitAsDraft" @click="submitAsDraft = true" />
 
-            <div class="flex items-center gap-3">
-                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting || uploading"
-                    @click="$emit('cancel')" />
-
-                <!-- Boutons pour moodboard déjà envoyé au client -->
-                <template
-                    v-if="isEditMode && (props.moodboard?.status === 'awaiting_client' || props.moodboard?.status === 'revision_requested')">
-                    <UButton type="submit" variant="outline" color="neutral"
-                        :loading="(isSubmitting && submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-file-edit"
-                        label="Repasser en brouillon" @click="submitAsDraft = true" />
-                    <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
-                        :label="props.moodboard?.status === 'revision_requested' ? 'Renvoyer au client' : 'Enregistrer les modifications'"
-                        @click="submitAsDraft = false" />
-                </template>
-
-                <!-- Boutons pour nouveau moodboard ou brouillon -->
-                <template v-else>
-                    <UButton type="submit" variant="outline" color="neutral"
-                        :loading="(isSubmitting && submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-save"
-                        label="Sauvegarder en brouillon" @click="submitAsDraft = true" />
-                    <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
-                        label="Valider et envoyer" @click="submitAsDraft = false" />
-                </template>
-            </div>
+            <UButton type="submit" label="Envoyer au client" color="primary" :loading="isSubmitting && !submitAsDraft"
+                @click="submitAsDraft = false" />
         </div>
     </UForm>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
-import {
-    moodboardFormSchema,
-    type Moodboard,
-    type MoodboardFormData,
-    type MoodboardImage,
-} from "~/types/moodboard";
+import { moodboardFormSchema, type Moodboard, type MoodboardFormData, type MoodboardImage } from "~/types/moodboard";
 
 interface Props {
     moodboard?: Moodboard;
@@ -213,7 +134,11 @@ interface Props {
 }
 
 interface Emits {
-    (e: "moodboard-saved", data: { moodboard: Moodboard; projectUpdated: boolean; selectedFiles?: File[] }): void;
+    (e: "moodboard-saved", data: {
+        moodboard: MoodboardFormData;
+        projectUpdated: boolean;
+        selectedFiles?: File[]
+    }): void;
     (e: "cancel"): void;
 }
 
@@ -229,8 +154,6 @@ const state = reactive<MoodboardFormData>({
 
 // File upload states
 const selectedFiles = ref<File[]>([]);
-const uploading = ref(false);
-const uploadProgress = ref(0);
 
 // Existing images management
 const images = ref<MoodboardImage[]>([...(props.existingImages || [])]);
@@ -243,7 +166,6 @@ const isSubmitting = ref(false);
 const submitAsDraft = ref(false);
 
 // Computed
-const isEditMode = computed(() => !!props.moodboard);
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
 const hasExistingImages = computed(() => images.value.length > 0);
 const totalImageCount = computed(() => images.value.length + selectedFiles.value.length);
@@ -280,9 +202,8 @@ const handleDeleteExistingImage = async (imageId: string) => {
 };
 
 // Handle form submission
-const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
+const handleSubmit = async (_event: FormSubmitEvent<MoodboardFormData>) => {
     isSubmitting.value = true;
-
     try {
         // Determine the new status based on user action
         let newStatus: "draft" | "awaiting_client";
@@ -293,23 +214,15 @@ const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
             newStatus = "awaiting_client";
         }
 
-        // Create moodboard data with proper structure
-        const moodboardData = {
-            ...event.data,
-            project_id: props.projectId,
-            id: props.moodboard?.id || '',
-            created_at: props.moodboard?.created_at || '',
-            updated_at: props.moodboard?.updated_at || '',
-            status: newStatus, // Explicitly set the status
-        } as Moodboard;
-
         // Emit the moodboard data to parent component for handling
         emit("moodboard-saved", {
-            moodboard: moodboardData,
+            moodboard: {
+                ...state,
+                status: newStatus,
+            },
             projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
-
     } finally {
         isSubmitting.value = false;
     }
