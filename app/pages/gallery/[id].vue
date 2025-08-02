@@ -32,54 +32,26 @@
         </div>
 
         <!-- Error state -->
-        <div v-else class="min-h-screen flex items-center justify-center p-4">
-          <UCard class="w-full max-w-lg text-center">
-            <div class="space-y-6">
-              <div
-                class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                  Galerie non trouvée
-                </h1>
-                <p class="text-neutral-600 dark:text-neutral-400 mb-4">
-                  Cette galerie n'existe pas ou n'est plus accessible.
-                </p>
-                <p class="text-sm text-neutral-500 dark:text-neutral-500">
-                  Vérifiez le lien fourni ou contactez votre photographe.
-                </p>
-              </div>
-            </div>
-          </UCard>
-        </div>
+        <SharedErrorState v-else :config="errorConfig" />
+
+        <!-- Action Modals -->
+        <GalleryActionModals v-model:show-validate-dialog="showValidateDialog"
+          v-model:show-payment-dialog="showPaymentDialog"
+          v-model:show-request-revisions-dialog="showRequestRevisionsDialog" v-model:revision-comment="revisionComment"
+          :validating-gallery="validatingGallery" :requesting-revisions="requestingRevisions"
+          :confirming-payment="confirmingPayment" :formatted-remaining-amount="formattedRemainingAmount"
+          @validate="validateGallery" @confirm-payment="confirmPayment" @request-revisions="requestRevisions" />
+
+        <!-- Footer -->
+        <SharedClientFooter :config="footerConfig" />
       </div>
-
-      <!-- Action Modals -->
-      <GalleryActionModals v-model:show-validate-dialog="showValidateDialog"
-        v-model:show-payment-dialog="showPaymentDialog"
-        v-model:show-request-revisions-dialog="showRequestRevisionsDialog" v-model:revision-comment="revisionComment"
-        :validating-gallery="validatingGallery" :requesting-revisions="requestingRevisions"
-        :confirming-payment="confirmingPayment" :formatted-remaining-amount="formattedRemainingAmount"
-        @validate="validateGallery" @confirm-payment="confirmPayment" @request-revisions="requestRevisions" />
-
-      <!-- Footer -->
-      <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="text-center">
-            <p class="text-sm text-neutral-500 dark:text-neutral-400">
-              Powered by
-              <span class="font-medium text-primary-600 dark:text-primary-400">Tooka</span>
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import { useClientGallery } from '~/composables/galleries/client/useClientGallery';
+import { useClientConfig } from '~/composables/shared/useClientConfig';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 
@@ -98,6 +70,11 @@ const passwordConfig = getGalleryConfig();
 // Get simple header configuration
 const { getGalleryConfig: getGalleryHeaderConfig } = useSimpleHeaderConfig();
 const simpleHeaderConfig = getGalleryHeaderConfig();
+
+// Get error and footer configurations
+const { getGalleryErrorConfig, getGalleryFooterConfig } = useClientConfig();
+const errorConfig = getGalleryErrorConfig();
+const footerConfig = getGalleryFooterConfig();
 
 // Use client gallery composable with all functionality
 const {

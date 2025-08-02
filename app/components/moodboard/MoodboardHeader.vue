@@ -14,11 +14,6 @@
 
                     <!-- Project Title and Status -->
                     <div class="hidden md:flex items-center gap-4 min-w-0">
-                        <div class="border-l border-neutral-300 dark:border-neutral-600 pl-4">
-                            <h1 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                {{ project.title }}
-                            </h1>
-                        </div>
                         <UBadge :color="statusColor" variant="soft" size="sm">
                             <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
                             {{ statusLabel }}

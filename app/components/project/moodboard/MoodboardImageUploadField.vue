@@ -1,11 +1,10 @@
 <template>
     <div class="space-y-4">
         <!-- File Upload using UFileUpload -->
-        <UFileUpload v-model="selectedFiles" multiple accept="image/jpeg, image/png, image/webp" :max="maxFiles"
+        <UFileUpload v-model="selectedFiles" multiple :accept="imageUploadRules.accept" :max="maxFiles"
             :max-size="maxFileSize" label="Glissez-déposez vos images d'inspiration ici"
-            :description="`Formats supportés: JPG, PNG, WebP • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
-            icon="i-lucide-palette" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
-            @error="handleUploadError" />
+            :description="imageUploadRules.description" icon="i-lucide-palette" color="primary" variant="area" size="lg"
+            class="w-full min-h-48" layout="list" @error="handleUploadError" />
 
         <!-- Selected Files Preview -->
         <div v-if="selectedFiles.length > 0" class="space-y-3">
@@ -31,6 +30,8 @@
 </template>
 
 <script lang="ts" setup>
+import { useUploadRules } from '~/composables/shared/useUploadRules'
+
 interface Props {
     modelValue: File[]
     maxFiles?: number
@@ -41,9 +42,11 @@ interface Emits {
     (e: 'update:modelValue', files: File[]): void
 }
 
+const { imageUploadRules } = useUploadRules()
+
 const props = withDefaults(defineProps<Props>(), {
-    maxFiles: 50,
-    maxFileSize: 100 * 1024 * 1024 // 10MB
+    maxFiles: imageUploadRules.maxFiles,
+    maxFileSize: imageUploadRules.maxFileSize
 })
 
 const emit = defineEmits<Emits>()

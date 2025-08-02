@@ -33,28 +33,7 @@
                 </div>
 
                 <!-- Error state -->
-                <div v-else-if="error" class="min-h-screen flex items-center justify-center p-4">
-                    <UCard class="w-full max-w-lg text-center">
-                        <div class="space-y-6">
-                            <div
-                                class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                                <UIcon name="i-heroicons-exclamation-triangle"
-                                    class="w-8 h-8 text-red-600 dark:text-red-400" />
-                            </div>
-                            <div>
-                                <h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-                                    Proposition non trouvée
-                                </h1>
-                                <p class="text-neutral-600 dark:text-neutral-400 mb-4">
-                                    Cette proposition n'existe pas ou n'est plus accessible.
-                                </p>
-                                <p class="text-sm text-neutral-500 dark:text-neutral-500">
-                                    Vérifiez le lien fourni ou contactez votre photographe.
-                                </p>
-                            </div>
-                        </div>
-                    </UCard>
-                </div>
+                <SharedErrorState v-else-if="error" :config="errorConfig" />
 
                 <!-- Fallback state -->
                 <div v-else class="min-h-screen flex items-center justify-center">
@@ -75,22 +54,14 @@
                 @validate="validateProposal" @request-revisions="requestRevisions" @confirm-payment="confirmPayment" />
 
             <!-- Footer -->
-            <footer class="bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 py-8">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="text-center">
-                        <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                            Powered by
-                            <span class="font-medium text-primary-600 dark:text-primary-400">Tooka</span>
-                        </p>
-                    </div>
-                </div>
-            </footer>
+            <SharedClientFooter :config="footerConfig" />
         </div>
     </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import { useClientProposal } from '~/composables/proposals/client/useClientProposal';
+import { useClientConfig } from '~/composables/shared/useClientConfig';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 
@@ -109,6 +80,11 @@ const passwordConfig = getProposalConfig();
 // Get simple header configuration
 const { getProposalConfig: getProposalHeaderConfig } = useSimpleHeaderConfig();
 const simpleHeaderConfig = getProposalHeaderConfig();
+
+// Get error and footer configurations
+const { getProposalErrorConfig, getProposalFooterConfig } = useClientConfig();
+const errorConfig = getProposalErrorConfig();
+const footerConfig = getProposalFooterConfig();
 
 // Use client proposal composable
 const {
