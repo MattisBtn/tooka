@@ -231,35 +231,35 @@
 </template>
 
 <script lang="ts" setup>
-import { useProposal } from "~/composables/proposals/useProposal";
 import type { GalleryFormData, ProjectPaymentData } from "~/types/gallery";
 import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const galleryStore = useGalleryStore()
-
-// Use proposal composable to get payment info
-const { proposal } = useProposal(projectSetupStore.project?.id || '')
+const proposalStore = useProposalStore()
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
-    if (!proposal.value || !projectSetupStore.project) return undefined;
+    if (!proposalStore.proposal || !projectSetupStore.project) return undefined;
 
     return {
         payment_method: projectSetupStore.project.payment_method,
-        deposit_required: proposal.value.deposit_required,
-        deposit_amount: proposal.value.deposit_amount
+        deposit_required: proposalStore.proposal.deposit_required,
+        deposit_amount: proposalStore.proposal.deposit_amount
     };
 });
 
-// Initialize gallery store when project is loaded
+// Initialize stores when project is loaded
 watch(() => projectSetupStore.project, async (project) => {
     if (project?.id) {
         try {
-            await galleryStore.loadGallery(project.id)
+            await Promise.all([
+                galleryStore.loadGallery(project.id),
+                proposalStore.loadProposal(project.id)
+            ])
         } catch (err) {
-            console.error('Error loading gallery:', err)
+            console.error('Error loading project data:', err)
         }
     }
 }, { immediate: true })
