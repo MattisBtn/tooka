@@ -9,12 +9,12 @@
                 @logout="handleLogout" />
 
             <!-- Simple header for other states -->
-            <SimpleHeader v-if="!proposal || !isAuthenticated || !project" :config="simpleHeaderConfig" />
+            <SharedSimpleHeader v-if="!proposal || !isAuthenticated || !project" :config="simpleHeaderConfig" />
 
             <!-- Content with top padding when header is fixed -->
             <div :class="{ 'pt-16': proposal && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <ClientPasswordForm v-if="needsPassword" :project="project" :module-id="proposalId"
+                <SharedClientPasswordForm v-if="needsPassword" :project="project" :module-id="proposalId"
                     :error="authError || null" :config="passwordConfig" @authenticated="handleAuthentication" />
 
                 <!-- Proposal view -->

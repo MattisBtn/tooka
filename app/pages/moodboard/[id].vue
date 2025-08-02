@@ -8,12 +8,12 @@
                 @validate="handleValidate" @request-revisions="handleRequestRevisions" @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
-            <SimpleHeader v-else :config="simpleHeaderConfig" />
+            <SharedSimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': moodboard && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
+                <SharedClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
                     :moodboard-id="moodboardId" :error="authError" :config="passwordConfig"
                     @authenticated="handleAuthentication" />
 

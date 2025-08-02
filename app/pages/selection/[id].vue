@@ -10,12 +10,12 @@
                 @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
-            <SimpleHeader v-else :config="simpleHeaderConfig" />
+            <SharedSimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
             <div :class="{ 'pt-16': selection && isAuthenticated && project }">
                 <!-- Password form if needed -->
-                <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
+                <SharedClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
                     :selection-id="selectionId" :error="authError" :config="passwordConfig"
                     @authenticated="handleAuthentication" />
 

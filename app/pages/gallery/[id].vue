@@ -11,12 +11,12 @@
         @download="handleDownload" @logout="handleLogout" />
 
       <!-- Simple header for other states -->
-      <SimpleHeader v-if="!gallery || !isAuthenticated || !project" :config="simpleHeaderConfig" />
+      <SharedSimpleHeader v-if="!gallery || !isAuthenticated || !project" :config="simpleHeaderConfig" />
 
       <!-- Content with top padding when header is fixed -->
       <div :class="{ 'pt-16': gallery && isAuthenticated && project }">
         <!-- Password form if needed -->
-        <ClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :module-id="galleryId"
+        <SharedClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project" :module-id="galleryId"
           :error="authError" :config="passwordConfig" @authenticated="handleAuthentication" />
 
         <!-- Gallery view -->
