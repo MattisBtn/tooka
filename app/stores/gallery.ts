@@ -1,0 +1,364 @@
+import { defineStore } from "pinia";
+import type {
+  Gallery,
+  GalleryFormData,
+  GalleryPricing,
+  GalleryWithDetails,
+  ProjectPaymentData,
+} from "~/types/gallery";
+
+export const useGalleryStore = defineStore("gallery", () => {
+  // Core State
+  const gallery = ref<GalleryWithDetails | null>(null);
+  const loading = ref(false);
+  const error = ref<Error | null>(null);
+  const isInitialized = ref(false);
+
+  // Pricing State
+  const pricing = ref<GalleryPricing | null>(null);
+
+  // Project State
+  const project = ref<{
+    id: string;
+    payment_method: "stripe" | "bank_transfer" | null;
+    bank_iban: string | null;
+    bank_bic: string | null;
+    bank_beneficiary: string | null;
+  } | null>(null);
+
+  // Modal State
+  const showForm = ref(false);
+  const selectedGallery = ref<GalleryWithDetails | undefined>(undefined);
+  const showDeleteModal = ref(false);
+  const galleryToDelete = ref<Gallery | null>(null);
+  const deletionLoading = ref(false);
+  const formLoading = ref(false);
+
+  // Computed
+  const exists = computed(() => !!gallery.value);
+  const canEdit = computed(() => {
+    if (!gallery.value) return true;
+    return (
+      gallery.value.status === "draft" ||
+      gallery.value.status === "revision_requested"
+    );
+  });
+
+  const imageCount = computed(() => gallery.value?.images?.length || 0);
+  const hasImages = computed(() => imageCount.value > 0);
+  const isLoading = computed(() => loading.value);
+  const hasError = computed(() => error.value !== null);
+
+  const formattedBasePrice = computed(() => {
+    if (!pricing.value?.basePrice) return "Non défini";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(pricing.value.basePrice);
+  });
+
+  const formattedDepositPaid = computed(() => {
+    if (!pricing.value?.depositPaid) return "Aucun acompte";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(pricing.value.depositPaid);
+  });
+
+  const formattedRemainingAmount = computed(() => {
+    if (!pricing.value?.remainingAmount) return "Gratuit";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(pricing.value.remainingAmount);
+  });
+
+  // Actions
+  const reset = () => {
+    gallery.value = null;
+    pricing.value = null;
+    project.value = null;
+    error.value = null;
+    isInitialized.value = false;
+  };
+
+  const loadGallery = async (projectId: string) => {
+    if (loading.value) return;
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      const { projectService } = await import("~/services/projectService");
+
+      const data = await galleryService.getGalleryByProjectId(projectId);
+
+      if (data) {
+        gallery.value = data;
+
+        // Fetch pricing information
+        const pricingData = await galleryService.calculateGalleryPricing(
+          projectId
+        );
+        pricing.value = pricingData;
+      } else {
+        gallery.value = null;
+        pricing.value = null;
+      }
+
+      // Always load project data for payment information
+      const projectData = await projectService.getProjectById(projectId);
+      if (projectData) {
+        project.value = {
+          id: projectData.id,
+          payment_method: projectData.payment_method,
+          bank_iban: projectData.bank_iban,
+          bank_bic: projectData.bank_bic,
+          bank_beneficiary: projectData.bank_beneficiary,
+        };
+      }
+
+      isInitialized.value = true;
+      return data;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to load gallery");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createGallery = async (
+    projectId: string,
+    galleryData: GalleryFormData,
+    projectData?: ProjectPaymentData,
+    files?: File[]
+  ) => {
+    formLoading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      const { projectService } = await import("~/services/projectService");
+
+      const data = {
+        project_id: projectId,
+        payment_required: galleryData.payment_required,
+        selection_id: galleryData.selection_id || null,
+        status: galleryData.status,
+      };
+
+      const result = await galleryService.createGallery(
+        data,
+        galleryData.status === "awaiting_client"
+      );
+
+      // Update project if needed
+      if (projectData) {
+        await projectService.updateProject(projectId, projectData);
+      }
+
+      // Upload images if provided
+      if (files && files.length > 0 && result.gallery.id) {
+        await galleryService.uploadImages(result.gallery.id, files);
+      }
+
+      // Reload data
+      await loadGallery(projectId);
+
+      // Close form after successful creation
+      showForm.value = false;
+
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to create gallery");
+      throw err;
+    } finally {
+      formLoading.value = false;
+    }
+  };
+
+  const updateGallery = async (
+    galleryId: string,
+    galleryData: GalleryFormData,
+    projectData?: ProjectPaymentData,
+    files?: File[]
+  ) => {
+    formLoading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      const { projectService } = await import("~/services/projectService");
+
+      const data = {
+        payment_required: galleryData.payment_required,
+        selection_id: galleryData.selection_id || null,
+        status: galleryData.status,
+      };
+
+      const result = await galleryService.updateGallery(
+        galleryId,
+        data,
+        galleryData.status === "awaiting_client"
+      );
+
+      // Update project if needed
+      if (projectData && gallery.value?.project_id) {
+        await projectService.updateProject(
+          gallery.value.project_id,
+          projectData
+        );
+      }
+
+      // Upload images if provided
+      if (files && files.length > 0) {
+        await galleryService.uploadImages(galleryId, files);
+      }
+
+      // Reload data
+      if (gallery.value?.project_id) {
+        await loadGallery(gallery.value.project_id);
+      }
+
+      // Close form after successful update
+      showForm.value = false;
+
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to update gallery");
+      throw err;
+    } finally {
+      formLoading.value = false;
+    }
+  };
+
+  const deleteGallery = async (galleryId: string) => {
+    deletionLoading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      await galleryService.deleteGallery(galleryId);
+
+      gallery.value = null;
+      pricing.value = null;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to delete gallery");
+      throw err;
+    } finally {
+      deletionLoading.value = false;
+    }
+  };
+
+  const deleteImage = async (imageId: string) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      await galleryService.deleteImage(imageId);
+
+      // Reload data
+      if (gallery.value?.project_id) {
+        await loadGallery(gallery.value.project_id);
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to delete image");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const confirmPayment = async (galleryId: string) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      await galleryService.confirmPayment(galleryId);
+
+      // Reload data
+      if (gallery.value?.project_id) {
+        await loadGallery(gallery.value.project_id);
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to confirm payment");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // Modal Actions
+  const openForm = () => {
+    selectedGallery.value = gallery.value || undefined;
+    showForm.value = true;
+  };
+
+  const closeForm = () => {
+    showForm.value = false;
+    selectedGallery.value = undefined;
+  };
+
+  const openDeleteModal = (gallery: Gallery) => {
+    galleryToDelete.value = gallery;
+    showDeleteModal.value = true;
+  };
+
+  const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+    galleryToDelete.value = null;
+    deletionLoading.value = false;
+  };
+
+  return {
+    // State (readonly for external access)
+    gallery: readonly(gallery),
+    pricing: readonly(pricing),
+    project: readonly(project),
+    loading: readonly(loading),
+    error: readonly(error),
+    isInitialized: readonly(isInitialized),
+
+    // Modal State
+    showForm,
+    selectedGallery: readonly(selectedGallery),
+    showDeleteModal,
+    galleryToDelete: readonly(galleryToDelete),
+    deletionLoading: readonly(deletionLoading),
+    formLoading: readonly(formLoading),
+
+    // Computed
+    exists,
+    canEdit,
+    imageCount,
+    hasImages,
+    isLoading,
+    hasError,
+    formattedBasePrice,
+    formattedDepositPaid,
+    formattedRemainingAmount,
+
+    // Actions
+    reset,
+    loadGallery,
+    createGallery,
+    updateGallery,
+    deleteGallery,
+    deleteImage,
+    confirmPayment,
+    openForm,
+    closeForm,
+    openDeleteModal,
+    closeDeleteModal,
+  };
+});

@@ -47,30 +47,7 @@
             <ProjectSelectionSection v-if="currentStep === 3" />
 
             <!-- Gallery Section -->
-            <div v-else-if="currentStep === 4" class="space-y-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100">Galerie</h3>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            Livrable final pour le client
-                        </p>
-                    </div>
-                </div>
-
-                <div
-                    class="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6">
-                    <div class="py-8 text-center">
-                        <div
-                            class="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <UIcon name="i-lucide-gallery" class="w-8 h-8 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-2">Module Galerie</h4>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-                            Section en cours de développement
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <ProjectGallerySection v-if="currentStep === 4" />
         </div>
     </div>
 </template>
