@@ -1,7 +1,6 @@
 import type { AuthError } from "@supabase/supabase-js";
 import type {
   IAuthError,
-  IGoogleAuthOptions,
   ILoginCredentials,
   IRegistrationData,
 } from "~/types/auth";
@@ -51,7 +50,7 @@ export const useAuth = () => {
     }
   };
 
-  const signInWithGoogle = async (options?: IGoogleAuthOptions) => {
+  const signInWithGoogle = async () => {
     resetError();
     loading.value = true;
 
@@ -59,10 +58,6 @@ export const useAuth = () => {
       console.log("Starting Google OAuth...");
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo:
-            options?.redirectTo || `${window.location.origin}/auth/callback`,
-        },
       });
 
       if (authError) {

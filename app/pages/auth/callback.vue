@@ -28,7 +28,7 @@ onMounted(async () => {
             // Redirection vers la page de connexion si pas de session
             await router.push('/login')
         }
-    } catch {
+    } catch (err) {
         error.value = 'Une erreur est survenue lors de l\'authentification'
     } finally {
         loading.value = false
