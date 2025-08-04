@@ -31,7 +31,6 @@ export default defineNuxtConfig({
         "/register",
         "/login",
         "/reset-password",
-        "/update-password",
         "/moodboard/*",
         "/selection/*",
         "/gallery/*",
@@ -45,7 +44,6 @@ export default defineNuxtConfig({
       companySearchApiUrl: "https://recherche-entreprises.api.gouv.fr",
       STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
       STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || "http://localhost:3000",
     },
   },
 });

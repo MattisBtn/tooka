@@ -10,7 +10,7 @@ useHead({
     title: 'Créer un compte - Tooka'
 })
 
-const { register, loading, error, resetError } = useAuth()
+const { register, signInWithGoogle, loading, error, resetError } = useAuth()
 const router = useRouter()
 
 const registrationSchema = z.object({
@@ -43,6 +43,11 @@ const handleRegister = async () => {
             await router.push('/')
         }
     }
+}
+
+const handleGoogleLogin = async () => {
+    resetError()
+    await signInWithGoogle()
 }
 </script>
 
@@ -96,6 +101,21 @@ const handleRegister = async () => {
 
                 <UButton type="submit" color="primary" block :loading="loading" :disabled="loading">
                     Créer un compte
+                </UButton>
+
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="w-full border-t border-neutral-300 dark:border-neutral-600" />
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-white dark:bg-neutral-900 px-2 text-neutral-500">Ou continuer avec</span>
+                    </div>
+                </div>
+
+                <UButton type="button" color="neutral" variant="outline" block :loading="loading" :disabled="loading"
+                    @click="handleGoogleLogin">
+                    <UIcon name="lucide:chrome" class="w-4 h-4 mr-2" />
+                    Continuer avec Google
                 </UButton>
 
                 <div class="text-center pt-2">
