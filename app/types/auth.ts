@@ -9,6 +9,15 @@ export interface IRegistrationData {
   name: string;
 }
 
+export interface IResetPasswordData {
+  email: string;
+}
+
+export interface IUpdatePasswordData {
+  password: string;
+  confirmPassword: string;
+}
+
 export interface IAuthError {
   message: string;
   code?: string;

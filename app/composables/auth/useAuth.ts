@@ -3,6 +3,8 @@ import type {
   IAuthError,
   ILoginCredentials,
   IRegistrationData,
+  IResetPasswordData,
+  IUpdatePasswordData,
 } from "~/types/auth";
 
 export const useAuth = () => {
@@ -81,6 +83,49 @@ export const useAuth = () => {
     }
   };
 
+  const resetPassword = async (data: IResetPasswordData) => {
+    resetError();
+    loading.value = true;
+
+    try {
+      // Utiliser l'URL de base configurée ou l'origine actuelle
+      const config = useRuntimeConfig();
+      const baseUrl = config.public.siteUrl;
+
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(
+        data.email,
+        {
+          redirectTo: `${baseUrl}/update-password`,
+        }
+      );
+
+      if (authError) throw authError;
+      return { success: true };
+    } catch (err: Error | AuthError | unknown) {
+      return { success: false, error: handleAuthError(err) };
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updatePassword = async (data: IUpdatePasswordData) => {
+    resetError();
+    loading.value = true;
+
+    try {
+      const { error: authError } = await supabase.auth.updateUser({
+        password: data.password,
+      });
+
+      if (authError) throw authError;
+      return { success: true };
+    } catch (err: Error | AuthError | unknown) {
+      return { success: false, error: handleAuthError(err) };
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const logout = async () => {
     resetError();
     loading.value = true;
@@ -103,6 +148,8 @@ export const useAuth = () => {
     error: readonly(error),
     login,
     register,
+    resetPassword,
+    updatePassword,
     logout,
     resetError,
   };
