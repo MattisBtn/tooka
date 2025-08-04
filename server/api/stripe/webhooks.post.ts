@@ -28,11 +28,16 @@ export default defineEventHandler(async (event) => {
       const session = webhook.data.object as Stripe.Checkout.Session;
       const { user_id } = session.metadata || {};
 
-      if (user_id) {
+      if (user_id && session.subscription) {
         console.log(
           "Updating user subscription:",
           user_id,
           session.subscription
+        );
+
+        // Récupérer les détails de la subscription pour obtenir la date de fin
+        const subscription = await stripe.subscriptions.retrieve(
+          session.subscription as string
         );
 
         const { error } = await supabase
@@ -40,6 +45,10 @@ export default defineEventHandler(async (event) => {
           .update({
             subscription_status: "active",
             stripe_subscription_id: session.subscription as string,
+            subscription_end_date: new Date(
+              (subscription as unknown as { current_period_end: number })
+                .current_period_end * 1000
+            ).toISOString(),
           })
           .eq("id", user_id);
 
@@ -52,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
         console.log("User subscription updated successfully");
       } else {
-        console.error("No user_id found in session metadata");
+        console.error("No user_id or subscription found in session metadata");
       }
     }
 
