@@ -24,6 +24,10 @@ useHead({
     title: 'Abonnement activé - Tooka'
 });
 
+definePageMeta({
+    layout: 'auth'
+});
+
 const store = useSubscriptionStore();
 const { user } = useAuth();
 

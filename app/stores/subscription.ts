@@ -20,6 +20,11 @@ export const useSubscriptionStore = defineStore("subscription", () => {
   const hasActiveSubscription = computed(
     () => currentSubscription.value?.subscription_status === "active"
   );
+  const hasValidSubscription = computed(
+    () =>
+      currentSubscription.value?.subscription_status === "active" ||
+      currentSubscription.value?.subscription_status === "trialing"
+  );
   const isTrialing = computed(
     () => currentSubscription.value?.subscription_status === "trialing"
   );
@@ -102,6 +107,7 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     isLoading,
     hasError,
     hasActiveSubscription,
+    hasValidSubscription,
     isTrialing,
     isPastDue,
 
