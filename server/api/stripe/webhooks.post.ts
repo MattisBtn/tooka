@@ -122,10 +122,9 @@ export default defineEventHandler(async (event) => {
           .from("user_profiles")
           .update({
             subscription_status: "canceled",
-            subscription_end_date: new Date(
-              (subscription as unknown as { current_period_end: number })
-                .current_period_end * 1000
-            ).toISOString(),
+            subscription_end_date: subscription.ended_at
+              ? new Date(subscription.ended_at * 1000).toISOString()
+              : null,
           })
           .eq("id", userProfile.id);
       }
