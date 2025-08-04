@@ -8,12 +8,14 @@ useHead({
 })
 
 const router = useRouter()
+const route = useRoute()
 const supabase = useSupabaseClient()
 const loading = ref(true)
 const error = ref<string | null>(null)
 
 onMounted(async () => {
     try {
+        // Traiter les paramètres d'URL pour l'authentification OAuth
         const { data, error: authError } = await supabase.auth.getSession()
 
         if (authError) {
@@ -21,14 +23,38 @@ onMounted(async () => {
             return
         }
 
+        // Vérifier si nous avons une session après l'authentification OAuth
         if (data.session) {
             // Redirection vers la page d'accueil après connexion réussie
             await router.push('/')
         } else {
-            // Redirection vers la page de connexion si pas de session
-            await router.push('/login')
+            // Si pas de session, essayer de récupérer les paramètres d'URL
+            const { access_token, refresh_token, error: oauthError } = route.query
+
+            if (oauthError) {
+                error.value = 'Erreur lors de l\'authentification OAuth'
+                return
+            }
+
+            if (access_token) {
+                // Établir la session avec le token d'accès
+                const { error: sessionError } = await supabase.auth.setSession({
+                    access_token: access_token as string,
+                    refresh_token: refresh_token as string
+                })
+
+                if (sessionError) {
+                    error.value = sessionError.message
+                    return
+                }
+
+                await router.push('/')
+            } else {
+                // Redirection vers la page de connexion si pas de session
+                await router.push('/login')
+            }
         }
-    } catch (err) {
+    } catch {
         error.value = 'Une erreur est survenue lors de l\'authentification'
     } finally {
         loading.value = false
