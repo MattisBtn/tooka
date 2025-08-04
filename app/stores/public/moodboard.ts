@@ -25,6 +25,9 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   );
 
   const isAuthenticated = computed(() => {
+    if (project.value && !project.value.hasPassword) {
+      return true;
+    }
     if (!auth.value) return false;
     return auth.value.isAuthenticated;
   });
