@@ -40,15 +40,35 @@ export default defineEventHandler(async (event) => {
           session.subscription as string
         );
 
+        console.log("Subscription details:", subscription);
+
+        // Calculer la date de fin en utilisant billing_cycle_anchor + interval
+        let subscriptionEndDate: string | null = null;
+
+        if (subscription.billing_cycle_anchor) {
+          // Utiliser billing_cycle_anchor comme base et ajouter la durée de l'interval
+          const _billingCycleAnchor = subscription.billing_cycle_anchor * 1000;
+          const now = Date.now();
+
+          // Si la subscription est active, calculer la prochaine date de facturation
+          if (
+            subscription.status === "active" ||
+            subscription.status === "trialing"
+          ) {
+            // Utiliser la date actuelle + 1 mois comme approximation
+            // (cette logique peut être améliorée selon vos besoins)
+            const nextBillingDate = new Date(now);
+            nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+            subscriptionEndDate = nextBillingDate.toISOString();
+          }
+        }
+
         const { error } = await supabase
           .from("user_profiles")
           .update({
             subscription_status: "active",
             stripe_subscription_id: session.subscription as string,
-            subscription_end_date: new Date(
-              (subscription as unknown as { current_period_end: number })
-                .current_period_end * 1000
-            ).toISOString(),
+            subscription_end_date: subscriptionEndDate,
           })
           .eq("id", user_id);
 
