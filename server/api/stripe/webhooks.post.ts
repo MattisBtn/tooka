@@ -29,13 +29,30 @@ export default defineEventHandler(async (event) => {
       const { user_id } = session.metadata || {};
 
       if (user_id) {
-        await supabase
+        console.log(
+          "Updating user subscription:",
+          user_id,
+          session.subscription
+        );
+
+        const { error } = await supabase
           .from("user_profiles")
           .update({
             subscription_status: "active",
             stripe_subscription_id: session.subscription as string,
           })
           .eq("id", user_id);
+
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw new Error(
+            `Failed to update user subscription: ${error.message}`
+          );
+        }
+
+        console.log("User subscription updated successfully");
+      } else {
+        console.error("No user_id found in session metadata");
       }
     }
 
