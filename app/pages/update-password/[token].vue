@@ -35,25 +35,36 @@ const passwordUpdated = ref(false)
 const isValidToken = ref(false)
 const isLoading = ref(true)
 
+// Récupérer le token depuis les paramètres de route
+const token = route.params.token as string
+
 // Vérifier le token de récupération au chargement de la page
 onMounted(async () => {
     const supabase = useSupabaseClient()
 
-    // Récupérer les paramètres de l'URL
-    const { access_token, type } = route.query
+    console.log('Token depuis les paramètres:', token)
+    console.log('Path complet:', route.path)
+    console.log('Query params:', route.query)
 
-    if (access_token && type === 'recovery') {
+    if (token) {
         try {
-            // Échanger le token de récupération contre une session
-            const { error } = await supabase.auth.verifyOtp({
-                token_hash: access_token as string,
+            // Essayer d'abord avec verifyOtp
+            const { error: verifyError } = await supabase.auth.verifyOtp({
+                token_hash: token,
                 type: 'recovery'
             })
 
-            if (error) {
-                console.error('Erreur de vérification du token:', error)
-                await router.push('/reset-password')
-                return
+            if (verifyError) {
+                console.error('Erreur verifyOtp:', verifyError)
+
+                // Essayer avec exchangeCodeForSession si verifyOtp échoue
+                const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(token)
+
+                if (exchangeError) {
+                    console.error('Erreur exchangeCodeForSession:', exchangeError)
+                    await router.push('/reset-password')
+                    return
+                }
             }
 
             isValidToken.value = true
@@ -63,7 +74,7 @@ onMounted(async () => {
             return
         }
     } else {
-        // Pas de token valide, rediriger vers la page de demande
+        console.log('Pas de token trouvé')
         await router.push('/reset-password')
         return
     }
