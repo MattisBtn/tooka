@@ -656,6 +656,7 @@ export type Database = {
           language: string | null
           last_name: string | null
           phone: string | null
+          plan_id: string | null
           preferred_currency: string | null
           stripe_account_id: string | null
           stripe_account_status:
@@ -691,6 +692,7 @@ export type Database = {
           language?: string | null
           last_name?: string | null
           phone?: string | null
+          plan_id?: string | null
           preferred_currency?: string | null
           stripe_account_id?: string | null
           stripe_account_status?:
@@ -726,6 +728,7 @@ export type Database = {
           language?: string | null
           last_name?: string | null
           phone?: string | null
+          plan_id?: string | null
           preferred_currency?: string | null
           stripe_account_id?: string | null
           stripe_account_status?:
@@ -742,7 +745,15 @@ export type Database = {
           timezone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

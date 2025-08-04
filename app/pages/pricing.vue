@@ -6,6 +6,20 @@
             <p class="text-xl text-neutral-600 dark:text-neutral-400">
                 Commencez gratuitement, évoluez selon vos besoins
             </p>
+
+            <!-- Affichage de l'abonnement actuel -->
+            <div v-if="store.hasValidSubscription && currentPlan" class="mt-6">
+                <UAlert title="Abonnement actuel"
+                    :description="`Vous êtes actuellement abonné au plan ${currentPlan.name}`" color="info"
+                    variant="subtle" :actions="[
+                        {
+                            label: 'Gérer mon abonnement',
+                            color: 'primary',
+                            variant: 'solid',
+                            onClick: () => { navigateTo('/me?tab=billing') }
+                        }
+                    ]" />
+            </div>
         </div>
 
         <!-- Intervalle de facturation -->
@@ -52,8 +66,8 @@
                     </div>
                 </div>
 
-                <UButton :loading="loading" :disabled="loading" :color="'primary'" :variant="'solid'" class="w-full"
-                    @click="handleSubscribe(plan)">
+                <UButton :loading="loading" :disabled="loading || store.hasValidSubscription" :color="'primary'"
+                    :variant="'solid'" class="w-full" @click="handleSubscribe(plan)">
                     {{ getButtonText(plan) }}
                 </UButton>
             </UCard>
@@ -86,6 +100,7 @@ const { user } = useAuth();
 
 // State local - utiliser un boolean pour USwitch
 const isYearly = ref(false);
+const currentPlan = ref<SubscriptionPlan | null>(null);
 
 // Computed pour l'intervalle sélectionné
 const selectedInterval = computed(() => isYearly.value ? 'yearly' : 'monthly');
@@ -111,6 +126,12 @@ const calculateSavings = (plan: SubscriptionPlan) => {
 };
 
 const handleSubscribe = async (plan: SubscriptionPlan) => {
+    // Empêcher la double souscription
+    if (store.hasValidSubscription) {
+        console.warn('User already has a valid subscription');
+        return;
+    }
+
     const priceId =
         selectedInterval.value === "monthly"
             ? plan.stripe_price_id_monthly
@@ -127,16 +148,26 @@ const handleSubscribe = async (plan: SubscriptionPlan) => {
     }
 
     try {
-        await store.createSubscription(user.value.id, priceId, selectedInterval.value);
+        await store.createSubscription(user.value.id, priceId, selectedInterval.value, plan.id);
     } catch (error) {
         console.error('Failed to create subscription:', error);
     }
 };
 
-// Charger les plans au montage
+// Charger les plans et l'abonnement actuel au montage
 onMounted(async () => {
     try {
         await store.fetchPlans();
+
+        // Charger l'abonnement actuel si l'utilisateur est connecté
+        if (user.value?.id) {
+            await store.fetchCurrentSubscription(user.value.id);
+
+            // Récupérer les informations du plan actuel
+            if (store.currentSubscription?.plan_id) {
+                currentPlan.value = await store.getPlanById(store.currentSubscription.plan_id);
+            }
+        }
     } catch (error) {
         console.error('Failed to fetch plans:', error);
     }

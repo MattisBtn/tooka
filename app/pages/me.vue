@@ -5,6 +5,7 @@ import { useAuth } from '~/composables/auth/useAuth'
 import { useStripeConnect } from '~/composables/user/useStripeConnect'
 import { useUserProfile } from '~/composables/user/useUserProfile'
 import { useSubscriptionStore } from '~/stores/subscription'
+import type { SubscriptionPlan } from '~/types/subscription'
 import type { UserProfileFormData } from '~/types/userProfile'
 
 const { user } = useAuth()
@@ -103,6 +104,7 @@ const openAvatarModal = () => {
 // Subscription management
 const isLoadingSubscription = ref(false)
 const subscriptionError = ref<string | null>(null)
+const currentPlan = ref<SubscriptionPlan | null>(null)
 
 // Load subscription data
 const loadSubscriptionData = async () => {
@@ -113,6 +115,11 @@ const loadSubscriptionData = async () => {
         subscriptionError.value = null
         await subscriptionStore.fetchCurrentSubscription(user.value.id)
         await subscriptionStore.fetchPlans()
+
+        // Récupérer les informations du plan si disponible
+        if (subscriptionStore.currentSubscription?.plan_id) {
+            currentPlan.value = await subscriptionStore.getPlanById(subscriptionStore.currentSubscription.plan_id)
+        }
     } catch (error) {
         subscriptionError.value = 'Erreur lors du chargement de l\'abonnement'
         console.error('Failed to load subscription:', error)
@@ -306,7 +313,7 @@ useSeoMeta({
                         <div class="space-y-6">
                             <!-- Subscription Information -->
                             <div>
-                                <h4 class="font-medium mb-2">Abonnement SaaS</h4>
+                                <h4 class="font-medium mb-2">Abonnement</h4>
 
                                 <div v-if="isLoadingSubscription" class="flex items-center justify-center py-8">
                                     <UIcon name="i-heroicons-arrow-path"
@@ -326,9 +333,7 @@ useSeoMeta({
                                         <div>
                                             <h5 class="font-medium">Plan actuel</h5>
                                             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                                {{ subscriptionStore.currentSubscription.subscription_status ===
-                                                    'active' ? 'Pro' :
-                                                    'Gratuit' }}
+                                                {{ currentPlan?.name || 'Plan inconnu' }}
                                             </p>
                                         </div>
                                         <UBadge
@@ -358,13 +363,12 @@ useSeoMeta({
 
                                     <!-- Action Buttons -->
                                     <div class="flex gap-2">
-                                        <UButton
-                                            v-if="subscriptionStore.currentSubscription.subscription_status === 'active'"
+                                        <UButton v-if="subscriptionStore.currentSubscription.stripe_subscription_id"
                                             color="primary" variant="outline" size="sm" @click="handlePortalAccess">
                                             Gérer l'abonnement
                                         </UButton>
-                                        <UButton v-else color="primary" variant="solid" size="sm"
-                                            @click="navigateTo('/pricing')">
+                                        <UButton v-else-if="!subscriptionStore.hasValidSubscription" color="primary"
+                                            variant="solid" size="sm" @click="navigateTo('/pricing')">
                                             Souscrire
                                         </UButton>
                                     </div>

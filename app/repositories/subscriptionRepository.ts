@@ -20,7 +20,7 @@ export const subscriptionRepository = {
     const { data, error } = await supabase
       .from("user_profiles")
       .select(
-        "subscription_status, subscription_end_date, stripe_subscription_id, stripe_customer_id"
+        "subscription_status, subscription_end_date, stripe_subscription_id, stripe_customer_id, plan_id"
       )
       .eq("id", userId)
       .single();
@@ -50,5 +50,22 @@ export const subscriptionRepository = {
       .eq("id", userId);
 
     if (error) throw error;
+  },
+
+  async getPlanById(planId: string): Promise<SubscriptionPlan | null> {
+    const supabase = useSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("subscription_plans")
+      .select("*")
+      .eq("id", planId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching plan:", error);
+      return null;
+    }
+
+    return data;
   },
 };

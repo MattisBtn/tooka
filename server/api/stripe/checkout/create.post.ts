@@ -4,14 +4,14 @@ import Stripe from "stripe";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  if (!body.price_id || !body.user_id) {
+  if (!body.price_id || !body.user_id || !body.plan_id) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Price ID and User ID are required",
+      statusMessage: "Price ID, User ID and Plan ID are required",
     });
   }
 
-  const { price_id, user_id, interval = "monthly" } = body;
+  const { price_id, user_id, plan_id, interval = "monthly" } = body;
   const config = useRuntimeConfig();
   const supabase = await serverSupabaseClient(event);
   const stripe = new Stripe(config.STRIPE_SECRET_KEY);
@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
         config.public.baseUrl || "http://localhost:3000"
       }/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${config.public.baseUrl || "http://localhost:3000"}/pricing`,
-      metadata: { user_id, interval },
+      metadata: { user_id, interval, plan_id },
     });
 
     return { url: session.url };

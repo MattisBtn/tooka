@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
     if (webhook.type === "checkout.session.completed") {
       const session = webhook.data.object as Stripe.Checkout.Session;
-      const { user_id } = session.metadata || {};
+      const { user_id, plan_id } = session.metadata || {};
 
       if (user_id && session.subscription) {
         const subscription = await stripe.subscriptions.retrieve(
@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
           .update({
             subscription_status: subscription.status,
             stripe_subscription_id: session.subscription as string,
+            plan_id: plan_id,
             subscription_end_date: subscription.items.data[0].current_period_end
               ? new Date(
                   subscription.items.data[0].current_period_end * 1000

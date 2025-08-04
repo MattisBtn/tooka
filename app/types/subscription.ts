@@ -26,6 +26,7 @@ export interface UserSubscription {
   subscription_end_date: string | null;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
+  plan_id: string | null;
 }
 
 export type BillingInterval = "monthly" | "yearly";

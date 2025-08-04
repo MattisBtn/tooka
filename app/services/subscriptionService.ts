@@ -27,11 +27,12 @@ export const subscriptionService = {
   async createCheckoutSession(
     userId: string,
     priceId: string,
-    interval: BillingInterval
+    interval: BillingInterval,
+    planId: string
   ): Promise<{ url: string | null }> {
     const response = await $fetch("/api/stripe/checkout/create", {
       method: "POST",
-      body: { user_id: userId, price_id: priceId, interval },
+      body: { user_id: userId, price_id: priceId, interval, plan_id: planId },
     });
     return response;
   },
@@ -51,6 +52,10 @@ export const subscriptionService = {
       method: "POST",
       body: { subscription_id: subscriptionId },
     });
-    return response;
+    return response as { success: boolean };
+  },
+
+  async getPlanById(planId: string): Promise<SubscriptionPlan | null> {
+    return await subscriptionRepository.getPlanById(planId);
   },
 };

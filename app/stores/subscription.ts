@@ -84,7 +84,8 @@ export const useSubscriptionStore = defineStore("subscription", () => {
   const createSubscription = async (
     userId: string,
     priceId: string,
-    interval: BillingInterval
+    interval: BillingInterval,
+    planId: string
   ) => {
     try {
       loading.value = true;
@@ -92,7 +93,8 @@ export const useSubscriptionStore = defineStore("subscription", () => {
       const { url } = await subscriptionService.createCheckoutSession(
         userId,
         priceId,
-        interval
+        interval,
+        planId
       );
       if (url) {
         window.location.href = url;
@@ -149,6 +151,12 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     selectedInterval.value = interval;
   };
 
+  const getPlanById = async (
+    planId: string
+  ): Promise<SubscriptionPlan | null> => {
+    return await subscriptionService.getPlanById(planId);
+  };
+
   return {
     // State
     plans: readonly(plans),
@@ -173,5 +181,6 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     createPortalSession,
     cancelSubscription,
     setInterval,
+    getPlanById,
   };
 });
