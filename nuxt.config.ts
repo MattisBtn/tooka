@@ -31,6 +31,7 @@ export default defineNuxtConfig({
         "/register",
         "/login",
         "/reset-password",
+        "/forgot-password",
         "/moodboard/*",
         "/selection/*",
         "/gallery/*",

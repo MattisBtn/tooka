@@ -124,6 +124,42 @@ export const useAuth = () => {
     }
   };
 
+  const resetPasswordForEmail = async (email: string) => {
+    resetError();
+    loading.value = true;
+
+    try {
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
+
+      if (authError) throw authError;
+      return { success: true };
+    } catch (err: Error | AuthError | unknown) {
+      return { success: false, error: handleAuthError(err) };
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    resetError();
+    loading.value = true;
+
+    try {
+      const { error: authError } = await supabase.auth.updateUser({ password });
+      if (authError) throw authError;
+      return { success: true };
+    } catch (err: Error | AuthError | unknown) {
+      return { success: false, error: handleAuthError(err) };
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     user,
     isLoggedIn,
@@ -133,6 +169,8 @@ export const useAuth = () => {
     signInWithGoogle,
     register,
     logout,
+    resetPasswordForEmail,
+    updatePassword,
     resetError,
   };
 };
