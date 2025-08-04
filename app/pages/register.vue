@@ -59,7 +59,7 @@ const handleGoogleLogin = async () => {
         </div>
 
         <UCard class="shadow-lg">
-            <div v-if="emailConfirmationRequired" class="py-8 px-4">
+            <div v-if="emailConfirmationRequired" class="py-8 px-4 flex flex-col items-center">
                 <UIcon name="lucide:mail-check" class="h-12 w-12 mx-auto text-primary-500 mb-4" />
                 <h2 class="text-xl font-semibold text-center mb-2">Vérifiez votre email</h2>
                 <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">

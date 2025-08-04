@@ -49,7 +49,7 @@ const handleUpdatePassword = async () => {
         </div>
 
         <UCard class="shadow-lg">
-            <div v-if="passwordUpdated" class="py-8 px-4">
+            <div v-if="passwordUpdated" class="py-8 px-4 flex flex-col items-center">
                 <UIcon name="lucide:check-circle" class="h-12 w-12 mx-auto text-green-500 mb-4" />
                 <h2 class="text-xl font-semibold text-center mb-2">Mot de passe mis à jour</h2>
                 <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
