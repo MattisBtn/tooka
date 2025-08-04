@@ -12,6 +12,8 @@ useHead({
 })
 
 const { updatePassword, loading, error, resetError } = useAuth()
+const router = useRouter()
+const route = useRoute()
 
 const updatePasswordSchema = z.object({
     password: z.string()
@@ -30,6 +32,44 @@ const formData = reactive<IUpdatePasswordData>({
 })
 
 const passwordUpdated = ref(false)
+const isValidToken = ref(false)
+const isLoading = ref(true)
+
+// Vérifier le token de récupération au chargement de la page
+onMounted(async () => {
+    const supabase = useSupabaseClient()
+
+    // Récupérer les paramètres de l'URL
+    const { access_token, type } = route.query
+
+    if (access_token && type === 'recovery') {
+        try {
+            // Échanger le token de récupération contre une session
+            const { error } = await supabase.auth.verifyOtp({
+                token_hash: access_token as string,
+                type: 'recovery'
+            })
+
+            if (error) {
+                console.error('Erreur de vérification du token:', error)
+                await router.push('/reset-password')
+                return
+            }
+
+            isValidToken.value = true
+        } catch (err) {
+            console.error('Erreur lors de la vérification:', err)
+            await router.push('/reset-password')
+            return
+        }
+    } else {
+        // Pas de token valide, rediriger vers la page de demande
+        await router.push('/reset-password')
+        return
+    }
+
+    isLoading.value = false
+})
 
 const handleUpdatePassword = async () => {
     resetError()
@@ -50,7 +90,14 @@ const handleUpdatePassword = async () => {
         </div>
 
         <UCard class="shadow-lg">
-            <div v-if="passwordUpdated" class="py-8 px-4">
+            <!-- État de chargement -->
+            <div v-if="isLoading" class="py-8 px-4 text-center">
+                <UIcon name="lucide:loader-2" class="h-8 w-8 mx-auto text-primary-500 mb-4 animate-spin" />
+                <p class="text-neutral-500 dark:text-neutral-400">Vérification du lien...</p>
+            </div>
+
+            <!-- Succès -->
+            <div v-else-if="passwordUpdated" class="py-8 px-4">
                 <UIcon name="lucide:check-circle" class="h-12 w-12 mx-auto text-green-500 mb-4" />
                 <h2 class="text-xl font-semibold text-center mb-2">Mot de passe mis à jour</h2>
                 <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
@@ -62,7 +109,8 @@ const handleUpdatePassword = async () => {
                 </UButton>
             </div>
 
-            <UForm v-else :schema="updatePasswordSchema" :state="formData" class="space-y-6"
+            <!-- Formulaire -->
+            <UForm v-else-if="isValidToken" :schema="updatePasswordSchema" :state="formData" class="space-y-6"
                 @submit="handleUpdatePassword">
                 <UFormField label="Nouveau mot de passe" name="password" class="w-full">
                     <UInput v-model="formData.password" type="password" placeholder="••••••••"
@@ -93,6 +141,18 @@ const handleUpdatePassword = async () => {
                     </p>
                 </div>
             </UForm>
+
+            <!-- Token invalide -->
+            <div v-else class="py-8 px-4 text-center">
+                <UIcon name="lucide:alert-circle" class="h-12 w-12 mx-auto text-red-500 mb-4" />
+                <h2 class="text-xl font-semibold text-center mb-2">Lien invalide</h2>
+                <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
+                    Ce lien de réinitialisation n'est plus valide ou a expiré.
+                </p>
+                <UButton to="/reset-password" color="primary" block>
+                    Demander un nouveau lien
+                </UButton>
+            </div>
         </UCard>
     </div>
 </template>

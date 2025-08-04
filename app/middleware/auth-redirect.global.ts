@@ -9,17 +9,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/");
   }
 
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à update-password
-  // on vérifie qu'il a un token de récupération
+  // Ne pas rediriger depuis update-password car il peut y avoir un token de récupération
   if (to.path === "/update-password") {
-    const supabase = useSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    // Si pas de session et pas de token de récupération, rediriger vers login
-    if (!session) {
-      return navigateTo("/login");
-    }
+    return;
   }
 });
