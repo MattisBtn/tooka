@@ -1,0 +1,45 @@
+---
+alwaysApply: true
+---
+
+# Composables vs Stores Decision Guide
+
+## When to Use Composables
+
+Use composables for **single-use data** that can be reasonably passed down in a single view or module:
+
+- **Single view scope**: Data fetched on mounted and used to display information
+- **Reasonable prop drilling**: Can pass to child components (e.g., product description, image gallery)
+- **Avoid deep drilling**: Don't pass to grandchildren or great-grandchildren - this becomes complex quickly
+- **No cross-view usage**: Data not needed outside the view where it's fetched
+
+**Example**: Product detail page - fetch product data on mounted, display product info, pass to child components like description section, image gallery, etc.
+
+## When to Use Pinia Stores
+
+Use Pinia stores for **reusable data** or **expensive operations**:
+
+- **Cross-view usage**: Data used in multiple views
+- **Expensive operations**: Avoid re-fetching costly data
+- **Deep component trees**: When prop drilling becomes complex in deeply nested components
+- **Global state**: Data needed throughout the application
+
+**Examples**:
+
+- User data after login (accessible everywhere)
+- Product list cache (switch between list and detail pages without re-fetching)
+- Complex views with multiple nesting levels where prop drilling becomes painful
+
+## Decision Flow
+
+1. **Is the data used in multiple views?** → Use Store
+2. **Is the data expensive to fetch?** → Use Store
+3. **Is prop drilling becoming complex?** → Use Store
+4. **Single view, simple data flow?** → Use Composable
+
+## Best Practices
+
+- **Avoid over-engineering**: Start with composables, migrate to stores when needed
+- **Keep it simple**: Don't create stores for single-view data
+- **Performance first**: Use stores for expensive operations
+- **Maintainability**: Use stores when prop drilling becomes complex

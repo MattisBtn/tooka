@@ -597,6 +597,45 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price_monthly: number
+          price_yearly: number
+          stripe_price_id_monthly: string | null
+          stripe_price_id_yearly: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_monthly: number
+          price_yearly: number
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -624,8 +663,12 @@ export type Database = {
             | null
           stripe_charges_enabled: boolean | null
           stripe_connected_at: string | null
+          stripe_customer_id: string | null
           stripe_details_submitted: boolean | null
           stripe_payouts_enabled: boolean | null
+          stripe_subscription_id: string | null
+          subscription_end_date: string | null
+          subscription_status: string | null
           timezone: string | null
           updated_at: string | null
         }
@@ -655,8 +698,12 @@ export type Database = {
             | null
           stripe_charges_enabled?: boolean | null
           stripe_connected_at?: string | null
+          stripe_customer_id?: string | null
           stripe_details_submitted?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          stripe_subscription_id?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
           timezone?: string | null
           updated_at?: string | null
         }
@@ -686,8 +733,12 @@ export type Database = {
             | null
           stripe_charges_enabled?: boolean | null
           stripe_connected_at?: string | null
+          stripe_customer_id?: string | null
           stripe_details_submitted?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          stripe_subscription_id?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
           timezone?: string | null
           updated_at?: string | null
         }

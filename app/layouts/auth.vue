@@ -9,7 +9,7 @@
         </header>
 
         <main class="flex-1 flex items-center justify-center p-4">
-            <div class="w-full max-w-md">
+            <div class="w-full max-w-6xl">
                 <slot />
             </div>
         </main>

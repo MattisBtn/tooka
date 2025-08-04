@@ -52,7 +52,7 @@ const handleGoogleLogin = async () => {
 </script>
 
 <template>
-    <div>
+    <div class="max-w-md mx-auto">
         <div class="mb-6 text-center">
             <h1 class="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Créer votre compte</h1>
             <p class="text-neutral-500 dark:text-neutral-400">Commencez votre voyage avec Tooka</p>

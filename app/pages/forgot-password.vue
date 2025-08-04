@@ -36,7 +36,7 @@ const handleResetPassword = async () => {
 </script>
 
 <template>
-    <div>
+    <div class="max-w-md mx-auto">
         <div class="mb-6 text-center">
             <h1 class="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Mot de passe oublié</h1>
             <p class="text-neutral-500 dark:text-neutral-400">Entrez votre email pour recevoir un lien de
@@ -49,7 +49,7 @@ const handleResetPassword = async () => {
                 <h2 class="text-xl font-semibold text-center mb-2">Email envoyé</h2>
                 <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
                     Nous avons envoyé un lien de réinitialisation à <span class="font-medium">{{ formData.email
-                        }}</span>.
+                    }}</span>.
                     Veuillez vérifier votre boîte de réception et cliquer sur le lien pour réinitialiser votre mot de
                     passe.
                 </p>
