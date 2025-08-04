@@ -23,15 +23,34 @@ export const subscriptionService = {
     await subscriptionRepository.updateUserSubscription(userId, updates);
   },
 
+  // Méthodes pour l'API routes (sécurité)
   async createCheckoutSession(
     userId: string,
     priceId: string,
     interval: BillingInterval
-  ): Promise<{ url: string }> {
+  ): Promise<{ url: string | null }> {
     const response = await $fetch("/api/stripe/checkout/create", {
       method: "POST",
       body: { user_id: userId, price_id: priceId, interval },
     });
-    return response as { url: string };
+    return response;
+  },
+
+  async createPortalSession(userId: string): Promise<{ url: string | null }> {
+    const response = await $fetch("/api/stripe/subscription/portal", {
+      method: "POST",
+      body: { user_id: userId },
+    });
+    return response;
+  },
+
+  async cancelSubscription(
+    subscriptionId: string
+  ): Promise<{ success: boolean }> {
+    const response = await $fetch("/api/stripe/subscription/cancel", {
+      method: "POST",
+      body: { subscription_id: subscriptionId },
+    });
+    return response;
   },
 };

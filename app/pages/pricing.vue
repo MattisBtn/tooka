@@ -23,8 +23,7 @@
 
         <!-- Grille des plans -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <UCard v-for="plan in plans" :key="plan.id" class="relative transition-all duration-200 hover:shadow-lg"
-                :class="{ 'ring-2 ring-primary-500 shadow-lg': isCurrentPlan(plan) }">
+            <UCard v-for="plan in plans" :key="plan.id" class="relative transition-all duration-200 hover:shadow-lg">
                 <template #header>
                     <div class="text-center">
                         <h3 class="text-xl font-semibold">{{ plan.name }}</h3>
@@ -53,9 +52,8 @@
                     </div>
                 </div>
 
-                <UButton :loading="loading" :disabled="loading || isCurrentPlan(plan)"
-                    :color="isCurrentPlan(plan) ? 'neutral' : 'primary'"
-                    :variant="isCurrentPlan(plan) ? 'soft' : 'solid'" class="w-full" @click="handleSubscribe(plan)">
+                <UButton :loading="loading" :disabled="loading" :color="'primary'" :variant="'solid'" class="w-full"
+                    @click="handleSubscribe(plan)">
                     {{ getButtonText(plan) }}
                 </UButton>
             </UCard>
@@ -94,7 +92,6 @@ const selectedInterval = computed(() => isYearly.value ? 'yearly' : 'monthly');
 
 // Computed
 const plans = computed(() => store.plans);
-const currentSubscription = computed(() => store.currentSubscription);
 const loading = computed(() => store.loading);
 
 const selectedPrice = (plan: SubscriptionPlan) => {
@@ -103,12 +100,7 @@ const selectedPrice = (plan: SubscriptionPlan) => {
         : plan.price_yearly;
 };
 
-const isCurrentPlan = (plan: SubscriptionPlan) => {
-    return currentSubscription.value?.subscription_status === "active" && plan.name === "Pro";
-};
-
 const getButtonText = (plan: SubscriptionPlan) => {
-    if (isCurrentPlan(plan)) return "Plan actuel";
     return `Choisir ${plan.name}`;
 };
 
@@ -119,8 +111,6 @@ const calculateSavings = (plan: SubscriptionPlan) => {
 };
 
 const handleSubscribe = async (plan: SubscriptionPlan) => {
-    if (isCurrentPlan(plan)) return;
-
     const priceId =
         selectedInterval.value === "monthly"
             ? plan.stripe_price_id_monthly

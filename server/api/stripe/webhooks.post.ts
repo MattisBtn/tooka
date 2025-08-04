@@ -37,8 +37,10 @@ export default defineEventHandler(async (event) => {
           .update({
             subscription_status: subscription.status,
             stripe_subscription_id: session.subscription as string,
-            subscription_end_date: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
+            subscription_end_date: subscription.items.data[0].current_period_end
+              ? new Date(
+                  subscription.items.data[0].current_period_end * 1000
+                ).toISOString()
               : null,
           })
           .eq("id", user_id);
@@ -59,8 +61,10 @@ export default defineEventHandler(async (event) => {
           .from("user_profiles")
           .update({
             subscription_status: subscription.status,
-            subscription_end_date: subscription.cancel_at
-              ? new Date(subscription.cancel_at * 1000).toISOString()
+            subscription_end_date: subscription.items.data[0].current_period_end
+              ? new Date(
+                  subscription.items.data[0].current_period_end * 1000
+                ).toISOString()
               : null,
           })
           .eq("id", userProfile.id);
@@ -81,8 +85,10 @@ export default defineEventHandler(async (event) => {
           .from("user_profiles")
           .update({
             subscription_status: subscription.status,
-            subscription_end_date: subscription.canceled_at
-              ? new Date(subscription.canceled_at * 1000).toISOString()
+            subscription_end_date: subscription.items.data[0].current_period_end
+              ? new Date(
+                  subscription.items.data[0].current_period_end * 1000
+                ).toISOString()
               : null,
           })
           .eq("id", userProfile.id);

@@ -34,9 +34,7 @@ export default defineEventHandler(async (event) => {
     // Créer le lien vers le portail client
     const session = await stripe.billingPortal.sessions.create({
       customer: userProfile.stripe_customer_id,
-      return_url: `${
-        config.public.baseUrl || "http://localhost:3000"
-      }/dashboard`,
+      return_url: `${config.public.baseUrl || "http://localhost:3000"}`,
     });
 
     return { url: session.url };

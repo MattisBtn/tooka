@@ -28,16 +28,11 @@ definePageMeta({
     layout: 'auth'
 });
 
-const store = useSubscriptionStore();
-const { user } = useAuth();
-
 onMounted(async () => {
+    const subscriptionStore = useSubscriptionStore();
+    const { user } = useAuth();
     if (user.value?.id) {
-        try {
-            await store.fetchCurrentSubscription(user.value.id);
-        } catch (error) {
-            console.error('Failed to fetch subscription:', error);
-        }
+        await subscriptionStore.fetchCurrentSubscription(user.value.id);
     }
 });
 </script>

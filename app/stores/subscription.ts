@@ -20,11 +20,24 @@ export const useSubscriptionStore = defineStore("subscription", () => {
   const hasActiveSubscription = computed(
     () => currentSubscription.value?.subscription_status === "active"
   );
-  const hasValidSubscription = computed(
-    () =>
-      currentSubscription.value?.subscription_status === "active" ||
-      currentSubscription.value?.subscription_status === "trialing"
-  );
+  const hasValidSubscription = computed(() => {
+    if (!currentSubscription.value) return false;
+
+    const status = currentSubscription.value.subscription_status;
+    const endDate = currentSubscription.value.subscription_end_date;
+
+    // Active ou trialing = toujours valide
+    if (status === "active" || status === "trialing") return true;
+
+    // Canceled mais avec date de fin future = valide
+    if (status === "canceled" && endDate) {
+      const now = new Date();
+      const end = new Date(endDate);
+      return end > now;
+    }
+
+    return false;
+  });
   const isTrialing = computed(
     () => currentSubscription.value?.subscription_status === "trialing"
   );
@@ -81,10 +94,51 @@ export const useSubscriptionStore = defineStore("subscription", () => {
         priceId,
         interval
       );
-      window.location.href = url;
+      if (url) {
+        window.location.href = url;
+      }
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to create subscription");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createPortalSession = async (userId: string) => {
+    try {
+      loading.value = true;
+      error.value = null;
+      const { url } = await subscriptionService.createPortalSession(userId);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error
+          ? err
+          : new Error("Failed to create portal session");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const cancelSubscription = async (subscriptionId: string) => {
+    try {
+      loading.value = true;
+      error.value = null;
+      await subscriptionService.cancelSubscription(subscriptionId);
+      // Refresh current subscription
+      if (currentSubscription.value?.stripe_subscription_id) {
+        await fetchCurrentSubscription(
+          currentSubscription.value.stripe_subscription_id
+        );
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to cancel subscription");
       throw err;
     } finally {
       loading.value = false;
@@ -116,6 +170,8 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     fetchPlans,
     fetchCurrentSubscription,
     createSubscription,
+    createPortalSession,
+    cancelSubscription,
     setInterval,
   };
 });

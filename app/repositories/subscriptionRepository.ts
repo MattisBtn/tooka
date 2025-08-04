@@ -25,7 +25,16 @@ export const subscriptionRepository = {
       .eq("id", userId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching user subscription:", error);
+      // Si l'utilisateur n'existe pas ou n'a pas de subscription, retourner null
+      if (error.code === "PGRST116") {
+        return null;
+      }
+      throw error;
+    }
+
+    console.log("User subscription data:", data);
     return data;
   },
 

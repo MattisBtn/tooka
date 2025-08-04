@@ -4,6 +4,7 @@ import type { FormSubmitEvent, TabsItem } from '@nuxt/ui'
 import { useAuth } from '~/composables/auth/useAuth'
 import { useStripeConnect } from '~/composables/user/useStripeConnect'
 import { useUserProfile } from '~/composables/user/useUserProfile'
+import { useSubscriptionStore } from '~/stores/subscription'
 import type { UserProfileFormData } from '~/types/userProfile'
 
 const { user } = useAuth()
@@ -38,6 +39,9 @@ const {
     resetError: resetStripeError
 } = useStripeConnect()
 
+// Use subscription store directly
+const subscriptionStore = useSubscriptionStore()
+
 // Define tabs for the profile page
 const tabs = ref<TabsItem[]>([
     {
@@ -67,14 +71,6 @@ const securitySettings = ref({
     activeSessions: 3
 })
 
-// Mock billing data
-const billingData = ref({
-    plan: 'Pro',
-    nextBillingDate: '2024-02-15',
-    amount: '€29.99',
-    paymentMethod: '**** **** **** 4242'
-})
-
 // Handle form submission
 const handleSubmit = async (event: FormSubmitEvent<UserProfileFormData>) => {
     await onSubmit(event)
@@ -102,6 +98,77 @@ const avatarAlt = computed(() => {
 // Open avatar modal
 const openAvatarModal = () => {
     isAvatarModalOpen.value = true
+}
+
+// Subscription management
+const isLoadingSubscription = ref(false)
+const subscriptionError = ref<string | null>(null)
+
+// Load subscription data
+const loadSubscriptionData = async () => {
+    if (!user.value?.id) return
+
+    try {
+        isLoadingSubscription.value = true
+        subscriptionError.value = null
+        await subscriptionStore.fetchCurrentSubscription(user.value.id)
+        await subscriptionStore.fetchPlans()
+    } catch (error) {
+        subscriptionError.value = 'Erreur lors du chargement de l\'abonnement'
+        console.error('Failed to load subscription:', error)
+    } finally {
+        isLoadingSubscription.value = false
+    }
+}
+
+// Format subscription status
+const formatSubscriptionStatus = (status: string | null) => {
+    switch (status) {
+        case 'active': return 'Actif'
+        case 'trialing': return 'Essai'
+        case 'past_due': return 'En retard'
+        case 'canceled': return 'Annulé'
+        case 'inactive': return 'Inactif'
+        default: return 'Inconnu'
+    }
+}
+
+// Get subscription status color
+const getSubscriptionStatusColor = (status: string | null) => {
+    switch (status) {
+        case 'active': return 'success'
+        case 'trialing': return 'info'
+        case 'past_due': return 'warning'
+        case 'canceled': return 'error'
+        case 'inactive': return 'neutral'
+        default: return 'neutral'
+    }
+}
+
+// Format date
+const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Non défini'
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })
+}
+
+// Load subscription data on mount
+onMounted(() => {
+    loadSubscriptionData()
+})
+
+// Subscription actions
+const handlePortalAccess = async () => {
+    if (!user.value?.id) return
+
+    try {
+        await subscriptionStore.createPortalSession(user.value.id)
+    } catch (error) {
+        console.error('Failed to access portal:', error)
+    }
 }
 
 useSeoMeta({
@@ -237,41 +304,87 @@ useSeoMeta({
                         </template>
 
                         <div class="space-y-6">
-                            <!-- <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h4 class="font-medium mb-2">Plan actuel</h4>
-                                    <div class="flex items-center gap-2">
-                                        <UBadge color="success" variant="subtle" size="lg">{{ billingData.plan }}
+                            <!-- Subscription Information -->
+                            <div>
+                                <h4 class="font-medium mb-2">Abonnement SaaS</h4>
+
+                                <div v-if="isLoadingSubscription" class="flex items-center justify-center py-8">
+                                    <UIcon name="i-heroicons-arrow-path"
+                                        class="w-6 h-6 animate-spin text-primary-500" />
+                                    <span class="ml-2 text-neutral-600 dark:text-neutral-400">Chargement de
+                                        l'abonnement...</span>
+                                </div>
+
+                                <div v-else-if="subscriptionError" class="mb-4">
+                                    <UAlert color="error" variant="subtle" :title="subscriptionError" />
+                                </div>
+
+                                <div v-else-if="subscriptionStore.currentSubscription" class="space-y-4">
+                                    <!-- Current Plan -->
+                                    <div
+                                        class="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
+                                        <div>
+                                            <h5 class="font-medium">Plan actuel</h5>
+                                            <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                                                {{ subscriptionStore.currentSubscription.subscription_status ===
+                                                    'active' ? 'Pro' :
+                                                    'Gratuit' }}
+                                            </p>
+                                        </div>
+                                        <UBadge
+                                            :color="getSubscriptionStatusColor(subscriptionStore.currentSubscription.subscription_status)"
+                                            variant="subtle">
+                                            {{
+                                                formatSubscriptionStatus(subscriptionStore.currentSubscription.subscription_status)
+                                            }}
                                         </UBadge>
-                                        <UButton color="primary" variant="outline" size="sm">Changer de plan</UButton>
+                                    </div>
+
+                                    <!-- Subscription Details -->
+                                    <div v-if="subscriptionStore.currentSubscription.subscription_end_date"
+                                        class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-neutral-600 dark:text-neutral-400">
+                                                {{ subscriptionStore.currentSubscription.subscription_status ===
+                                                    'canceled' ?
+                                                    'Expire le' :
+                                                    'Prochaine facturation' }}:
+                                            </span>
+                                            <span>{{
+                                                formatDate(subscriptionStore.currentSubscription.subscription_end_date)
+                                            }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex gap-2">
+                                        <UButton
+                                            v-if="subscriptionStore.currentSubscription.subscription_status === 'active'"
+                                            color="primary" variant="outline" size="sm" @click="handlePortalAccess">
+                                            Gérer l'abonnement
+                                        </UButton>
+                                        <UButton v-else color="primary" variant="solid" size="sm"
+                                            @click="navigateTo('/pricing')">
+                                            Souscrire
+                                        </UButton>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h4 class="font-medium mb-2">Prochaine facturation</h4>
-                                    <p class="text-neutral-600 dark:text-neutral-400">
-                                        {{ billingData.nextBillingDate }} - {{ billingData.amount }}
+                                <div v-else class="text-center py-8">
+                                    <UIcon name="i-heroicons-credit-card"
+                                        class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+                                    <p class="text-neutral-600 dark:text-neutral-400 mb-4">
+                                        Aucun abonnement actif
                                     </p>
+                                    <UButton color="primary" variant="solid" size="sm" @click="navigateTo('/pricing')">
+                                        Voir les plans
+                                    </UButton>
                                 </div>
                             </div>
 
                             <USeparator />
 
-                            <div>
-                                <h4 class="font-medium mb-2">Méthode de paiement</h4>
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <UIcon name="i-heroicons-credit-card" class="text-neutral-500" />
-                                        <span>{{ billingData.paymentMethod }}</span>
-                                    </div>
-                                    <UButton color="primary" variant="outline" size="sm">
-                                        Modifier
-                                    </UButton>
-                                </div>
-                            </div>
-
-                            <USeparator /> -->
-
+                            <!-- Stripe Connect Section -->
                             <div>
                                 <h4 class="font-medium mb-2">Recevoir des paiements avec Stripe</h4>
                                 <div v-if="stripeError" class="mb-4">
