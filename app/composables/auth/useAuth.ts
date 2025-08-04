@@ -55,7 +55,6 @@ export const useAuth = () => {
     loading.value = true;
 
     try {
-      console.log("Starting Google OAuth...");
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -68,7 +67,6 @@ export const useAuth = () => {
         throw authError;
       }
 
-      console.log("Google OAuth initiated successfully");
       return { success: true };
     } catch (err: Error | AuthError | unknown) {
       console.error("Google OAuth failed:", err);

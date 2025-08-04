@@ -34,7 +34,6 @@ export const subscriptionRepository = {
       throw error;
     }
 
-    console.log("User subscription data:", data);
     return data;
   },
 

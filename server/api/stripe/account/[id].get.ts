@@ -47,10 +47,6 @@ export default defineEventHandler(async (event) => {
         error.message?.includes("does not have access to account") ||
         error.message?.includes("Application access may have been revoked")
       ) {
-        console.log(
-          `Cleaning invalid Stripe account ${profile.stripe_account_id} for user ${userId}`
-        );
-
         // Nettoyer les données Stripe dans la DB
         await supabase
           .from("user_profiles")
