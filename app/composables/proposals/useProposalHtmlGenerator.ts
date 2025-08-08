@@ -2,6 +2,7 @@ import type {
   ButtonComponent,
   ListComponent,
   ParagraphComponent,
+  PortfolioComponent,
   PricingComponent,
   ProposalComponent,
   SeparatorComponent,
@@ -226,6 +227,35 @@ export const useProposalHtmlGenerator = () => {
     </table>
   </div>
   ${packNote}
+</div>`;
+          }
+
+          case "portfolio": {
+            const port = component as PortfolioComponent;
+            const items = (port.items || []).slice(0, 6);
+            const cards = items
+              .map((it) => {
+                const meta = [it.title, it.category]
+                  .filter(Boolean)
+                  .map((m) => `<div class="truncate">${m}</div>`)
+                  .join("");
+                return `
+  <div class="rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+    <img src="${
+      it.previewUrl || it.url
+    }" alt="" class="w-full aspect-square object-cover" />
+    ${
+      meta
+        ? `<div class="p-2 text-xs text-neutral-700 dark:text-neutral-300">${meta}</div>`
+        : ""
+    }
+  </div>`;
+              })
+              .join("");
+
+            return `
+<div class="${wrapperClasses}">
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">${cards}</div>
 </div>`;
           }
 

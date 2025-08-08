@@ -44,7 +44,7 @@
                         <div class="flex-1 p-4 space-y-3 overflow-y-auto">
                             <div v-for="component in availableComponents" :key="component.type"
                                 class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer transition-all hover:shadow-sm group"
-                                @click="addComponent(component.type as 'title' | 'paragraph' | 'list' | 'button' | 'separator' | 'pricing')">
+                                @click="addComponent(component.type as 'title' | 'paragraph' | 'list' | 'button' | 'separator' | 'pricing' | 'portfolio')">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center group-hover:bg-primary-200 dark:group-hover:bg-primary-800 transition-colors">
@@ -142,7 +142,7 @@
                                             :can-move-down="component.order < sortedComponents.length"
                                             @select="selectComponent(component.id)"
                                             @move="moveComponent(component.id, $event)"
-                                            @remove="removeComponent(component.id)" />
+                                            @remove="removeComponentAndTrack(component.id)" />
                                     </template>
                                 </div>
                             </div>
@@ -185,6 +185,10 @@
                                 <PricingBuilder v-else-if="selectedComponent?.type === 'pricing'"
                                     :component="selectedComponent as PricingComponent"
                                     @update="updateComponent(selectedComponent.id, $event)" />
+                                <PortfolioBuilder v-else-if="selectedComponent?.type === 'portfolio'"
+                                    :component="selectedComponent as PortfolioComponent"
+                                    @update="updateComponent(selectedComponent.id, $event)"
+                                    @removed-paths="(paths) => removedPortfolioPaths.value.push(...paths)" />
                             </div>
                         </div>
                     </template>
@@ -196,12 +200,13 @@
 
 <script lang="ts" setup>
 import { useProposalComponentManager } from '~/composables/proposals/useProposalComponentManager';
-import { getComponentIcon, getComponentLabel, type ButtonComponent, type ListComponent, type ParagraphComponent, type PricingComponent, type ProposalComponent, type SeparatorComponent, type TitleComponent } from '~/composables/proposals/useProposalComponentTypes';
+import { getComponentIcon, getComponentLabel, type ButtonComponent, type ListComponent, type ParagraphComponent, type PortfolioComponent, type PricingComponent, type ProposalComponent, type SeparatorComponent, type TitleComponent } from '~/composables/proposals/useProposalComponentTypes';
 import { useProposalHtmlGenerator } from '~/composables/proposals/useProposalHtmlGenerator';
 import ButtonBuilder from './builder/ButtonBuilder.vue';
 import ComponentRenderer from './builder/ComponentRenderer.vue';
 import ListBuilder from './builder/ListBuilder.vue';
 import ParagraphBuilder from './builder/ParagraphBuilder.vue';
+import PortfolioBuilder from './builder/PortfolioBuilder.vue';
 import PricingBuilder from './builder/PricingBuilder.vue';
 import SeparatorBuilder from './builder/SeparatorBuilder.vue';
 import TitleBuilder from './builder/TitleBuilder.vue';
@@ -267,6 +272,7 @@ const closeModal = () => {
 };
 const saveAndClose = () => {
     const html = htmlGenerator.generateHtml([...componentManager.components.value]);
+    // Don't upload images here - just save the builder state
     emit('update:content_json', [...componentManager.components.value]);
     emit('update:content_html', html);
     closeModal();
@@ -288,9 +294,22 @@ const openPreviewModal = () => {
 
 // Delegate
 const addComponent = componentManager.addComponent;
-const removeComponent = componentManager.removeComponent;
+// const removeComponent = componentManager.removeComponent;
 const updateComponent = componentManager.updateComponent;
 const moveComponent = componentManager.moveComponent;
 const selectComponent = componentManager.selectComponent;
 const deselectComponent = componentManager.deselectComponent;
+
+// Track removed portfolio item paths for cleanup (optional hook to service)
+const removedPortfolioPaths = ref<string[]>([]);
+const removeComponentAndTrack = (id: string) => {
+    const comp = componentManager.components.value.find(c => c.id === id);
+    if (comp && comp.type === 'portfolio') {
+        const items = (comp as unknown as { items: Array<{ path?: string }> }).items || [];
+        removedPortfolioPaths.value.push(
+            ...items.map(i => i.path).filter((p): p is string => Boolean(p))
+        );
+    }
+    componentManager.removeComponent(id);
+};
 </script>

@@ -71,6 +71,14 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
+      // Upload portfolio images before creating proposal
+      if (proposalData.content_json) {
+        await proposalService.uploadPortfolioImages(
+          proposalData.content_json,
+          projectId
+        );
+      }
+
       const data = {
         project_id: projectId,
         content_json: proposalData.content_json,
@@ -91,12 +99,9 @@ export const useProposalStore = defineStore("proposal", () => {
 
       // Conditionally update project payment method if deposit is required and a method is selected
       const { projectService } = await import("~/services/projectService");
-      const updateProjectUntyped = projectService.updateProject as unknown as (
-        id: string,
-        updates: Record<string, unknown>
-      ) => Promise<unknown>;
+
       if (proposalData.deposit_required && projectData.payment_method) {
-        await updateProjectUntyped(projectId, {
+        await projectService.updateProject(projectId, {
           payment_method: projectData.payment_method,
         });
       }
@@ -122,6 +127,48 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
+      // Collect previously stored portfolio image paths to detect removals
+      type PortfolioItemLike = { path?: string | null };
+      type ComponentWithItems = {
+        type?: string;
+        items?: PortfolioItemLike[] | null;
+      };
+
+      const extractPortfolioPaths = (content: unknown): string[] => {
+        if (!Array.isArray(content)) return [];
+        const arr = content as ComponentWithItems[];
+        const collected: string[] = [];
+        for (const c of arr) {
+          if (c?.type === "portfolio" && Array.isArray(c.items)) {
+            for (const it of c.items) {
+              if (it?.path) collected.push(it.path);
+            }
+          }
+        }
+        return collected;
+      };
+
+      const prevJson: unknown =
+        (proposal.value as unknown as { content_json?: unknown } | null)
+          ?.content_json ?? [];
+      const previousPaths = extractPortfolioPaths(prevJson);
+
+      // Upload portfolio images before updating proposal
+      if (proposalData.content_json) {
+        await proposalService.uploadPortfolioImages(
+          proposalData.content_json,
+          proposal.value!.project_id
+        );
+      }
+
+      // Compute current paths after potential uploads (new items now have path)
+      const currJson: unknown =
+        (proposalData as unknown as { content_json?: unknown }).content_json ??
+        [];
+      const currentPaths = extractPortfolioPaths(currJson);
+      const currentSet = new Set(currentPaths);
+      const removedPaths = previousPaths.filter((p) => !currentSet.has(p));
+
       const data = {
         project_id: proposal.value!.project_id,
         content_json: proposalData.content_json,
@@ -144,13 +191,19 @@ export const useProposalStore = defineStore("proposal", () => {
       );
       proposal.value = result.proposal;
 
+      // Delete removed portfolio images after successful update to avoid orphan files
+      if (removedPaths.length > 0) {
+        try {
+          await proposalService.deleteFiles(removedPaths);
+        } catch {
+          // Silently ignore cleanup failures to not block the user flow
+        }
+      }
+
       const { projectService } = await import("~/services/projectService");
-      const updateProjectUntyped2 = projectService.updateProject as unknown as (
-        id: string,
-        updates: Record<string, unknown>
-      ) => Promise<unknown>;
+
       if (proposalData.deposit_required && projectData.payment_method) {
-        await updateProjectUntyped2(proposal.value!.project_id, {
+        await projectService.updateProject(proposal.value!.project_id, {
           payment_method: projectData.payment_method,
         });
       }

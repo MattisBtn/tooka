@@ -42,6 +42,21 @@ export interface SeparatorComponent extends ComponentBase {
   spacing: "small" | "medium" | "large";
 }
 
+// Portfolio item
+export interface PortfolioItem {
+  url?: string; // final public URL when persisted
+  path?: string; // storage path for deletion
+  previewUrl?: string; // local preview before upload
+  title?: string;
+  category?: string;
+}
+
+// Portfolio component (mini gallery)
+export interface PortfolioComponent extends ComponentBase {
+  type: "portfolio";
+  items: PortfolioItem[];
+}
+
 // Pricing item for quote/pricing table
 export interface PricingItem {
   name: string;
@@ -65,7 +80,8 @@ export type ProposalComponent =
   | ListComponent
   | ButtonComponent
   | SeparatorComponent
-  | PricingComponent;
+  | PricingComponent
+  | PortfolioComponent;
 
 // Available component types
 export const AVAILABLE_COMPONENTS = [
@@ -100,6 +116,12 @@ export const AVAILABLE_COMPONENTS = [
     description: "Ajouter un séparateur visuel",
   },
   {
+    type: "portfolio",
+    label: "Portfolio",
+    icon: "i-lucide-images",
+    description: "Mini galerie (4 à 6 visuels) avec titres/catégories",
+  },
+  {
     type: "pricing",
     label: "Tableau de devis",
     icon: "i-lucide-table",
@@ -121,6 +143,8 @@ export const getComponentIcon = (type?: string) => {
       return "i-lucide-mouse-pointer-click";
     case "separator":
       return "i-lucide-minus";
+    case "portfolio":
+      return "i-lucide-images";
     case "pricing":
       return "i-lucide-table";
     default:
@@ -140,6 +164,8 @@ export const getComponentLabel = (type?: string) => {
       return "Bouton";
     case "separator":
       return "Séparateur";
+    case "portfolio":
+      return "Portfolio";
     case "pricing":
       return "Tableau de devis";
     default:

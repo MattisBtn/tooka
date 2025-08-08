@@ -1,6 +1,5 @@
 <template>
-    <div
-class="group relative bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 transition-all cursor-pointer"
+    <div class="group relative bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 transition-all cursor-pointer"
         :class="{
             'border-primary-300 dark:border-primary-700 shadow-lg': isSelected,
             'hover:border-neutral-300 dark:hover:border-neutral-600': !isSelected
@@ -8,11 +7,9 @@ class="group relative bg-white dark:bg-neutral-800 rounded-lg border border-neut
         <!-- Component Actions (on hover) -->
         <div
             class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-            <UButton
-icon="i-lucide-arrow-up" size="xs" variant="ghost" color="neutral" :disabled="!canMoveUp"
+            <UButton icon="i-lucide-arrow-up" size="xs" variant="ghost" color="neutral" :disabled="!canMoveUp"
                 @click.stop="$emit('move', 'up')" />
-            <UButton
-icon="i-lucide-arrow-down" size="xs" variant="ghost" color="neutral" :disabled="!canMoveDown"
+            <UButton icon="i-lucide-arrow-down" size="xs" variant="ghost" color="neutral" :disabled="!canMoveDown"
                 @click.stop="$emit('move', 'down')" />
             <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error" @click.stop="$emit('remove')" />
         </div>
@@ -21,13 +18,11 @@ icon="i-lucide-arrow-down" size="xs" variant="ghost" color="neutral" :disabled="
         <div class="p-6" :class="getAlignmentClass(component.alignment)">
             <!-- Title Component -->
             <div v-if="component.type === 'title'">
-                <h1
-v-if="(component as TitleComponent).level === 1"
+                <h1 v-if="(component as TitleComponent).level === 1"
                     class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
                     {{ component.content }}
                 </h1>
-                <h2
-v-else-if="(component as TitleComponent).level === 2"
+                <h2 v-else-if="(component as TitleComponent).level === 2"
                     class="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
                     {{ component.content }}
                 </h2>
@@ -45,8 +40,7 @@ v-else-if="(component as TitleComponent).level === 2"
 
             <!-- List Component -->
             <div v-else-if="component.type === 'list'">
-                <ul
-v-if="(component as ListComponent).listType === 'bulleted'"
+                <ul v-if="(component as ListComponent).listType === 'bulleted'"
                     class="list-disc list-inside space-y-1 text-neutral-700 dark:text-neutral-300">
                     <li v-for="item in (component as ListComponent).items" :key="item">
                         {{ item }}
@@ -61,37 +55,31 @@ v-if="(component as ListComponent).listType === 'bulleted'"
 
             <!-- Button Component -->
             <div v-else-if="component.type === 'button'">
-                <UButton
-:label="(component as ButtonComponent).text" :variant="(component as ButtonComponent).variant"
+                <UButton :label="(component as ButtonComponent).text" :variant="(component as ButtonComponent).variant"
                     :size="(component as ButtonComponent).size" :to="(component as ButtonComponent).link"
                     :disabled="!(component as ButtonComponent).link" class="inline-flex" />
             </div>
 
             <!-- Separator Component -->
-            <div
-v-else-if="component.type === 'separator'"
+            <div v-else-if="component.type === 'separator'"
                 :class="getSeparatorSpacingClass((component as SeparatorComponent).spacing)">
                 <!-- Line separator -->
-                <hr
-v-if="(component as SeparatorComponent).style === 'line'"
+                <hr v-if="(component as SeparatorComponent).style === 'line'"
                     class="border-neutral-300 dark:border-neutral-600">
 
                 <!-- Dashed separator -->
-                <hr
-v-else-if="(component as SeparatorComponent).style === 'dashed'"
+                <hr v-else-if="(component as SeparatorComponent).style === 'dashed'"
                     class="border-neutral-300 dark:border-neutral-600 border-dashed">
 
                 <!-- Dotted separator -->
-                <hr
-v-else-if="(component as SeparatorComponent).style === 'dotted'"
+                <hr v-else-if="(component as SeparatorComponent).style === 'dotted'"
                     class="border-neutral-300 dark:border-neutral-600 border-dotted border-2">
 
                 <!-- Space separator -->
                 <div v-else-if="(component as SeparatorComponent).style === 'space'" class="w-full" />
 
                 <!-- Ornament separator -->
-                <div
-v-else-if="(component as SeparatorComponent).style === 'ornament'"
+                <div v-else-if="(component as SeparatorComponent).style === 'ornament'"
                     class="flex items-center justify-center">
                     <div class="flex items-center space-x-2 text-neutral-400">
                         <div class="w-2 h-2 bg-current rounded-full" />
@@ -114,8 +102,7 @@ v-else-if="(component as SeparatorComponent).style === 'ornament'"
                             </tr>
                         </thead>
                         <tbody>
-                            <tr
-v-for="(it, idx) in (component as any).items" :key="idx"
+                            <tr v-for="(it, idx) in (component as any).items" :key="idx"
                                 class="border-t border-neutral-200 dark:border-neutral-700">
                                 <td class="py-3 px-3 align-top">
                                     <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ it.name }}</div>
@@ -130,21 +117,42 @@ v-for="(it, idx) in (component as any).items" :key="idx"
                                     {{ formatCurrency(it.unitPrice, (component as any).currency || 'EUR') }}
                                 </td>
                                 <td class="py-3 px-3 align-top text-right">
-                                    {{ formatCurrency(it.quantity * it.unitPrice, (component as any).currency || 'EUR') }}
+                                    {{ formatCurrency(it.quantity * it.unitPrice, (component as any).currency || 'EUR')
+                                    }}
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot>
                             <tr class="border-t-2 border-neutral-300 dark:border-neutral-600">
-                                <td class="py-3 px-3 font-semibold" :colspan="(component as any).mode === 'forfait' ? 2 : 3">
+                                <td class="py-3 px-3 font-semibold"
+                                    :colspan="(component as any).mode === 'forfait' ? 2 : 3">
                                     Total HT
                                 </td>
                                 <td class="py-3 px-3 text-right font-semibold">
-                                    {{ formatCurrency(((component as any).items || []).reduce((s: number, it: any) => s + it.quantity * it.unitPrice, 0), (component as any).currency || 'EUR') }}
+                                    {{formatCurrency(((component as any).items || []).reduce((s: number, it: any) => s
+                                        + it.quantity * it.unitPrice, 0), (component as any).currency || 'EUR')}}
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+            </div>
+
+            <!-- Portfolio Component -->
+            <div v-else-if="component.type === 'portfolio'">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div v-for="(it, idx) in (component as any).items" :key="idx"
+                        class="rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                        <img :src="it.previewUrl || it.url" alt="" class="w-full aspect-square object-cover">
+                        <div v-if="it.title || it.category" class="p-2 text-xs">
+                            <div v-if="it.title" class="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                                {{ it.title }}
+                            </div>
+                            <div v-if="it.category" class="text-neutral-500 dark:text-neutral-400 truncate">
+                                {{ it.category }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

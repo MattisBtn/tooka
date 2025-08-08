@@ -5,13 +5,13 @@
                 { value: 'standard', label: 'Standard' },
                 { value: 'forfait', label: 'Forfait (1 ligne, description longue)' },
                 { value: 'pack', label: 'Pack (10, 20, 30 photos...)' }
-            ]" @update:model-value="setMode" />
+            ]" @update:model-value="(v) => setMode(v as 'standard' | 'forfait' | 'pack')" />
         </UFormField>
 
 
         <UFormField label="Devise" name="currency">
             <USelect :model-value="component.currency || 'EUR'" :items="currencyOptions" option-attribute="label"
-                value-attribute="value" @update:model-value="setCurrency" />
+                value-attribute="value" @update:model-value="(v) => setCurrency(v as 'EUR' | 'USD' | 'GBP')" />
         </UFormField>
 
         <UFormField label="Alignement" name="alignment">
@@ -19,7 +19,7 @@
                 { value: 'left', label: 'Gauche' },
                 { value: 'center', label: 'Centre' },
                 { value: 'right', label: 'Droite' }
-            ]" @update:model-value="$emit('update', { alignment: $event })" />
+            ]" @update:model-value="$emit('update', { alignment: $event as 'left' | 'center' | 'right' })" />
         </UFormField>
 
         <div class="flex items-center justify-between">
@@ -47,7 +47,7 @@
                     </div>
                     <div class="col-span-12">
                         <UFormField label="Description" :name="`desc-${idx}`">
-                            <UTextarea :model-value="it.description || ''" rows="3"
+                            <UTextarea :model-value="it.description || ''" :rows="3"
                                 placeholder="Détails de la prestation"
                                 @input="updateItem(idx, { description: $event.target.value || undefined })" />
                         </UFormField>
@@ -67,7 +67,8 @@
                         </div>
                         <div class="col-span-4">
                             <UFormField label="Total HT" :name="`total-${idx}`">
-                                <UInput :model-value="formatCurrency(it.quantity * it.unitPrice)" readonly />
+                                <UInput type="text" :model-value="formatCurrency(it.quantity * it.unitPrice)"
+                                    readonly />
                             </UFormField>
                         </div>
                     </template>
@@ -94,7 +95,12 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'update', updates: any): void;
+    (e: 'update', updates: {
+        alignment?: 'left' | 'center' | 'right';
+        mode?: 'standard' | 'forfait' | 'pack';
+        pricingItems?: PricingComponent['items'];
+        currency?: 'EUR' | 'USD' | 'GBP';
+    }): void;
 }
 
 const props = defineProps<Props>();
