@@ -333,7 +333,7 @@ export const useSubscriptionStore = defineStore("subscription", () => {
 **Fichier: `server/api/stripe/checkout/create.post.ts`**
 
 ```typescript
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import Stripe from "stripe";
 
 export default defineEventHandler(async (event) => {
@@ -348,7 +348,7 @@ export default defineEventHandler(async (event) => {
 
   const { price_id, user_id, interval = "monthly" } = body;
   const config = useRuntimeConfig();
-  const supabase = await serverSupabaseClient(event);
+  const supabase = await serverSupabaseServiceRole(event);
   const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
   try {
@@ -422,7 +422,7 @@ export default defineEventHandler(async (event) => {
 **Fichier: `server/api/stripe/webhooks.post.ts`**
 
 ```typescript
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import Stripe from "stripe";
 
 export default defineEventHandler(async (event) => {
@@ -437,7 +437,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig();
-  const supabase = await serverSupabaseClient(event);
+  const supabase = await serverSupabaseServiceRole(event);
   const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
   try {

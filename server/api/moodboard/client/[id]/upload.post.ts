@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import type { MoodboardImage } from "~/types/moodboard";
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Verify moodboard exists and is accessible
     const { data: moodboard, error: moodboardError } = await supabase

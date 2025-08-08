@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 export default defineEventHandler(async (event) => {
   const proposalId = getRouterParam(event, "id");
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get proposal with project info directly
     const { data: proposal, error } = await supabase

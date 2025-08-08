@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import Stripe from "stripe";
 
 export default defineEventHandler(async (event) => {
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const supabase = await serverSupabaseClient(event);
+  const supabase = await serverSupabaseServiceRole(event);
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
   try {

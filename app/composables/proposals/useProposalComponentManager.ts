@@ -2,6 +2,8 @@ import type {
   ButtonComponent,
   ListComponent,
   ParagraphComponent,
+  PortfolioComponent,
+  PricingComponent,
   ProposalComponent,
   SeparatorComponent,
   TitleComponent,
@@ -51,7 +53,14 @@ export const useProposalComponentManager = () => {
 
   // Component management methods
   const addComponent = (
-    type: "title" | "paragraph" | "list" | "button" | "separator"
+    type:
+      | "title"
+      | "paragraph"
+      | "list"
+      | "button"
+      | "separator"
+      | "pricing"
+      | "portfolio"
   ) => {
     const id = nextId.value.toString();
     const order = components.value.length + 1;
@@ -103,6 +112,31 @@ export const useProposalComponentManager = () => {
         order,
         alignment: "center",
       } as SeparatorComponent;
+    } else if (type === "pricing") {
+      newComponent = {
+        id,
+        type: "pricing",
+        mode: "standard",
+        items: [
+          {
+            name: "Prestation",
+            description: "Description",
+            quantity: 1,
+            unitPrice: 0,
+          },
+        ],
+        currency: "EUR",
+        order,
+        alignment: "left",
+      } as PricingComponent;
+    } else if (type === "portfolio") {
+      newComponent = {
+        id,
+        type: "portfolio",
+        items: [],
+        order,
+        alignment: "left",
+      } as PortfolioComponent;
     } else {
       return;
     }
@@ -118,7 +152,11 @@ export const useProposalComponentManager = () => {
   const removeComponent = (id: string) => {
     const index = components.value.findIndex((c) => c.id === id);
     if (index > -1) {
-      components.value.splice(index, 1);
+      const removed = components.value.splice(index, 1)[0];
+      // Mark portfolio items for deletion by keeping path info; actual deletion handled on save or elsewhere
+      if (removed && removed.type === "portfolio") {
+        // No immediate deletion to avoid accidental data loss; paths are preserved in items for later cleanup
+      }
       // Reorder components
       components.value.forEach((comp, idx) => {
         comp.order = idx + 1;
@@ -146,6 +184,12 @@ export const useProposalComponentManager = () => {
       style: "line" | "dashed" | "dotted" | "space" | "ornament";
       spacing: "small" | "medium" | "large";
       alignment: "left" | "center" | "right";
+      // Pricing specific
+      mode: "standard" | "forfait" | "pack";
+      pricingItems: PricingComponent["items"];
+      currency: "EUR" | "USD" | "GBP";
+      // Portfolio specific
+      portfolioItems: PortfolioComponent["items"];
     }>
   ) => {
     const index = components.value.findIndex((c) => c.id === id);
@@ -186,6 +230,17 @@ export const useProposalComponentManager = () => {
           separatorComponent.style = updates.style;
         if (updates.spacing !== undefined)
           separatorComponent.spacing = updates.spacing;
+      } else if (currentComponent.type === "pricing") {
+        const pricingComponent = currentComponent as PricingComponent;
+        if (updates.mode !== undefined) pricingComponent.mode = updates.mode;
+        if (updates.pricingItems !== undefined)
+          pricingComponent.items = updates.pricingItems;
+        if (updates.currency !== undefined)
+          pricingComponent.currency = updates.currency;
+      } else if (currentComponent.type === "portfolio") {
+        const portfolioComponent = currentComponent as PortfolioComponent;
+        if (updates.portfolioItems !== undefined)
+          portfolioComponent.items = updates.portfolioItems;
       }
     }
   };

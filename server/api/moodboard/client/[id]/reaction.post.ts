@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import { z } from "zod";
 
 const reactionSchema = z.object({
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const { imageId, reaction, action } = validation.data;
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Verify moodboard exists and is accessible
     const { data: moodboard, error: moodboardError } = await supabase

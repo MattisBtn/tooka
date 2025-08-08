@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ClientGalleryAccess } from "~/types/gallery";
 
 export default defineEventHandler(
@@ -19,7 +19,7 @@ export default defineEventHandler(
     }
 
     try {
-      const supabase = await serverSupabaseClient(event);
+      const supabase = await serverSupabaseServiceRole(event);
 
       // Single query with JOIN to get gallery + project + images count
       const { data: gallery, error } = await supabase

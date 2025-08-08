@@ -36,7 +36,7 @@
                 <!-- Payment Method -->
                 <UFormField label="Méthode de paiement" name="payment_method" required>
                     <USelectMenu :model-value="projectPayment.payment_method || undefined" value-key="value"
-                        :items="paymentMethodOptions" placeholder="Choisir la méthode de paiement"
+                        :items="paymentMethodItems" placeholder="Choisir la méthode de paiement"
                         icon="i-lucide-credit-card" @update:model-value="updatePaymentMethod" />
                 </UFormField>
 
@@ -64,37 +64,7 @@
                     </div>
                 </div>
 
-                <!-- Bank Transfer Details -->
-                <div v-if="projectPayment.payment_method === 'bank_transfer'"
-                    class="space-y-4 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                    <div class="flex items-center gap-2 mb-3">
-                        <UIcon name="i-lucide-building-2" class="w-4 h-4 text-blue-600" />
-                        <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            Coordonnées bancaires pour le virement
-                        </span>
-                    </div>
-
-                    <UFormField label="IBAN" name="bank_iban" required>
-                        <UInput :model-value="projectPayment.bank_iban" placeholder="FR76 1234 5678 9012 3456 7890 123"
-                            icon="i-lucide-credit-card" @update:model-value="updateBankIban" />
-                    </UFormField>
-
-                    <UFormField label="BIC/SWIFT" name="bank_bic" required>
-                        <UInput :model-value="projectPayment.bank_bic" placeholder="EXAMPLEFR1" icon="i-lucide-building"
-                            @update:model-value="updateBankBic" />
-                    </UFormField>
-
-                    <UFormField label="Bénéficiaire" name="bank_beneficiary" required>
-                        <UInput :model-value="projectPayment.bank_beneficiary" placeholder="Votre Entreprise SARL"
-                            icon="i-lucide-user" @update:model-value="updateBankBeneficiary" />
-                    </UFormField>
-
-                    <UAlert color="info" variant="soft" icon="i-lucide-info">
-                        <template #description>
-                            Ces coordonnées seront transmises au client pour effectuer le virement d'acompte.
-                        </template>
-                    </UAlert>
-                </div>
+                <!-- Bank Transfer Details removed: now sourced from user profile -->
             </div>
         </div>
     </div>
@@ -102,6 +72,18 @@
 
 <script setup lang="ts">
 import type { ProjectPaymentData } from "~/types/proposal";
+// Synchronize payment methods with user store capabilities
+const userStore = useUserStore();
+const paymentMethodItems = computed(() => {
+    const items: Array<{ value: string; label: string; disabled?: boolean }> = [];
+    if (userStore.hasStripeConnect) {
+        items.push({ value: 'stripe', label: 'Carte bancaire' });
+    }
+    if (userStore.hasBankingInfo) {
+        items.push({ value: 'bank_transfer', label: 'Virement bancaire' });
+    }
+    return items;
+});
 
 interface Props {
     price: number;
@@ -109,7 +91,6 @@ interface Props {
     depositAmount: number | null;
     depositPercentage: number;
     quickDepositOptions: Array<{ label: string; value: number }>;
-    paymentMethodOptions: Array<{ value: string; label: string; disabled?: boolean }>;
     projectPayment: ProjectPaymentData;
     setDepositFromPercentage: (percentage: number) => void;
 }
@@ -117,32 +98,20 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-    'update:depositRequired': [value: boolean];
-    'update:depositAmount': [value: number | null];
-    'update:projectPayment': [value: ProjectPaymentData];
+    'update:deposit-required': [value: boolean];
+    'update:deposit-amount': [value: number | null];
+    'update:project-payment': [value: ProjectPaymentData];
 }>();
 
 const updateDepositRequired = (value: boolean) => {
-    emit('update:depositRequired', value);
+    emit('update:deposit-required', value);
 };
 
 const updateDepositAmount = (value: number | null) => {
-    emit('update:depositAmount', value);
+    emit('update:deposit-amount', value);
 };
 
 const updatePaymentMethod = (value: string) => {
-    emit('update:projectPayment', { ...props.projectPayment, payment_method: value as 'stripe' | 'bank_transfer' | null });
-};
-
-const updateBankIban = (value: string | null) => {
-    emit('update:projectPayment', { ...props.projectPayment, bank_iban: value });
-};
-
-const updateBankBic = (value: string | null) => {
-    emit('update:projectPayment', { ...props.projectPayment, bank_bic: value });
-};
-
-const updateBankBeneficiary = (value: string | null) => {
-    emit('update:projectPayment', { ...props.projectPayment, bank_beneficiary: value });
+    emit('update:project-payment', { ...props.projectPayment, payment_method: value as 'stripe' | 'bank_transfer' | null });
 };
 </script>

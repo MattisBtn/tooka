@@ -153,7 +153,6 @@ export const useProposalForm = (
     depositAmount: pricing.depositAmount,
     depositPercentage: pricing.depositPercentage,
     quickDepositOptions: pricing.quickDepositOptions,
-    paymentMethodOptions: pricing.paymentMethodOptions,
     setDepositFromPercentage: pricing.setDepositFromPercentage,
 
     // Component management

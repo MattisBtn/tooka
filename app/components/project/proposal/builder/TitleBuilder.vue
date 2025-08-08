@@ -19,7 +19,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { TitleComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { TitleComponent } from '~/composables/proposals/useProposalComponentTypes';
 import AlignmentSelector from './AlignmentSelector.vue';
 
 interface Props {

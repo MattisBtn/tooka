@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import { z } from "zod";
 
 const validateSchema = z.object({
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const { selectedImages } = validation.data;
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get selection with project info
     const { data: selection, error: selectionError } = await supabase

@@ -1,6 +1,6 @@
 import { useAuth } from "~/composables/auth/useAuth";
-import { useUserProfile } from "~/composables/user/useUserProfile";
 import { avatarService } from "~/services/avatarService";
+import { useUserStore } from "~/stores/user";
 
 interface AvatarUploadState {
   isUploading: boolean;
@@ -10,7 +10,8 @@ interface AvatarUploadState {
 
 export const useAvatarUpload = () => {
   const { user } = useAuth();
-  const { profile, refresh: refreshProfile } = useUserProfile();
+  const userStore = useUserStore();
+  const profile = computed(() => userStore.user.profile);
 
   const state = ref<AvatarUploadState>({
     isUploading: false,
@@ -103,7 +104,7 @@ export const useAvatarUpload = () => {
       }
 
       // Rafraîchir le profil utilisateur
-      await refreshProfile();
+      await userStore.fetchUser();
 
       // Nettoyer la prévisualisation après succès
       cleanupPreviewUrl();
@@ -140,7 +141,7 @@ export const useAvatarUpload = () => {
       }
 
       // Rafraîchir le profil utilisateur
-      await refreshProfile();
+      await userStore.fetchUser();
 
       return true;
     } catch (error) {

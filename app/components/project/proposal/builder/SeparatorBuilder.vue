@@ -25,7 +25,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { SeparatorComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { SeparatorComponent } from '~/composables/proposals/useProposalComponentTypes';
 import AlignmentSelector from './AlignmentSelector.vue';
 
 interface Props {

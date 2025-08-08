@@ -16,13 +16,13 @@
         </template>
 
         <template #body>
-            <ProjectForm :project="project" @project-saved="handleProjectSaved" @cancel="store.closeModal" />
+            <ProjectForm :project="project" />
         </template>
     </UModal>
 </template>
 
 <script lang="ts" setup>
-import type { ProjectWithClient } from '~/types/project'
+import type { ProjectWithClient } from '~/types/project';
 
 interface Props {
     modelValue: boolean
@@ -31,7 +31,6 @@ interface Props {
 
 interface Emits {
     (e: 'update:modelValue', value: boolean): void
-    (e: 'project-saved', project: ProjectWithClient): void
 }
 
 const props = defineProps<Props>()
@@ -49,12 +48,6 @@ const isOpen = computed({
 const modalTitle = computed(() =>
     props.project ? 'Modifier le projet' : 'Nouveau projet'
 )
-
-// Handle project saved from form
-const handleProjectSaved = (project: ProjectWithClient) => {
-    emit('project-saved', project)
-    // La fermeture est gérée par le store dans createProject/updateProject
-}
 
 // Handle escape key
 onKeyStroke('Escape', (e) => {

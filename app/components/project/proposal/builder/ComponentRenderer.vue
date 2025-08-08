@@ -88,12 +88,79 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Pricing Component -->
+            <div v-else-if="component.type === 'pricing'">
+                <div class="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-neutral-600 dark:text-neutral-300">
+                                <th class="py-2 px-3">Prestation</th>
+                                <th v-if="(component as any).mode !== 'forfait'" class="py-2 px-3">Qté</th>
+                                <th v-if="(component as any).mode !== 'forfait'" class="py-2 px-3">PU HT</th>
+                                <th class="py-2 px-3 text-right">Total HT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(it, idx) in (component as any).items" :key="idx"
+                                class="border-t border-neutral-200 dark:border-neutral-700">
+                                <td class="py-3 px-3 align-top">
+                                    <div class="font-medium text-neutral-900 dark:text-neutral-100">{{ it.name }}</div>
+                                    <div v-if="it.description" class="text-sm text-neutral-600 dark:text-neutral-400">
+                                        {{ it.description }}
+                                    </div>
+                                </td>
+                                <td v-if="(component as any).mode !== 'forfait'" class="py-3 px-3 align-top">
+                                    {{ it.quantity }}
+                                </td>
+                                <td v-if="(component as any).mode !== 'forfait'" class="py-3 px-3 align-top">
+                                    {{ formatCurrency(it.unitPrice, (component as any).currency || 'EUR') }}
+                                </td>
+                                <td class="py-3 px-3 align-top text-right">
+                                    {{ formatCurrency(it.quantity * it.unitPrice, (component as any).currency || 'EUR')
+                                    }}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-neutral-300 dark:border-neutral-600">
+                                <td class="py-3 px-3 font-semibold"
+                                    :colspan="(component as any).mode === 'forfait' ? 2 : 3">
+                                    Total HT
+                                </td>
+                                <td class="py-3 px-3 text-right font-semibold">
+                                    {{formatCurrency(((component as any).items || []).reduce((s: number, it: any) => s
+                                        + it.quantity * it.unitPrice, 0), (component as any).currency || 'EUR')}}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Portfolio Component -->
+            <div v-else-if="component.type === 'portfolio'">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div v-for="(it, idx) in (component as any).items" :key="idx"
+                        class="rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                        <img :src="it.previewUrl || it.url" alt="" class="w-full aspect-square object-cover">
+                        <div v-if="it.title || it.category" class="p-2 text-xs">
+                            <div v-if="it.title" class="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                                {{ it.title }}
+                            </div>
+                            <div v-if="it.category" class="text-neutral-500 dark:text-neutral-400 truncate">
+                                {{ it.category }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import type { ButtonComponent, ListComponent, ProposalComponent, SeparatorComponent, TitleComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { ButtonComponent, ListComponent, ProposalComponent, SeparatorComponent, TitleComponent } from '~/composables/proposals/useProposalComponentTypes';
 
 interface Props {
     component: ProposalComponent;
@@ -124,6 +191,14 @@ const getSeparatorSpacingClass = (spacing: 'small' | 'medium' | 'large') => {
         case 'small': return 'py-2';
         case 'large': return 'py-8';
         default: return 'py-4';
+    }
+};
+
+const formatCurrency = (n: number, currency: 'EUR' | 'USD' | 'GBP') => {
+    try {
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+    } catch {
+        return `${n.toFixed(2)} ${currency}`;
     }
 };
 </script>

@@ -84,10 +84,6 @@
                     :title="state.require_password ? 'Accès protégé' : 'Accès libre'"
                     :description="state.require_password ? 'Un mot de passe sera généré automatiquement pour protéger l\'accès aux galeries.' : 'Le client pourra accéder aux galeries sans mot de passe.'" />
             </div>
-
-            <!-- Info box about project status -->
-            <UAlert color="info" variant="soft" icon="i-heroicons-information-circle" title="Statut du projet"
-                description="Le projet sera créé en brouillon." />
         </div>
 
         <!-- Action Buttons -->
@@ -99,7 +95,7 @@
 
             <div class="flex items-center gap-3">
                 <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
-                    @click="$emit('cancel')" />
+                    @click="store.closeModal" />
                 <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
             </div>
         </div>
@@ -108,6 +104,7 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
+import { useClientSelect } from "~/composables/clients/useClientSelect";
 import type { ProjectFormData, ProjectWithClient } from '~/types/project';
 import { projectFormSchema } from '~/types/project';
 
@@ -115,17 +112,13 @@ interface Props {
     project?: ProjectWithClient
 }
 
-interface Emits {
-    (e: 'project-saved', project: ProjectWithClient): void
-    (e: 'cancel'): void
-}
-
 const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
 
 // Store
 const store = useProjectsStore()
-const clientsStore = useClientsStore()
+
+// Client select composable
+const { clientOptions, pending: loadingClients } = useClientSelect()
 
 // Form state
 const state = reactive<ProjectFormData>({
@@ -145,46 +138,23 @@ const isSubmitting = ref(false)
 
 // Computed
 const isEditMode = computed(() => !!props.project)
-const loadingClients = computed(() => clientsStore.isLoading)
-const clientOptions = computed(() =>
-    clientsStore.clients.map(client => ({
-        value: client.id,
-        label: client.type === 'individual'
-            ? `${client.first_name || ''} ${client.last_name || ''}`.trim()
-            : client.company_name || ''
-    }))
-)
 
 const submitButtonLabel = computed(() =>
     isEditMode.value ? "Modifier le projet" : "Créer le projet"
 )
 
 // Methods
-const loadAllClients = async () => {
-    if (clientsStore.clients.length === 0) {
-        await clientsStore.initialize()
-    }
-}
-
 const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
     isSubmitting.value = true
     try {
-        let result: ProjectWithClient
 
         if (isEditMode.value && props.project) {
-            result = await store.updateProject(props.project.id, event.data)
+            await store.updateProject(props.project.id, event.data)
         } else {
-            result = await store.createProject(event.data)
+            await store.createProject(event.data)
         }
-
-        emit('project-saved', result)
     } finally {
         isSubmitting.value = false
     }
 }
-
-// Initialize form
-onMounted(async () => {
-    await loadAllClients()
-})
 </script>

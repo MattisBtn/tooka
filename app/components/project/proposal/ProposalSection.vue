@@ -32,8 +32,7 @@
 
                         <!-- Status Badge in Header -->
                         <div class="flex items-center gap-2">
-                            <UBadge :color="getStatusColor(proposalStore.proposal?.status)" variant="soft"
-                                :label="getStatusLabel(proposalStore.proposal?.status || 'Inconnu', 'proposal')" />
+                            <UBadge :color="statusColor" variant="soft" :label="statusLabel" />
                         </div>
                     </div>
                 </template>
@@ -68,35 +67,6 @@
                                 de
                                 paiement</span>
                             <UBadge :color="getPaymentMethodColor()" variant="soft" :label="getPaymentMethodLabel()" />
-                        </div>
-
-                        <!-- Bank Transfer Details -->
-                        <div v-if="projectSetupStore.project?.payment_method === 'bank_transfer'"
-                            class="bg-blue-50 dark:bg-blue-950 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                            <div class="flex items-center gap-2 mb-3">
-                                <UIcon name="i-lucide-building-2" class="w-4 h-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                    Coordonnées bancaires
-                                </span>
-                            </div>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">IBAN:</span>
-                                    <span class="font-mono text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_iban }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">BIC/SWIFT:</span>
-                                    <span class="font-mono text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_bic }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">Bénéficiaire:</span>
-                                    <span class="text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_beneficiary
-                                        }}</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -256,17 +226,36 @@
 
 <script lang="ts" setup>
 import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
-import { getStatusColor, getStatusLabel } from "~/utils/formatters";
+import { getStatusColor } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
+// Avoid deep type instantiation by narrowing proposal type access
+const currentStatus = computed<string>(() => {
+    const p = proposalStore.proposal as unknown as { status?: string } | null
+    return p?.status ?? 'draft'
+})
 
-// Initialize proposal store when project is loaded
-watch(() => projectSetupStore.project, async (project) => {
-    if (project?.id) {
+const statusLabel = computed<string>(() => {
+    const map: Record<string, string> = {
+        draft: 'Brouillon',
+        awaiting_client: 'En attente client',
+        revision_requested: 'Révision demandée',
+        completed: 'Acceptée',
+        payment_pending: 'Paiement en attente',
+    }
+    return map[currentStatus.value] ?? currentStatus.value
+})
+
+const statusColor = computed(() => getStatusColor(currentStatus.value))
+
+// Initialize proposal store when project is loaded (watch only project id to avoid deep TS inference)
+const projectId = computed(() => projectSetupStore.project?.id || null)
+watch(projectId, async (id) => {
+    if (id) {
         try {
-            await proposalStore.loadProposal(project.id)
+            await proposalStore.loadProposal(id)
         } catch (err) {
             console.error('Error loading proposal:', err)
         }
@@ -278,6 +267,7 @@ const handleProposalSaved = async (data: {
     proposal: Record<string, unknown>;
     project: Record<string, unknown>;
     projectUpdated: boolean;
+    shouldValidate: boolean;
 }) => {
     try {
         if (proposalStore.exists && proposalStore.proposal) {
@@ -285,14 +275,16 @@ const handleProposalSaved = async (data: {
             await proposalStore.updateProposal(
                 proposalStore.proposal.id,
                 data.proposal as ProposalFormData,
-                data.projectUpdated ? data.project as ProjectPaymentData : undefined
+                data.project as ProjectPaymentData,
+                data.shouldValidate
             );
         } else {
             // Create new proposal
             await proposalStore.createProposal(
                 projectSetupStore.project!.id,
                 data.proposal as ProposalFormData,
-                data.projectUpdated ? data.project as ProjectPaymentData : undefined
+                data.project as ProjectPaymentData,
+                data.shouldValidate
             );
         }
 
@@ -360,8 +352,11 @@ const sendToClient = async () => {
     if (!proposalStore.proposal) return;
 
     try {
-        // Logique pour envoyer la proposition au client
-        // Cela pourrait mettre à jour le statut vers 'awaiting_client'
+        const { projectUpdated } = await proposalStore.sendToClient()
+        if (projectUpdated) {
+            await projectSetupStore.refreshProject()
+        }
+
         const toast = useToast();
         toast.add({
             title: 'Proposition envoyée',

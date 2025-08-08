@@ -10,7 +10,7 @@ export interface IClientFilters {
 
 export interface IPagination {
   page: number;
-  pageSize: number;
+  pageSize: number | null;
 }
 
 // Validation helpers

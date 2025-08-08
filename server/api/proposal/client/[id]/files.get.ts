@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 /**
  * Get signed URLs for proposal files (contract and quote)
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get proposal with file URLs
     const { data: proposal, error: proposalError } = await supabase

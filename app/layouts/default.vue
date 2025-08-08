@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuth } from '~/composables/auth/useAuth'
 import { useLogo } from '~/composables/shared/useLogo'
-import { useUserProfile } from '~/composables/user/useUserProfile'
+import { useUserStore } from '~/stores/user'
 
 const isSidebarCollapsed = ref(false)
 
@@ -10,7 +10,7 @@ const toggleSidebar = () => {
 }
 
 const { user, logout: authLogout } = useAuth()
-const { profile } = useUserProfile()
+const userStore = useUserStore()
 const { logoSrc } = useLogo()
 
 // Define isDarkMode computed property for color mode toggle
@@ -21,23 +21,23 @@ const isDarkMode = computed({
     }
 })
 
+// Initial client-side fetch of user data
+useAsyncData('user:init', () => userStore.fetchUser({ silent: false }), { server: false })
+
 // Computed properties for user display
 const displayName = computed(() => {
-    if (profile.value?.first_name && profile.value?.last_name) {
-        return `${profile.value.first_name} ${profile.value.last_name}`
-    }
-    if (profile.value?.first_name) {
-        return profile.value.first_name
-    }
+    const p = userStore.user.profile
+    if (p?.first_name && p?.last_name) return `${p.first_name} ${p.last_name}`
+    if (p?.first_name) return p.first_name
     return user.value?.user_metadata?.name || user.value?.email || 'User'
 })
 
 const displayOrganization = computed(() => {
-    return profile.value?.company_name || 'Your workspace'
+    return userStore.user.profile?.company_name || 'Your workspace'
 })
 
 const displayAvatar = computed(() => {
-    return profile.value?.avatar_url || user.value?.user_metadata?.avatar_url
+    return userStore.user.profile?.avatar_url || user.value?.user_metadata?.avatar_url
 })
 
 const categories = [
@@ -62,6 +62,39 @@ const logout = async () => {
         navigateTo('/login')
     }
 }
+
+// Sync auth changes
+const supabase = useSupabaseClient()
+onMounted(() => {
+    const { data: authSub } = supabase.auth.onAuthStateChange(async () => {
+        await userStore.fetchUser({ silent: true })
+    })
+
+    // Realtime channel for user profile changes
+    const authUser = useSupabaseUser()
+    let ch: ReturnType<typeof supabase.channel> | null = null
+    if (authUser.value) {
+        ch = supabase
+            .channel('me-profile')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'user_profiles',
+                filter: `id=eq.${authUser.value.id}`,
+            }, () => {
+                userStore.fetchUser({ silent: true })
+            })
+            .subscribe()
+    }
+
+    onUnmounted(() => {
+        authSub?.subscription?.unsubscribe()
+        if (ch) {
+            supabase.removeChannel(ch)
+            ch = null
+        }
+    })
+})
 </script>
 
 <template>
@@ -100,7 +133,7 @@ const logout = async () => {
                                 :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                 <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                     link.name
-                                }}</span>
+                                    }}</span>
                             </UButton>
                         </div>
                     </div>

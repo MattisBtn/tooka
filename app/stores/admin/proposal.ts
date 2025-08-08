@@ -6,6 +6,7 @@ import type {
   ProposalFormData,
 } from "~/types/proposal";
 import { formatPrice } from "~/utils/formatters";
+//
 
 export const useProposalStore = defineStore("proposal", () => {
   const proposal = ref<Proposal | null>(null);
@@ -63,12 +64,21 @@ export const useProposalStore = defineStore("proposal", () => {
   const createProposal = async (
     projectId: string,
     proposalData: ProposalFormData,
-    projectData?: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    shouldValidate: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
 
     try {
+      // Upload portfolio images before creating proposal
+      if (proposalData.content_json) {
+        await proposalService.uploadPortfolioImages(
+          proposalData.content_json,
+          projectId
+        );
+      }
+
       const data = {
         project_id: projectId,
         content_json: proposalData.content_json,
@@ -78,16 +88,22 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: projectData ? ("awaiting_client" as const) : ("draft" as const),
+        status: shouldValidate
+          ? ("awaiting_client" as const)
+          : ("draft" as const),
         revision_last_comment: null,
       };
 
-      const result = await proposalService.createProposal(data, !!projectData);
+      const result = await proposalService.createProposal(data, shouldValidate);
       proposal.value = result.proposal;
 
-      if (projectData) {
-        const { projectService } = await import("~/services/projectService");
-        await projectService.updateProject(projectId, projectData);
+      // Conditionally update project payment method if deposit is required and a method is selected
+      const { projectService } = await import("~/services/projectService");
+
+      if (proposalData.deposit_required && projectData.payment_method) {
+        await projectService.updateProject(projectId, {
+          payment_method: projectData.payment_method,
+        });
       }
 
       showForm.value = false;
@@ -104,12 +120,55 @@ export const useProposalStore = defineStore("proposal", () => {
   const updateProposal = async (
     proposalId: string,
     proposalData: ProposalFormData,
-    projectData?: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    shouldValidate: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
 
     try {
+      // Collect previously stored portfolio image paths to detect removals
+      type PortfolioItemLike = { path?: string | null };
+      type ComponentWithItems = {
+        type?: string;
+        items?: PortfolioItemLike[] | null;
+      };
+
+      const extractPortfolioPaths = (content: unknown): string[] => {
+        if (!Array.isArray(content)) return [];
+        const arr = content as ComponentWithItems[];
+        const collected: string[] = [];
+        for (const c of arr) {
+          if (c?.type === "portfolio" && Array.isArray(c.items)) {
+            for (const it of c.items) {
+              if (it?.path) collected.push(it.path);
+            }
+          }
+        }
+        return collected;
+      };
+
+      const prevJson: unknown =
+        (proposal.value as unknown as { content_json?: unknown } | null)
+          ?.content_json ?? [];
+      const previousPaths = extractPortfolioPaths(prevJson);
+
+      // Upload portfolio images before updating proposal
+      if (proposalData.content_json) {
+        await proposalService.uploadPortfolioImages(
+          proposalData.content_json,
+          proposal.value!.project_id
+        );
+      }
+
+      // Compute current paths after potential uploads (new items now have path)
+      const currJson: unknown =
+        (proposalData as unknown as { content_json?: unknown }).content_json ??
+        [];
+      const currentPaths = extractPortfolioPaths(currJson);
+      const currentSet = new Set(currentPaths);
+      const removedPaths = previousPaths.filter((p) => !currentSet.has(p));
+
       const data = {
         project_id: proposal.value!.project_id,
         content_json: proposalData.content_json,
@@ -119,23 +178,34 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: projectData ? ("awaiting_client" as const) : ("draft" as const),
+        status: shouldValidate
+          ? ("awaiting_client" as const)
+          : ("draft" as const),
         revision_last_comment: null,
       };
 
       const result = await proposalService.updateProposal(
         proposalId,
         data,
-        !!projectData
+        shouldValidate
       );
       proposal.value = result.proposal;
 
-      if (projectData) {
-        const { projectService } = await import("~/services/projectService");
-        await projectService.updateProject(
-          proposal.value!.project_id,
-          projectData
-        );
+      // Delete removed portfolio images after successful update to avoid orphan files
+      if (removedPaths.length > 0) {
+        try {
+          await proposalService.deleteFiles(removedPaths);
+        } catch {
+          // Silently ignore cleanup failures to not block the user flow
+        }
+      }
+
+      const { projectService } = await import("~/services/projectService");
+
+      if (proposalData.deposit_required && projectData.payment_method) {
+        await projectService.updateProject(proposal.value!.project_id, {
+          payment_method: projectData.payment_method,
+        });
       }
 
       showForm.value = false;
@@ -186,6 +256,29 @@ export const useProposalStore = defineStore("proposal", () => {
     }
   };
 
+  const sendToClient = async () => {
+    if (!proposal.value) return { proposal: null, projectUpdated: false };
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const result = await proposalService.updateProposal(
+        proposal.value.id,
+        {},
+        true
+      );
+      proposal.value = result.proposal;
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to send to client");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     proposal: readonly(proposal),
     loading: readonly(loading),
@@ -204,6 +297,7 @@ export const useProposalStore = defineStore("proposal", () => {
     updateProposal,
     deleteProposal,
     confirmPayment,
+    sendToClient,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
   };

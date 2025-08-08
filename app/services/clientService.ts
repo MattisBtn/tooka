@@ -15,8 +15,7 @@ export const clientService = {
     // Build base query for counting
     let countQuery = supabase
       .from("clients")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.value.id);
+      .select("*", { count: "exact", head: true });
 
     // Apply filters to count query
     if (filters.type) {
@@ -40,12 +39,15 @@ export const clientService = {
     let query = supabase
       .from("clients")
       .select("*")
-      .eq("user_id", user.value.id)
-      .order("created_at", { ascending: false })
-      .range(
+      .order("created_at", { ascending: false });
+
+    // Apply pagination only if pageSize is not null
+    if (pagination.pageSize !== null) {
+      query = query.range(
         (pagination.page - 1) * pagination.pageSize,
         pagination.page * pagination.pageSize - 1
       );
+    }
 
     if (filters.type) {
       query = query.eq("type", filters.type);
@@ -100,7 +102,6 @@ export const clientService = {
       .from("clients")
       .select("*")
       .eq("id", id)
-      .eq("user_id", user.value.id)
       .single();
 
     if (error) {
@@ -183,7 +184,6 @@ export const clientService = {
       .from("clients")
       .update(updates)
       .eq("id", id)
-      .eq("user_id", user.value.id)
       .select()
       .single();
 
@@ -211,11 +211,7 @@ export const clientService = {
       throw new Error("Vous devez être connecté pour supprimer ce client");
     }
 
-    const { error } = await supabase
-      .from("clients")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.value.id);
+    const { error } = await supabase.from("clients").delete().eq("id", id);
 
     if (error) {
       throw new Error(`Failed to delete client: ${error.message}`);
@@ -251,7 +247,7 @@ export const clientService = {
     filters: Omit<IClientFilters, "search"> = {}
   ): Promise<Client[]> {
     // Use a large page size to get all clients at once
-    const pagination: IPagination = { page: 1, pageSize: 1000 };
+    const pagination: IPagination = { page: 1, pageSize: null };
 
     const result = await this.getClients(filters, pagination);
     const clients = result.data;
