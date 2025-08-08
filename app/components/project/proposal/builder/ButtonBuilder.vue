@@ -11,8 +11,7 @@
                 { value: 'outline', label: 'Contour uniquement' },
                 { value: 'ghost', label: 'Fantôme (transparent)' },
                 { value: 'link', label: 'Lien simple' }
-            ]"
-                @update:model-value="$emit('update', { variant: $event as 'solid' | 'outline' | 'ghost' | 'link' })" />
+            ]" @update:model-value="$emit('update', { variant: $event as 'solid' | 'outline' | 'ghost' | 'link' })" />
         </UFormField>
 
         <UFormField label="Taille du bouton" name="size">
@@ -37,7 +36,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { ButtonComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { ButtonComponent } from '~/composables/proposals/useProposalComponentTypes';
 import AlignmentSelector from './AlignmentSelector.vue';
 
 interface Props {

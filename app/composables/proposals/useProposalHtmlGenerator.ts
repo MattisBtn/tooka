@@ -2,6 +2,7 @@ import type {
   ButtonComponent,
   ListComponent,
   ParagraphComponent,
+  PricingComponent,
   ProposalComponent,
   SeparatorComponent,
   TitleComponent,
@@ -147,6 +148,85 @@ export const useProposalHtmlGenerator = () => {
 
               return `<div class="${spacingClass}"><hr class="${hrClasses} ${styleClass}"></div>`;
             }
+          }
+
+          case "pricing": {
+            const priceComp = component as PricingComponent;
+
+            const currency = priceComp.currency || "EUR";
+            const format = (n: number) =>
+              new Intl.NumberFormat("fr-FR", {
+                style: "currency",
+                currency,
+                currencyDisplay: "narrowSymbol",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }).format(n);
+
+            const total = priceComp.items.reduce(
+              (sum, it) => sum + it.quantity * it.unitPrice,
+              0
+            );
+
+            const isForfait = priceComp.mode === "forfait";
+            const isPack = priceComp.mode === "pack";
+
+            const header = `
+<thead>
+  <tr class="text-left text-neutral-600 dark:text-neutral-300">
+    <th class="py-2 px-3">Prestation</th>
+    ${isForfait ? "" : '<th class="py-2 px-3">Qté</th>'}
+    ${isForfait ? "" : '<th class="py-2 px-3">PU HT</th>'}
+    <th class="py-2 px-3 text-right">Total HT</th>
+  </tr>
+</thead>`;
+
+            const rows = priceComp.items
+              .map((it) => {
+                const lineTotal = it.quantity * it.unitPrice;
+                const name = `<div class="font-medium text-neutral-900 dark:text-neutral-100">${it.name}</div>`;
+                const desc = it.description
+                  ? `<div class="text-sm text-neutral-600 dark:text-neutral-400">${it.description}</div>`
+                  : "";
+                return `
+  <tr class="border-t border-neutral-200 dark:border-neutral-700">
+    <td class="py-3 px-3 align-top">${name}${desc}</td>
+    ${isForfait ? "" : `<td class="py-3 px-3 align-top">${it.quantity}</td>`}
+    ${
+      isForfait
+        ? ""
+        : `<td class="py-3 px-3 align-top">${format(it.unitPrice)}</td>`
+    }
+    <td class="py-3 px-3 align-top text-right">${format(lineTotal)}</td>
+  </tr>`;
+              })
+              .join("");
+
+            const footer = `
+<tfoot>
+  <tr class="border-t-2 border-neutral-300 dark:border-neutral-600">
+    <td class="py-3 px-3 font-semibold" ${
+      isForfait ? "colspan=2" : "colspan=3"
+    }>Total HT</td>
+    <td class="py-3 px-3 text-right font-semibold">${format(total)}</td>
+  </tr>
+</tfoot>`;
+
+            const packNote = isPack
+              ? '<div class="text-sm text-neutral-500 dark:text-neutral-400 mt-2">Pack de photos (ex: 10, 20, 30...). Ajustez la quantité (nb de photos) et le PU HT (prix par photo).</div>'
+              : "";
+
+            return `
+<div class="${wrapperClasses}">
+  <div class="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-700">
+    <table class="w-full text-sm">
+      ${header}
+      <tbody>${rows}</tbody>
+      ${footer}
+    </table>
+  </div>
+  ${packNote}
+</div>`;
           }
 
           default:

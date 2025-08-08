@@ -89,8 +89,6 @@ export const useProposalStore = defineStore("proposal", () => {
       const result = await proposalService.createProposal(data, shouldValidate);
       proposal.value = result.proposal;
 
-      console.log("proposalData", proposalData);
-      console.log("projectData", projectData);
       // Conditionally update project payment method if deposit is required and a method is selected
       const { projectService } = await import("~/services/projectService");
       const updateProjectUntyped = projectService.updateProject as unknown as (
@@ -145,9 +143,6 @@ export const useProposalStore = defineStore("proposal", () => {
         shouldValidate
       );
       proposal.value = result.proposal;
-
-      console.log("proposalData", proposalData);
-      console.log("projectData", projectData);
 
       const { projectService } = await import("~/services/projectService");
       const updateProjectUntyped2 = projectService.updateProject as unknown as (
@@ -208,6 +203,29 @@ export const useProposalStore = defineStore("proposal", () => {
     }
   };
 
+  const sendToClient = async () => {
+    if (!proposal.value) return { proposal: null, projectUpdated: false };
+
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const result = await proposalService.updateProposal(
+        proposal.value.id,
+        {},
+        true
+      );
+      proposal.value = result.proposal;
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to send to client");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     proposal: readonly(proposal),
     loading: readonly(loading),
@@ -226,6 +244,7 @@ export const useProposalStore = defineStore("proposal", () => {
     updateProposal,
     deleteProposal,
     confirmPayment,
+    sendToClient,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
   };

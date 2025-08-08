@@ -16,11 +16,6 @@ export const useProposalPricing = (
     bank_beneficiary: initialProjectPayment?.bank_beneficiary || null,
   });
 
-  const paymentMethodOptions = [
-    { value: "stripe", label: "Stripe (Carte bancaire)", disabled: true },
-    { value: "bank_transfer", label: "Virement bancaire" },
-  ];
-
   const quickDepositOptions = [
     { label: "20%", value: 20 },
     { label: "30%", value: 30 },
@@ -56,7 +51,6 @@ export const useProposalPricing = (
     depositAmount,
     projectPayment,
     depositPercentage,
-    paymentMethodOptions,
     quickDepositOptions,
     setDepositFromPercentage,
     reset,

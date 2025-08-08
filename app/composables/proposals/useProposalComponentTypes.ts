@@ -42,13 +42,30 @@ export interface SeparatorComponent extends ComponentBase {
   spacing: "small" | "medium" | "large";
 }
 
+// Pricing item for quote/pricing table
+export interface PricingItem {
+  name: string;
+  description?: string;
+  quantity: number; // integer >= 1
+  unitPrice: number; // PU HT
+}
+
+// Pricing table component (devis)
+export interface PricingComponent extends ComponentBase {
+  type: "pricing";
+  mode: "standard" | "forfait" | "pack";
+  items: PricingItem[];
+  currency?: "EUR" | "USD" | "GBP"; // default EUR
+}
+
 // Union type for all components
 export type ProposalComponent =
   | TitleComponent
   | ParagraphComponent
   | ListComponent
   | ButtonComponent
-  | SeparatorComponent;
+  | SeparatorComponent
+  | PricingComponent;
 
 // Available component types
 export const AVAILABLE_COMPONENTS = [
@@ -82,6 +99,13 @@ export const AVAILABLE_COMPONENTS = [
     icon: "i-lucide-minus",
     description: "Ajouter un séparateur visuel",
   },
+  {
+    type: "pricing",
+    label: "Tableau de devis",
+    icon: "i-lucide-table",
+    description:
+      "Présenter des prestations (nom, description, quantité, PU HT, Total HT)",
+  },
 ] as const;
 
 // Component type helpers
@@ -97,6 +121,8 @@ export const getComponentIcon = (type?: string) => {
       return "i-lucide-mouse-pointer-click";
     case "separator":
       return "i-lucide-minus";
+    case "pricing":
+      return "i-lucide-table";
     default:
       return "i-lucide-settings";
   }
@@ -114,6 +140,8 @@ export const getComponentLabel = (type?: string) => {
       return "Bouton";
     case "separator":
       return "Séparateur";
+    case "pricing":
+      return "Tableau de devis";
     default:
       return "Composant";
   }

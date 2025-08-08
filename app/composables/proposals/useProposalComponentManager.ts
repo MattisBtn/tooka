@@ -2,6 +2,7 @@ import type {
   ButtonComponent,
   ListComponent,
   ParagraphComponent,
+  PricingComponent,
   ProposalComponent,
   SeparatorComponent,
   TitleComponent,
@@ -51,7 +52,7 @@ export const useProposalComponentManager = () => {
 
   // Component management methods
   const addComponent = (
-    type: "title" | "paragraph" | "list" | "button" | "separator"
+    type: "title" | "paragraph" | "list" | "button" | "separator" | "pricing"
   ) => {
     const id = nextId.value.toString();
     const order = components.value.length + 1;
@@ -103,6 +104,23 @@ export const useProposalComponentManager = () => {
         order,
         alignment: "center",
       } as SeparatorComponent;
+    } else if (type === "pricing") {
+      newComponent = {
+        id,
+        type: "pricing",
+        mode: "standard",
+        items: [
+          {
+            name: "Prestation",
+            description: "Description",
+            quantity: 1,
+            unitPrice: 0,
+          },
+        ],
+        currency: "EUR",
+        order,
+        alignment: "left",
+      } as PricingComponent;
     } else {
       return;
     }
@@ -146,6 +164,10 @@ export const useProposalComponentManager = () => {
       style: "line" | "dashed" | "dotted" | "space" | "ornament";
       spacing: "small" | "medium" | "large";
       alignment: "left" | "center" | "right";
+      // Pricing specific
+      mode: "standard" | "forfait" | "pack";
+      pricingItems: PricingComponent["items"];
+      currency: "EUR" | "USD" | "GBP";
     }>
   ) => {
     const index = components.value.findIndex((c) => c.id === id);
@@ -186,6 +208,13 @@ export const useProposalComponentManager = () => {
           separatorComponent.style = updates.style;
         if (updates.spacing !== undefined)
           separatorComponent.spacing = updates.spacing;
+      } else if (currentComponent.type === "pricing") {
+        const pricingComponent = currentComponent as PricingComponent;
+        if (updates.mode !== undefined) pricingComponent.mode = updates.mode;
+        if (updates.pricingItems !== undefined)
+          pricingComponent.items = updates.pricingItems;
+        if (updates.currency !== undefined)
+          pricingComponent.currency = updates.currency;
       }
     }
   };

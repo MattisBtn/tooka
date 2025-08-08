@@ -32,8 +32,7 @@
 
                         <!-- Status Badge in Header -->
                         <div class="flex items-center gap-2">
-                            <UBadge :color="getStatusColor(proposalStore.proposal?.status)" variant="soft"
-                                :label="getStatusLabel(proposalStore.proposal?.status || 'Inconnu', 'proposal')" />
+                            <UBadge :color="statusColor" variant="soft" :label="statusLabel" />
                         </div>
                     </div>
                 </template>
@@ -227,17 +226,36 @@
 
 <script lang="ts" setup>
 import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
-import { getStatusColor, getStatusLabel } from "~/utils/formatters";
+import { getStatusColor } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
+// Avoid deep type instantiation by narrowing proposal type access
+const currentStatus = computed<string>(() => {
+    const p = proposalStore.proposal as unknown as { status?: string } | null
+    return p?.status ?? 'draft'
+})
 
-// Initialize proposal store when project is loaded
-watch(() => projectSetupStore.project, async (project) => {
-    if (project?.id) {
+const statusLabel = computed<string>(() => {
+    const map: Record<string, string> = {
+        draft: 'Brouillon',
+        awaiting_client: 'En attente client',
+        revision_requested: 'Révision demandée',
+        completed: 'Acceptée',
+        payment_pending: 'Paiement en attente',
+    }
+    return map[currentStatus.value] ?? currentStatus.value
+})
+
+const statusColor = computed(() => getStatusColor(currentStatus.value))
+
+// Initialize proposal store when project is loaded (watch only project id to avoid deep TS inference)
+const projectId = computed(() => projectSetupStore.project?.id || null)
+watch(projectId, async (id) => {
+    if (id) {
         try {
-            await proposalStore.loadProposal(project.id)
+            await proposalStore.loadProposal(id)
         } catch (err) {
             console.error('Error loading proposal:', err)
         }
@@ -334,8 +352,11 @@ const sendToClient = async () => {
     if (!proposalStore.proposal) return;
 
     try {
-        // Logique pour envoyer la proposition au client
-        // Cela pourrait mettre à jour le statut vers 'awaiting_client'
+        const { projectUpdated } = await proposalStore.sendToClient()
+        if (projectUpdated) {
+            await projectSetupStore.refreshProject()
+        }
+
         const toast = useToast();
         toast.add({
             title: 'Proposition envoyée',

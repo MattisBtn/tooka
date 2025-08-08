@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { ParagraphComponent } from '~/composables/proposals/useProposalContentBuilder';
+import type { ParagraphComponent } from '~/composables/proposals/useProposalComponentTypes';
 import AlignmentSelector from './AlignmentSelector.vue';
 
 interface Props {
