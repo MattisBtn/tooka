@@ -161,12 +161,19 @@ export const useGalleryStore = defineStore("gallery", () => {
       }
 
       // Upload images if provided
-      if (files && files.length > 0 && result.gallery.id) {
+      if (files && files.length > 0) {
         await galleryService.uploadImages(result.gallery.id, files);
       }
 
       // Reload data
       await loadGallery(projectId);
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       // Close form after successful creation
       showForm.value = false;
@@ -223,6 +230,13 @@ export const useGalleryStore = defineStore("gallery", () => {
       if (gallery.value?.project_id) {
         await loadGallery(gallery.value.project_id);
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       // Close form after successful update
       showForm.value = false;

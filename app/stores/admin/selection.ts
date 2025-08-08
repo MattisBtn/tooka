@@ -289,6 +289,7 @@ export const useSelectionStore = defineStore("selection", () => {
         max_media_selection: selectionData.max_media_selection,
         extra_media_price: selectionData.extra_media_price || null,
         status: selectionData.status,
+        revision_last_comment: null,
       };
 
       const result = await selectionService.createSelection(
@@ -297,13 +298,18 @@ export const useSelectionStore = defineStore("selection", () => {
       );
       selection.value = result.selection;
 
-      // Upload images if provided (avec tracking)
+      // Upload images if provided
       if (selectedFiles && selectedFiles.length > 0) {
         initializeUploadProgress(selectedFiles);
-
-        // Upload en arrière-plan avec tracking
         handleBackgroundUpload(result.selection.id, selectedFiles);
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.selection;
@@ -330,6 +336,7 @@ export const useSelectionStore = defineStore("selection", () => {
         max_media_selection: selectionData.max_media_selection,
         extra_media_price: selectionData.extra_media_price || null,
         status: selectionData.status,
+        revision_last_comment: null,
       };
 
       const result = await selectionService.updateSelection(
@@ -339,13 +346,18 @@ export const useSelectionStore = defineStore("selection", () => {
       );
       selection.value = result.selection;
 
-      // Upload images if provided (avec tracking)
+      // Upload images if provided
       if (selectedFiles && selectedFiles.length > 0) {
         initializeUploadProgress(selectedFiles);
-
-        // Upload en arrière-plan avec tracking
         handleBackgroundUpload(result.selection.id, selectedFiles);
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.selection;
@@ -520,5 +532,6 @@ export const useSelectionStore = defineStore("selection", () => {
     incrementConvertedCount,
     incrementFailedCount,
     downloadSelectedImagesAsZip,
+    handleBackgroundUpload,
   };
 });

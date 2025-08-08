@@ -68,6 +68,37 @@ const isAdvancedStatus = (status: string): boolean => {
   ].includes(status);
 };
 
+// Normalize module shape: can be null, single object, or an array of objects
+// Returns whether it exists (non-empty) and its primary status if available
+export const normalizeModule = (
+  module: unknown
+): { exists: boolean; status?: string } => {
+  if (!module) return { exists: false };
+
+  if (Array.isArray(module)) {
+    if (module.length === 0) return { exists: false };
+    const first = module[0] as unknown;
+    const status = (() => {
+      if (typeof first === "object" && first !== null) {
+        const candidate = first as Record<string, unknown>;
+        const value = candidate["status"];
+        return typeof value === "string" ? value : undefined;
+      }
+      return undefined;
+    })();
+    return { exists: true, status };
+  }
+
+  if (typeof module === "object") {
+    const candidate = module as Record<string, unknown>;
+    const value = candidate["status"];
+    const status = typeof value === "string" ? value : undefined;
+    return { exists: true, status };
+  }
+
+  return { exists: false };
+};
+
 // Helper function to check if project is new (all modules in draft or don't exist)
 const isNewProject = (project: {
   proposal?: { status: string } | null;
@@ -81,13 +112,14 @@ const isNewProject = (project: {
     project.selection,
     project.gallery,
   ];
-  const existingModules = modules.filter(Boolean);
+  const normalized = modules.map((m) => normalizeModule(m));
+  const existing = normalized.filter((m) => m.exists);
 
   // If no modules exist, it's a new project
-  if (existingModules.length === 0) return true;
+  if (existing.length === 0) return true;
 
-  // If all existing modules are in draft, it's a new project
-  return existingModules.every((module) => module?.status === "draft");
+  // If all existing modules are in draft (or missing status treated as draft), it's a new project
+  return existing.every((m) => (m.status ?? "draft") === "draft");
 };
 
 // Helper function to check if a step is locked due to advanced modules
@@ -107,17 +139,88 @@ const isStepLockedByAdvancedModules = (
     4: "gallery",
   } as const;
 
-  // Check if any module after the current step is advanced
-  for (let i = stepNumber + 1; i <= 4; i++) {
+  // Check if any module is advanced (this blocks access to lower steps)
+  for (let i = 1; i <= 4; i++) {
     const moduleKey = moduleMap[i as keyof typeof moduleMap];
-    const module = project[moduleKey as keyof typeof project];
+    const { exists, status } = normalizeModule(
+      project[moduleKey as keyof typeof project]
+    );
 
-    if (module && isAdvancedStatus(module.status)) {
-      return true; // This step is locked because a later step is advanced
+    if (exists && status && isAdvancedStatus(status)) {
+      // If any step is advanced, only that step and higher steps are accessible
+      return stepNumber < i;
     }
   }
 
   return false;
+};
+
+// Helper function to check if a step is locked because previous step is not completed
+const isStepLockedByPreviousStep = (
+  stepNumber: 1 | 2 | 3 | 4,
+  project: {
+    proposal?: { status: string } | null;
+    moodboard?: { status: string } | null;
+    selection?: { status: string } | null;
+    gallery?: { status: string } | null;
+  }
+): boolean => {
+  const moduleMap = {
+    1: "proposal",
+    2: "moodboard",
+    3: "selection",
+    4: "gallery",
+  } as const;
+
+  // For step 1, no previous step to check
+  if (stepNumber === 1) return false;
+
+  // If the project is new, do not lock by previous steps
+  if (isNewProject(project)) return false;
+
+  // Check if any step is in_progress (this blocks all navigation)
+  for (let i = 1; i <= 4; i++) {
+    const moduleKey = moduleMap[i as keyof typeof moduleMap];
+    const { exists, status } = normalizeModule(
+      project[moduleKey as keyof typeof project]
+    );
+
+    if (exists && status === "awaiting_client") {
+      // If any step is in_progress, only that step is accessible
+      return stepNumber !== i;
+    }
+  }
+
+  // Check if we're trying to go to a lower step when all steps are completed
+  const allStepsCompleted = [1, 2, 3, 4].every((i) => {
+    const moduleKey = moduleMap[i as keyof typeof moduleMap];
+    const { exists, status } = normalizeModule(
+      project[moduleKey as keyof typeof project]
+    );
+    return exists && status === "completed";
+  });
+
+  if (allStepsCompleted) {
+    // If all steps are completed, you can only go to higher steps
+    return stepNumber < 4; // Only step 4 is accessible
+  }
+
+  // Normal flow: check if previous step exists and is not completed
+  // But steps are optional, so we need to find the last completed step
+  let lastCompletedStep = 0;
+  for (let i = 1; i < stepNumber; i++) {
+    const moduleKey = moduleMap[i as keyof typeof moduleMap];
+    const { exists, status } = normalizeModule(
+      project[moduleKey as keyof typeof project]
+    );
+
+    if (exists && status === "completed") {
+      lastCompletedStep = i;
+    }
+  }
+
+  // If no previous step is completed, this step is locked
+  return lastCompletedStep === 0;
 };
 
 // Determine step status based on project modules
@@ -138,7 +241,7 @@ export const getStepStatus = (
   } as const;
 
   const moduleKey = moduleMap[stepNumber];
-  const module = project[moduleKey];
+  const normalized = normalizeModule(project[moduleKey]);
 
   // Check if this is a new project
   const isNew = isNewProject(project);
@@ -146,19 +249,26 @@ export const getStepStatus = (
   // Check if step is locked by advanced modules
   const isLocked = isStepLockedByAdvancedModules(stepNumber, project);
 
+  // Check if step is locked because previous step is not completed
+  const isLockedByPrevious = isStepLockedByPreviousStep(stepNumber, project);
+
   // Module doesn't exist
-  if (!module) {
+  if (!normalized.exists) {
     return {
-      status: isNew ? "not_started" : isLocked ? "locked" : "not_started",
-      canView: true,
-      canEdit: !isLocked, // Can edit if not locked
+      status: isNew
+        ? "not_started"
+        : isLocked || isLockedByPrevious
+        ? "locked"
+        : "not_started",
+      canView: !isLockedByPrevious, // Can't view if locked by previous step
+      canEdit: !isLocked && !isLockedByPrevious, // Can edit if not locked by either condition
       moduleExists: false,
     };
   }
 
   // Module exists, check status
-  const moduleStatus = module.status;
-  const isAdvanced = isAdvancedStatus(moduleStatus);
+  const moduleStatus = normalized.status as string | undefined;
+  const isAdvanced = moduleStatus ? isAdvancedStatus(moduleStatus) : false;
 
   if (moduleStatus === "completed") {
     return {
@@ -182,9 +292,9 @@ export const getStepStatus = (
 
   // Module is in draft
   return {
-    status: isLocked ? "locked" : "in_progress",
-    canView: true,
-    canEdit: !isLocked, // Can edit if not locked by advanced modules
+    status: isLocked || isLockedByPrevious ? "locked" : "in_progress",
+    canView: !isLockedByPrevious, // Can't view if locked by previous step
+    canEdit: !isLocked && !isLockedByPrevious, // Can edit if not locked by either condition
     moduleExists: true,
     moduleStatus,
   };

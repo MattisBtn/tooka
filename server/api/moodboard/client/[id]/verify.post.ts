@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ClientPasswordVerification } from "~/types/moodboard";
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get moodboard with project info directly
     const { data: moodboard, error } = await supabase

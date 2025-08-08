@@ -25,8 +25,8 @@
 
 
     <!-- Project Modal -->
-    <ProjectModal :model-value="store.showModal" :project="store.selectedProject" @update:model-value="store.closeModal"
-      @project-saved="handleProjectSaved" />
+    <ProjectModal :model-value="store.showModal" :project="store.selectedProject"
+      @update:model-value="store.closeModal" />
 
     <!-- Delete Confirmation Modal -->
     <UModal :open="store.showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
@@ -169,16 +169,6 @@ const deleteModalDescription = computed(() => {
 const handlePageChange = async (page: number) => {
   await store.setPage(page)
 }
-
-const handleProjectSaved = (project: ProjectWithClient) => {
-  if (store.selectedProject) {
-    store.updateProjectInList(project)
-  } else {
-    store.addProjectToList(project)
-  }
-}
-
-
 
 const confirmDelete = async () => {
   if (!store.projectToDelete) return

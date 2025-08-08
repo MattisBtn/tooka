@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 // Type pour les galeries avec info de projet et paiement
 type GalleryWithProject = {
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get gallery with project info including payment details
     const { data: galleryData, error: galleryError } = await supabase

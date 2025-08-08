@@ -36,7 +36,7 @@
 
 <script lang="ts" setup>
 import type { WorkflowStep } from '~/types/project';
-import { getStepStatus, type StepInfo } from '~/utils/formatters';
+import { getStepStatus, normalizeModule, type StepInfo } from '~/utils/formatters';
 
 interface Props {
     currentStep: number
@@ -74,19 +74,44 @@ const getMostAdvancedStep = (): WorkflowStep => {
         4: "gallery",
     } as const;
 
-    // Check from the end to find the most advanced step
-    for (let i = 4; i >= 1; i--) {
+    // First, check if any step is in_progress (awaiting_client)
+    for (let i = 1; i <= 4; i++) {
         const moduleKey = moduleMap[i as keyof typeof moduleMap];
-        const module = projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project];
+        const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
 
-        // Type guard to check if module exists and has status property
-        if (module && typeof module === 'object' && 'status' in module && module.status !== "draft") {
+        if (exists && status === "awaiting_client") {
+            // If any step is in_progress, stay on that step
             return i as WorkflowStep;
         }
     }
 
-    // If no advanced step found, return the first step
-    return 1;
+    // Find the last completed step
+    let lastCompletedStep = 0;
+    for (let i = 1; i <= 4; i++) {
+        const moduleKey = moduleMap[i as keyof typeof moduleMap];
+        const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
+
+        if (exists && status === "completed") {
+            lastCompletedStep = i;
+        }
+    }
+
+    // If step 4 is completed, go to step 4
+    if (lastCompletedStep === 4) {
+        return 4;
+    }
+
+    // Find the first accessible step after the last completed step
+    for (let i = lastCompletedStep + 1; i <= 4; i++) {
+        const stepStatus = getStepDisplayStatus(i as WorkflowStep);
+
+        if (stepStatus?.canView) {
+            return i as WorkflowStep;
+        }
+    }
+
+    // If no accessible step found after last completed, go to the last completed step
+    return lastCompletedStep > 0 ? lastCompletedStep as WorkflowStep : 1;
 }
 
 // Auto-select the most advanced step when project changes

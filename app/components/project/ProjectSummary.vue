@@ -212,6 +212,7 @@
 </template>
 
 <script lang="ts" setup>
+import { useClientSelect } from '~/composables/clients/useClientSelect'
 import type { ProjectStatusItem, ProjectWithClient } from '~/types/project'
 import { projectEditSchema } from '~/types/project'
 
@@ -251,15 +252,8 @@ const editState = reactive({
 const editSchema = projectEditSchema
 
 // Computed
-const loadingClients = computed(() => clientsStore.isLoading)
-const clientOptions = computed(() =>
-    clientsStore.clients.map(client => ({
-        value: client.id,
-        label: client.type === 'individual'
-            ? `${client.first_name || ''} ${client.last_name || ''}`.trim()
-            : client.company_name || ''
-    }))
-)
+const { clientOptions, pending: loadingClients } = useClientSelect()
+
 
 // Copy password to clipboard
 const copyPassword = async () => {

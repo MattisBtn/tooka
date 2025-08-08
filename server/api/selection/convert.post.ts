@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 interface ConversionRequest {
   rawFileUrl: string;
@@ -27,7 +27,7 @@ export default defineEventHandler(
     }
 
     try {
-      const supabase = await serverSupabaseClient(event);
+      const supabase = await serverSupabaseServiceRole(event);
 
       // Vérifier que la sélection existe
       const { data: selection, error: selectionError } = await supabase

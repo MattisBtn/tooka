@@ -90,6 +90,15 @@ const handleStepChange = (stepNumber: number) => {
     currentStep.value = stepNumber as WorkflowStep
 }
 
+// Example of how to use the automatic status update
+// This would be called after any module status changes
+const handleModuleStatusChange = async () => {
+    try {
+        await store.checkAndUpdateProjectStatus()
+    } catch (error) {
+        console.error('Error updating project status:', error)
+    }
+}
 
 
 // Initialize

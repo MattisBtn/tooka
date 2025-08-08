@@ -82,7 +82,6 @@ export const projectService = {
         )
       `
       )
-      .eq("user_id", user.value.id)
       .order("created_at", { ascending: false })
       .range(
         (pagination.page - 1) * pagination.pageSize,
@@ -101,7 +100,6 @@ export const projectService = {
       const { data: matchingClients } = await supabase
         .from("clients")
         .select("id")
-        .eq("user_id", user.value.id)
         .or(
           `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
         );
@@ -128,7 +126,7 @@ export const projectService = {
     }
 
     return {
-      data: data || [],
+      data: data as ProjectWithClient[],
       total: count || 0,
     };
   },
@@ -277,7 +275,7 @@ export const projectService = {
       throw new Error(`Failed to create project: ${error.message}`);
     }
 
-    return data;
+    return data as ProjectWithClient;
   },
 
   /**
@@ -408,6 +406,77 @@ export const projectService = {
 
     if (error) {
       throw new Error(`Failed to start workflow: ${error.message}`);
+    }
+  },
+
+  /**
+   * Check if project should be updated to in_progress status
+   */
+  shouldUpdateProjectStatus(project: ProjectWithClient): boolean {
+    if (project.status === "completed") {
+      return false;
+    }
+
+    // Check if any module is not in draft status
+    return !!(
+      (project.proposal && project.proposal.status !== "draft") ||
+      (project.moodboard && project.moodboard.status !== "draft") ||
+      (project.selection && project.selection.status !== "draft") ||
+      (project.gallery && project.gallery.status !== "draft")
+    );
+  },
+
+  /**
+   * Check if project should be updated to completed status
+   */
+  shouldUpdateProjectToCompleted(project: ProjectWithClient): boolean {
+    if (project.status === "completed") {
+      return false;
+    }
+
+    // Project is completed when gallery is completed
+    return !!(project.gallery && project.gallery.status === "completed");
+  },
+
+  /**
+   * Update project status to in_progress if needed
+   */
+  async updateProjectStatusIfNeeded(projectId: string): Promise<void> {
+    const supabase = useSupabaseClient();
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour modifier ce projet");
+    }
+
+    // Get current project data
+    const project = await this.getProjectById(projectId);
+
+    // Check if status should be updated to completed first
+    if (this.shouldUpdateProjectToCompleted(project)) {
+      const { error } = await supabase
+        .from("projects")
+        .update({ status: "completed" })
+        .eq("id", projectId)
+        .eq("user_id", user.value.id);
+
+      if (error) {
+        throw new Error(`Failed to update project status: ${error.message}`);
+      }
+      return;
+    }
+
+    // Check if status should be updated to in_progress
+    if (this.shouldUpdateProjectStatus(project)) {
+      const { error } = await supabase
+        .from("projects")
+        .update({ status: "in_progress" })
+        .eq("id", projectId)
+        .eq("user_id", user.value.id);
+
+      if (error) {
+        throw new Error(`Failed to update project status: ${error.message}`);
+      }
     }
   },
 

@@ -90,6 +90,13 @@ export const useProposalStore = defineStore("proposal", () => {
         await projectService.updateProject(projectId, projectData);
       }
 
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
+
       showForm.value = false;
       return result.proposal;
     } catch (err) {
@@ -137,6 +144,13 @@ export const useProposalStore = defineStore("proposal", () => {
           projectData
         );
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.proposal;

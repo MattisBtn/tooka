@@ -86,13 +86,19 @@ export const useMoodboardStore = defineStore("moodboard", () => {
           result.moodboard.id,
           selectedFiles
         );
-        // Update moodboard directly with new images instead of reloading
         moodboard.value = {
           ...moodboard.value!,
           images: uploadedImages,
           imageCount: uploadedImages.length,
         };
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.moodboard;
@@ -143,6 +149,13 @@ export const useMoodboardStore = defineStore("moodboard", () => {
           imageCount: existingImages.length + uploadedImages.length,
         };
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.moodboard;

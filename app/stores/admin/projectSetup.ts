@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
 import type { ProjectWithClient } from "~/types/project";
-import { formatDate, formatPrice } from "~/utils/formatters";
+import { formatDate, formatPrice, normalizeModule } from "~/utils/formatters";
 
 export const useProjectSetupStore = defineStore("projectSetup", () => {
   const project = ref<ProjectWithClient | null>(null);
@@ -53,15 +53,20 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
   };
 
   // Check if project can be edited (all modules must be in draft status)
-  const canEditProject = computed(() => {
+  const canEditProject = computed<boolean>(() => {
     if (!project.value) return false;
 
-    // Check if any module is not in draft status
-    const hasNonDraftModule =
-      (project.value.proposal && project.value.proposal.status !== "draft") ||
-      (project.value.moodboard && project.value.moodboard.status !== "draft") ||
-      (project.value.selection && project.value.selection.status !== "draft") ||
-      (project.value.gallery && project.value.gallery.status !== "draft");
+    // Normalize all modules and check if any is non-draft
+    const modules = [
+      normalizeModule(project.value.proposal),
+      normalizeModule(project.value.moodboard),
+      normalizeModule(project.value.selection),
+      normalizeModule(project.value.gallery),
+    ];
+
+    const hasNonDraftModule = modules.some(
+      (m) => m.exists && (m.status ?? "draft") !== "draft"
+    );
 
     return !hasNonDraftModule;
   });
@@ -88,7 +93,11 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
         project.value.id,
         updates
       );
-      project.value = { ...project.value, ...updatedProject };
+      // Merge shallowly with explicit cast to avoid excessive type instantiation
+      project.value = {
+        ...(project.value as ProjectWithClient),
+        ...(updatedProject as Partial<ProjectWithClient>),
+      } as ProjectWithClient;
       return updatedProject;
     } catch (err) {
       error.value =
@@ -109,6 +118,20 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     }
   };
 
+  // Check and update project status automatically
+  const checkAndUpdateProjectStatus = async () => {
+    if (!project.value?.id) return;
+
+    try {
+      const { projectService } = await import("~/services/projectService");
+      await projectService.updateProjectStatusIfNeeded(project.value.id);
+      // Refresh project data to get updated status
+      await fetchProject(project.value.id);
+    } catch (err) {
+      console.error("Error updating project status:", err);
+    }
+  };
+
   return {
     project: readonly(project),
     loading: readonly(loading),
@@ -123,5 +146,6 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     fetchProject,
     updateProjectInline,
     refreshProject,
+    checkAndUpdateProjectStatus,
   };
 });

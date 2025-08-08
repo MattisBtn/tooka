@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ClientSelectionAccess } from "~/types/selection";
 
 export default defineEventHandler(
@@ -19,7 +19,7 @@ export default defineEventHandler(
     }
 
     try {
-      const supabase = await serverSupabaseClient(event);
+      const supabase = await serverSupabaseServiceRole(event);
 
       // Get selection with project info
       const { data: selection, error } = await supabase

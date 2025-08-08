@@ -1,4 +1,4 @@
-import { serverSupabaseClient } from "#supabase/server";
+import { serverSupabaseServiceRole } from "#supabase/server";
 
 // Type pour les propositions avec info de projet et paiement
 type ProposalWithProject = {
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const supabase = await serverSupabaseClient(event);
+    const supabase = await serverSupabaseServiceRole(event);
 
     // Get proposal with project info including payment details
     const { data: proposalData, error: proposalError } = await supabase

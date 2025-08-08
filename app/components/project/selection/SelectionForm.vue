@@ -344,7 +344,8 @@ const uploading = ref(false);
 const uploadProgress = ref(0);
 
 // Existing images management
-const images = ref<SelectionImage[]>([...(props.existingImages || [])]);
+const selectionStore = useSelectionStore();
+const images = computed(() => Array.from(selectionStore.selection?.images || []));
 const isDeletingAllImages = ref(false);
 
 // Validation schema
@@ -381,7 +382,7 @@ const handleDeleteExistingImage = async (imageId: string) => {
         await selectionStore.deleteImage(imageId);
 
         // Remove from local state
-        images.value = images.value.filter((img) => img.id !== imageId);
+        // images.value = images.value.filter((img) => img.id !== imageId); // This line is no longer needed
 
         const toast = useToast();
         toast.add({
@@ -416,7 +417,7 @@ const handleDeleteAllImages = async () => {
         await selectionStore.deleteAllImages();
 
         // Clear local state
-        images.value = [];
+        // images.value = []; // This line is no longer needed
 
         const toast = useToast();
         toast.add({
