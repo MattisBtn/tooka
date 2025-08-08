@@ -6,6 +6,7 @@ import type {
   ProposalFormData,
 } from "~/types/proposal";
 import { formatPrice } from "~/utils/formatters";
+//
 
 export const useProposalStore = defineStore("proposal", () => {
   const proposal = ref<Proposal | null>(null);
@@ -63,7 +64,8 @@ export const useProposalStore = defineStore("proposal", () => {
   const createProposal = async (
     projectId: string,
     proposalData: ProposalFormData,
-    projectData?: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    shouldValidate: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
@@ -78,24 +80,28 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: projectData ? ("awaiting_client" as const) : ("draft" as const),
+        status: shouldValidate
+          ? ("awaiting_client" as const)
+          : ("draft" as const),
         revision_last_comment: null,
       };
 
-      const result = await proposalService.createProposal(data, !!projectData);
+      const result = await proposalService.createProposal(data, shouldValidate);
       proposal.value = result.proposal;
 
-      if (projectData) {
-        const { projectService } = await import("~/services/projectService");
-        await projectService.updateProject(projectId, projectData);
+      console.log("proposalData", proposalData);
+      console.log("projectData", projectData);
+      // Conditionally update project payment method if deposit is required and a method is selected
+      const { projectService } = await import("~/services/projectService");
+      const updateProjectUntyped = projectService.updateProject as unknown as (
+        id: string,
+        updates: Record<string, unknown>
+      ) => Promise<unknown>;
+      if (proposalData.deposit_required && projectData.payment_method) {
+        await updateProjectUntyped(projectId, {
+          payment_method: projectData.payment_method,
+        });
       }
-
-      // Check and update project status automatically
-      const { useProjectSetupStore } = await import(
-        "~/stores/admin/projectSetup"
-      );
-      const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
 
       showForm.value = false;
       return result.proposal;
@@ -111,7 +117,8 @@ export const useProposalStore = defineStore("proposal", () => {
   const updateProposal = async (
     proposalId: string,
     proposalData: ProposalFormData,
-    projectData?: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    shouldValidate: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
@@ -126,31 +133,32 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: projectData ? ("awaiting_client" as const) : ("draft" as const),
+        status: shouldValidate
+          ? ("awaiting_client" as const)
+          : ("draft" as const),
         revision_last_comment: null,
       };
 
       const result = await proposalService.updateProposal(
         proposalId,
         data,
-        !!projectData
+        shouldValidate
       );
       proposal.value = result.proposal;
 
-      if (projectData) {
-        const { projectService } = await import("~/services/projectService");
-        await projectService.updateProject(
-          proposal.value!.project_id,
-          projectData
-        );
-      }
+      console.log("proposalData", proposalData);
+      console.log("projectData", projectData);
 
-      // Check and update project status automatically
-      const { useProjectSetupStore } = await import(
-        "~/stores/admin/projectSetup"
-      );
-      const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      const { projectService } = await import("~/services/projectService");
+      const updateProjectUntyped2 = projectService.updateProject as unknown as (
+        id: string,
+        updates: Record<string, unknown>
+      ) => Promise<unknown>;
+      if (proposalData.deposit_required && projectData.payment_method) {
+        await updateProjectUntyped2(proposal.value!.project_id, {
+          payment_method: projectData.payment_method,
+        });
+      }
 
       showForm.value = false;
       return result.proposal;

@@ -69,35 +69,6 @@
                                 paiement</span>
                             <UBadge :color="getPaymentMethodColor()" variant="soft" :label="getPaymentMethodLabel()" />
                         </div>
-
-                        <!-- Bank Transfer Details -->
-                        <div v-if="projectSetupStore.project?.payment_method === 'bank_transfer'"
-                            class="bg-blue-50 dark:bg-blue-950 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                            <div class="flex items-center gap-2 mb-3">
-                                <UIcon name="i-lucide-building-2" class="w-4 h-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                    Coordonnées bancaires
-                                </span>
-                            </div>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">IBAN:</span>
-                                    <span class="font-mono text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_iban }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">BIC/SWIFT:</span>
-                                    <span class="font-mono text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_bic }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-neutral-600 dark:text-neutral-400">Bénéficiaire:</span>
-                                    <span class="text-neutral-900 dark:text-neutral-100">{{
-                                        projectSetupStore.project?.bank_beneficiary
-                                        }}</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Documents Info -->
@@ -278,6 +249,7 @@ const handleProposalSaved = async (data: {
     proposal: Record<string, unknown>;
     project: Record<string, unknown>;
     projectUpdated: boolean;
+    shouldValidate: boolean;
 }) => {
     try {
         if (proposalStore.exists && proposalStore.proposal) {
@@ -285,14 +257,16 @@ const handleProposalSaved = async (data: {
             await proposalStore.updateProposal(
                 proposalStore.proposal.id,
                 data.proposal as ProposalFormData,
-                data.projectUpdated ? data.project as ProjectPaymentData : undefined
+                data.project as ProjectPaymentData,
+                data.shouldValidate
             );
         } else {
             // Create new proposal
             await proposalStore.createProposal(
                 projectSetupStore.project!.id,
                 data.proposal as ProposalFormData,
-                data.projectUpdated ? data.project as ProjectPaymentData : undefined
+                data.project as ProjectPaymentData,
+                data.shouldValidate
             );
         }
 

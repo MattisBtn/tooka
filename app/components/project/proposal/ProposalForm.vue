@@ -29,10 +29,9 @@
         <!-- Pricing Section -->
         <ProjectProposalPricingSection :price="price" :deposit-required="depositRequired"
             :deposit-amount="depositAmount" :deposit-percentage="depositPercentage"
-            :quick-deposit-options="quickDepositOptions" :payment-method-options="paymentMethodOptions"
-            :project-payment="projectState" :set-deposit-from-percentage="setDepositFromPercentage"
-            @update:deposit-required="depositRequired = $event" @update:deposit-amount="depositAmount = $event"
-            @update:project-payment="projectState = $event" />
+            :quick-deposit-options="quickDepositOptions" :project-payment="projectState"
+            :set-deposit-from-percentage="setDepositFromPercentage" @update:deposit-required="onUpdateDepositRequired"
+            @update:deposit-amount="onUpdateDepositAmount" @update:project-payment="onUpdateProjectPayment" />
 
         <USeparator />
 
@@ -78,7 +77,8 @@ interface Emits {
     (e: "proposal-saved", data: {
         proposal: ProposalFormData;
         project: ProjectPaymentData;
-        projectUpdated: boolean
+        projectUpdated: boolean;
+        shouldValidate: boolean;
     }): void;
     (e: "cancel"): void;
 }
@@ -94,7 +94,6 @@ const {
     quoteFile,
     depositPercentage,
     quickDepositOptions,
-    paymentMethodOptions,
     uploadFiles,
     setDepositFromPercentage,
     price,
@@ -133,11 +132,25 @@ const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
         emit("proposal-saved", {
             proposal: proposalState,
             project: projectState,
-            projectUpdated: shouldValidate
+            projectUpdated: Boolean(depositRequired.value && projectState.payment_method),
+            shouldValidate,
         });
     } finally {
         isSubmitting.value = false;
     }
+};
+
+// Local handlers to correctly mutate reactive state
+const onUpdateDepositRequired = (value: boolean) => {
+    depositRequired.value = value;
+};
+
+const onUpdateDepositAmount = (value: number | null) => {
+    depositAmount.value = value;
+};
+
+const onUpdateProjectPayment = (value: ProjectPaymentData) => {
+    Object.assign(projectState, value);
 };
 </script>
 
