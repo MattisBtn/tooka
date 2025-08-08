@@ -39,7 +39,8 @@
                     class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto">
                     <button v-for="(image, index) in images" :key="image.id"
                         class="w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-110 flex-shrink-0"
-                        :class="index === currentIndex ? 'border-white' : 'border-white/30'" @click="goToImage(index)">
+                        :class="index === currentIndex ? 'border-white' : 'border-white/30'" @click="goToImage(index)"
+                        @mouseenter="loadThumbnailUrl(image)">
                         <NuxtImg v-if="thumbnailUrls[image.id]" :src="thumbnailUrls[image.id]"
                             :alt="`Thumbnail ${index + 1}`" class="w-full h-full object-cover" loading="lazy" />
                         <div v-else
@@ -128,9 +129,33 @@ watch(() => props.currentImage, async (newImage) => {
 // Preload thumbnail URLs
 onMounted(async () => {
     if (props.images.length > 1) {
-        // Preload first few thumbnails
-        const imagesToPreload = props.images.slice(0, 5)
+        const imagesToPreload = props.images.slice(0, 8)
         await Promise.all(imagesToPreload.map(image => loadThumbnailUrl(image)))
     }
 })
+
+// Keep thumbnails in sync when image list changes
+watch(() => props.images, async (newImages) => {
+    if (!newImages || newImages.length === 0) {
+        thumbnailUrls.value = {}
+        return
+    }
+    const imagesToPreload = newImages.slice(0, 8)
+    await Promise.all(imagesToPreload.map(image => loadThumbnailUrl(image)))
+}, { deep: false })
+
+// Prefetch neighbors around current index for smoother navigation
+const prefetchAround = async (centerIndex: number) => {
+    const range = 2
+    const start = Math.max(0, centerIndex - range)
+    const end = Math.min(props.images.length - 1, centerIndex + range)
+    const targets = props.images.slice(start, end + 1)
+    await Promise.all(targets.map((img: MoodboardImageWithInteractions) => loadThumbnailUrl(img)))
+}
+
+watch(() => props.currentIndex, async (idx) => {
+    if (typeof idx === 'number' && props.images.length > 0) {
+        await prefetchAround(idx)
+    }
+}, { immediate: true })
 </script>
