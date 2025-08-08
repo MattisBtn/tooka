@@ -223,6 +223,21 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div
+                                class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                                <div class="flex items-center gap-3">
+                                    <UIcon name="i-lucide-check-circle"
+                                        class="w-5 h-5 text-green-600 dark:text-green-400" />
+                                    <div>
+                                        <h5 class="font-medium text-green-900 dark:text-green-100">Confirmation
+                                            automatique</h5>
+                                        <p class="text-sm text-green-700 dark:text-green-300">
+                                            Votre proposition sera automatiquement acceptée après le paiement
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- No payment method configured -->

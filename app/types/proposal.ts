@@ -84,6 +84,7 @@ export interface PaymentData {
   method: string;
   amount: number;
   reference: string;
+  checkoutUrl?: string; // For Stripe payments
   bankDetails?: {
     iban: string;
     bic: string;

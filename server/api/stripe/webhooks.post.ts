@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
       config.STRIPE_WEBHOOK_SECRET
     );
 
+    // Handle subscription events
     if (webhook.type === "checkout.session.completed") {
       const session = webhook.data.object as Stripe.Checkout.Session;
       const { user_id, plan_id } = session.metadata || {};
@@ -45,6 +46,32 @@ export default defineEventHandler(async (event) => {
               : null,
           })
           .eq("id", user_id);
+      }
+
+      // Handle proposal payment completion (backup for immediate payment methods)
+      if (session.metadata?.proposal_id && session.payment_status === "paid") {
+        const proposalId = session.metadata.proposal_id;
+
+        // Only update if the proposal is still in payment_pending status
+        const { data: proposal } = await supabase
+          .from("proposals")
+          .select("status")
+          .eq("id", proposalId)
+          .single();
+
+        if (proposal?.status === "payment_pending") {
+          await supabase
+            .from("proposals")
+            .update({
+              status: "completed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", proposalId);
+
+          console.log(
+            `Proposal ${proposalId} payment completed via checkout.session.completed`
+          );
+        }
       }
     }
 
@@ -93,6 +120,49 @@ export default defineEventHandler(async (event) => {
               : null,
           })
           .eq("id", userProfile.id);
+      }
+    }
+
+    // Handle payment intent events for proposals (PRIMARY EVENT)
+    if (webhook.type === "payment_intent.succeeded") {
+      const paymentIntent = webhook.data.object as Stripe.PaymentIntent;
+
+      if (paymentIntent.metadata?.proposal_id) {
+        const proposalId = paymentIntent.metadata.proposal_id;
+
+        // Update proposal status to completed
+        await supabase
+          .from("proposals")
+          .update({
+            status: "completed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", proposalId);
+
+        console.log(
+          `Proposal ${proposalId} payment intent succeeded - marking as completed`
+        );
+      }
+    }
+
+    if (webhook.type === "payment_intent.payment_failed") {
+      const paymentIntent = webhook.data.object as Stripe.PaymentIntent;
+
+      if (paymentIntent.metadata?.proposal_id) {
+        const proposalId = paymentIntent.metadata.proposal_id;
+
+        // Update proposal status back to awaiting_client
+        await supabase
+          .from("proposals")
+          .update({
+            status: "awaiting_client",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", proposalId);
+
+        console.log(
+          `Proposal ${proposalId} payment failed - reverting to awaiting_client`
+        );
       }
     }
 

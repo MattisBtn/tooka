@@ -167,14 +167,22 @@ export const useClientProposal = async (proposalId: string) => {
       // Use appropriate payment method
       const paymentMethod = project.value?.paymentMethod || "bank_transfer";
 
-      await $fetch<PaymentResponse>(
+      const response = await $fetch<PaymentResponse>(
         `/api/proposal/client/${proposal.value.id}/payment`,
         {
           method: "POST",
           body: { method: paymentMethod },
         }
       );
-      await reloadNuxtApp();
+
+      // Handle different payment methods
+      if (paymentMethod === "stripe" && response.payment.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.payment.checkoutUrl;
+      } else {
+        // For bank transfer, just reload the page
+        await reloadNuxtApp();
+      }
     } catch (err) {
       console.error("Failed to confirm payment:", err);
       throw err;

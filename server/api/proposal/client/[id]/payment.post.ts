@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import Stripe from "stripe";
 
 // Type pour les propositions avec info de projet et paiement
 type ProposalWithProject = {
@@ -44,6 +45,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const supabase = await serverSupabaseServiceRole(event);
+    const config = useRuntimeConfig();
+    const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
     // Get proposal with project info including payment details
     const { data: proposalData, error: proposalError } = await supabase
@@ -182,12 +185,117 @@ export default defineEventHandler(async (event) => {
         },
       };
     } else if (method === "stripe") {
-      // TODO: Implement Stripe payment flow
-      // For now, return a placeholder response
-      throw createError({
-        statusCode: 501,
-        message: "Paiement Stripe non encore implémenté",
+      // Get photographer's Stripe account
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("stripe_account_id, stripe_account_status")
+        .eq("id", proposal.project.user_id)
+        .single();
+
+      if (userProfileError || !userProfile) {
+        throw createError({
+          statusCode: 400,
+          message: "Profil photographe non trouvé",
+        });
+      }
+
+      if (!userProfile.stripe_account_id) {
+        throw createError({
+          statusCode: 400,
+          message: "Compte Stripe du photographe non configuré",
+        });
+      }
+
+      if (userProfile.stripe_account_status !== "complete") {
+        throw createError({
+          statusCode: 400,
+          message: "Compte Stripe du photographe non activé",
+        });
+      }
+
+      // Generate payment reference
+      const paymentReference = `PROP-${proposalId
+        .slice(0, 8)
+        .toUpperCase()}-${Date.now()}`;
+
+      // Create Checkout Session with destination charge
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "eur",
+              product_data: {
+                name: `Acompte - ${proposal.project.title}`,
+                description: `Acompte pour la proposition ${proposalId}`,
+              },
+              unit_amount: Math.round(proposal.deposit_amount * 100), // Convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${
+          config.public.baseUrl || "http://localhost:3000"
+        }/proposal/${proposalId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${
+          config.public.baseUrl || "http://localhost:3000"
+        }/proposal/${proposalId}?canceled=true`,
+        metadata: {
+          proposal_id: proposalId,
+          project_id: proposal.project.id,
+          payment_reference: paymentReference,
+          client_name: clientName,
+        },
+        // Destination charge - funds go directly to photographer's account
+        payment_intent_data: {
+          transfer_data: {
+            destination: userProfile.stripe_account_id,
+          },
+          metadata: {
+            proposal_id: proposalId,
+            project_id: proposal.project.id,
+            payment_reference: paymentReference,
+            client_name: clientName,
+          },
+        },
       });
+
+      // Update proposal status to payment_pending
+      const { data: updatedProposal, error: updateError } = await supabase
+        .from("proposals")
+        .update({
+          status: "payment_pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposalId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw createError({
+          statusCode: 500,
+          message: "Erreur lors de la mise à jour du statut",
+        });
+      }
+
+      // Return Stripe checkout URL
+      return {
+        success: true,
+        message: "Session de paiement créée",
+        payment: {
+          method: "stripe",
+          amount: proposal.deposit_amount,
+          reference: paymentReference,
+          checkoutUrl: session.url,
+        },
+        proposal: {
+          id: updatedProposal.id,
+          status: updatedProposal.status,
+          clientName,
+          projectTitle: proposal.project.title,
+        },
+      };
     }
 
     throw createError({
