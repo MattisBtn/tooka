@@ -5,22 +5,10 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and Project Info -->
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-camera" class="w-4 h-4 text-white" />
-                        </div>
-                        <span class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 hidden sm:block">
-                            Tooka
-                        </span>
-                    </div>
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
 
                     <!-- Project Title and Status -->
                     <div class="hidden md:flex items-center gap-4 min-w-0">
-                        <div class="border-l border-neutral-300 dark:border-neutral-600 pl-4">
-                            <h1 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                {{ project.title }}
-                            </h1>
-                        </div>
                         <UBadge :color="statusColor" variant="soft" size="sm">
                             <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
                             {{ statusLabel }}
@@ -171,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLogo } from "~/composables/shared/useLogo";
 import type { ClientGalleryAccess } from "~/types/gallery";
 
 interface Props {
@@ -196,6 +185,9 @@ interface Emits {
 
 const props = defineProps<Props>();
 defineEmits<Emits>();
+
+// Logo management
+const { logoSrc } = useLogo()
 
 // Color mode management
 const colorMode = useColorMode();

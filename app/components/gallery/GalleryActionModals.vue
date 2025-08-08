@@ -196,112 +196,47 @@
     <UModal v-model:open="showRequestRevisionsDialog">
         <template #header>
             <div class="flex items-center gap-3">
-                <div
-                    class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-white" />
+                <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-edit" class="w-4 h-4 text-white" />
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Demander des retouches</h3>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Demander des modifications sur les images
-                    </p>
+                    <h3 class="text-lg font-semibold">Demander des retouches</h3>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Décrivez les modifications souhaitées</p>
                 </div>
             </div>
         </template>
 
         <template #body>
-            <div class="space-y-6">
-                <!-- Instructions Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-chat-bubble-left-right" class="w-3 h-3 text-white" />
-                        </div>
-                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Demande de retouches
-                        </h4>
-                    </div>
-                    <p class="text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Décrivez les modifications que vous souhaitez apporter à cette galerie. Soyez aussi précis que
-                        possible pour faciliter le travail de retouche.
-                    </p>
-                </div>
+            <div class="space-y-4">
+                <p class="text-neutral-600 dark:text-neutral-400">
+                    Décrivez les modifications que vous souhaitez apporter à cette galerie. Soyez aussi précis que
+                    possible.
+                </p>
 
-                <USeparator />
+                <UFormField name="revisionComment" label="Commentaires et demandes spécifiques" class="w-full">
+                    <UTextarea v-model="revisionComment" class="w-full"
+                        placeholder="Exemple: Image 3 - Éclaircir le visage, Image 7 - Retirer l'élément en arrière-plan, Images 12-15 - Ajuster la saturation..."
+                        :rows="5" :disabled="requestingRevisions" />
+                </UFormField>
 
-                <!-- Form Section -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-6 h-6 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-document-text" class="w-3 h-3 text-white" />
-                        </div>
-                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Détails des
-                            modifications
-                        </h4>
-                    </div>
-
-                    <UFormField name="revisionComment" label="Commentaires et demandes spécifiques"
-                        help="Décrivez précisément les retouches souhaitées pour chaque image concernée" class="w-full">
-                        <UTextarea v-model="revisionComment" class="w-full"
-                            placeholder="Exemple: Image 3 - Éclaircir le visage, Image 7 - Retirer l'élément en arrière-plan, Images 12-15 - Ajuster la saturation..."
-                            :rows="5" />
-                    </UFormField>
-
-                    <!-- Tips for better communication -->
-                    <UAlert color="info" variant="soft" icon="i-heroicons-light-bulb"
-                        title="Conseils pour une demande efficace">
-                        <template #description>
-                            <ul class="text-sm space-y-1 ml-4 list-disc">
-                                <li>Numérotez ou décrivez précisément les images concernées</li>
-                                <li>Soyez spécifique sur les retouches souhaitées</li>
-                                <li>Mentionnez vos préférences stylistiques si nécessaire</li>
-                            </ul>
-                        </template>
-                    </UAlert>
-                </div>
-
-                <USeparator />
-
-                <!-- Process Information -->
-                <div class="space-y-4">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-6 h-6 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-clock" class="w-3 h-3 text-white" />
-                        </div>
-                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Processus de retouche
-                        </h4>
-                    </div>
-
-                    <UAlert color="warning" variant="soft" icon="i-heroicons-information-circle"
-                        title="Prochaines étapes">
-                        <template #description>
-                            <div class="space-y-2">
-                                <p>Une fois votre demande envoyée :</p>
-                                <ol class="text-sm space-y-1 ml-4 list-decimal">
-                                    <li>Votre photographe recevra une notification immédiate</li>
-                                    <li>Il vous contactera pour clarifier si nécessaire</li>
-                                    <li>Les retouches seront effectuées selon vos demandes</li>
-                                    <li>Une nouvelle version sera mise à disposition</li>
-                                </ol>
-                            </div>
-                        </template>
-                    </UAlert>
-                </div>
+                <UAlert color="info" variant="soft" icon="i-lucide-lightbulb" title="Conseils">
+                    <template #description>
+                        <ul class="text-sm space-y-1 ml-4 list-disc">
+                            <li>Numérotez ou décrivez précisément les images concernées</li>
+                            <li>Soyez spécifique sur les retouches souhaitées</li>
+                            <li>Mentionnez vos préférences stylistiques si nécessaire</li>
+                        </ul>
+                    </template>
+                </UAlert>
             </div>
         </template>
 
         <template #footer>
-            <div class="flex items-center justify-end w-full">
-                <div class="flex items-center gap-3">
-                    <UButton variant="ghost" @click="cancelRequestRevisions">
-                        Annuler
-                    </UButton>
-                    <UButton color="warning" :loading="requestingRevisions" icon="i-heroicons-pencil-square"
-                        @click="requestRevisions">
-                        Envoyer
-                    </UButton>
-                </div>
+            <div class="flex items-center justify-end gap-3">
+                <UButton variant="ghost" @click="cancelRequestRevisions">Annuler</UButton>
+                <UButton color="warning" :loading="requestingRevisions" icon="i-lucide-edit" @click="requestRevisions">
+                    Envoyer
+                </UButton>
             </div>
         </template>
     </UModal>

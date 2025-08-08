@@ -92,6 +92,30 @@
                         </div>
                     </div>
 
+                    <!-- Revision Comment -->
+                    <div v-if="galleryStore.gallery?.status === 'revision_requested' && galleryStore.gallery?.revision_last_comment"
+                        class="space-y-2">
+                        <span
+                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Commentaire
+                            de
+                            révision</span>
+                        <div
+                            class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <UIcon name="i-lucide-message-circle"
+                                    class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                                        Demande de révision du client
+                                    </p>
+                                    <p class="text-sm text-amber-800 dark:text-amber-200">
+                                        {{ galleryStore.gallery.revision_last_comment }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Images Preview -->
                     <div v-if="galleryStore.hasImages" class="space-y-3">
                         <div class="flex items-center gap-2">
@@ -370,6 +394,8 @@ const handleConfirmPayment = async () => {
 
     try {
         await galleryStore.confirmPayment(galleryStore.gallery.id)
+        await projectSetupStore.refreshProject()
+
         const toast = useToast()
         toast.add({
             title: 'Paiement confirmé',

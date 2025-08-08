@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
       .from("galleries")
       .update({
         status: "revision_requested",
+        revision_last_comment: body?.comment || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", galleryId)
@@ -65,18 +66,13 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // TODO: Store client comment in database
-    // Note: The current database schema doesn't have a field for client comments on galleries
-    // We might need to add a new table like "gallery_client_comments" or add a field to galleries table
-    const clientComment = body?.comment;
-
     // TODO: Send notification to photographer about revision request
 
     return {
       success: true,
       gallery: updatedGallery,
       message: "Demande de retouches envoyée avec succès",
-      comment: clientComment,
+      comment: body?.comment || null,
     };
   } catch (error) {
     // Re-throw known errors
