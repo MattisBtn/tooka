@@ -27,8 +27,11 @@
                     <!-- Action buttons based on status -->
                     <template v-if="proposal && isAuthenticated">
                         <!-- Pay deposit button (for awaiting_client status with deposit required) -->
-                        <UButton v-if="proposal.status === 'awaiting_client' && proposal.deposit_required"
-                            icon="i-lucide-credit-card" color="success" size="sm" label="Payer l'acompte"
+                        <UButton
+                            v-if="proposal.status === 'awaiting_client' && proposal.deposit_required && project?.paymentMethod"
+                            :icon="project.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
+                            :color="project.paymentMethod === 'stripe' ? 'primary' : 'success'" size="sm"
+                            :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'Payer l\'acompte'"
                             :loading="confirmingPayment" @click="$emit('pay-deposit')" />
 
                         <!-- Accept button (for awaiting_client status WITHOUT deposit) -->
@@ -59,6 +62,7 @@ interface Props {
         id: string;
         title: string;
         hasPassword: boolean;
+        paymentMethod?: "stripe" | "bank_transfer" | null;
     } | null;
     proposal?: Proposal | null;
     isAuthenticated: boolean;

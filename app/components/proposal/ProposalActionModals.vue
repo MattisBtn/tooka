@@ -108,20 +108,19 @@
                                     Paiement de l'acompte
                                 </h3>
                                 <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    Effectuez le virement bancaire pour valider votre projet
+                                    Effectuez le paiement pour valider votre projet
                                 </p>
                             </div>
                         </div>
                     </template>
 
-                    <div v-if="proposal?.deposit_required && proposal?.deposit_amount && project?.bankDetails"
-                        class="space-y-6">
+                    <div v-if="proposal?.deposit_required && proposal?.deposit_amount" class="space-y-6">
                         <!-- Amount to pay -->
                         <div
                             class="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
                             <div class="text-center">
                                 <h4 class="text-lg font-semibold text-emerald-900 dark:text-emerald-100 mb-1">
-                                    Montant à virer
+                                    Montant à payer
                                 </h4>
                                 <p class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                                     {{ new Intl.NumberFormat('fr-FR', {
@@ -132,8 +131,9 @@
                             </div>
                         </div>
 
-                        <!-- Bank details -->
-                        <div class="space-y-4">
+                        <!-- Bank Transfer Payment -->
+                        <div v-if="project?.paymentMethod === 'bank_transfer' && project?.bankDetails"
+                            class="space-y-4">
                             <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">
                                 Coordonnées bancaires
                             </h4>
@@ -185,23 +185,62 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <UAlert color="info" variant="soft" icon="i-lucide-info">
+                                <template #title>Instructions importantes</template>
+                                <template #description>
+                                    <ul class="list-disc list-inside space-y-1 text-sm">
+                                        <li>Indiquez impérativement la référence dans le libellé de votre virement</li>
+                                        <li>Le virement peut prendre 1-2 jours ouvrés pour être traité</li>
+                                        <li>Vous recevrez une confirmation par email une fois le paiement reçu</li>
+                                    </ul>
+                                </template>
+                            </UAlert>
                         </div>
 
-                        <UAlert color="info" variant="soft" icon="i-lucide-info">
-                            <template #title>Instructions importantes</template>
-                            <template #description>
-                                <ul class="list-disc list-inside space-y-1 text-sm">
-                                    <li>Indiquez impérativement la référence dans le libellé de votre virement</li>
-                                    <li>Le virement peut prendre 1-2 jours ouvrés pour être traité</li>
-                                    <li>Vous recevrez une confirmation par email une fois le paiement reçu</li>
-                                </ul>
-                            </template>
-                        </UAlert>
+                        <!-- Stripe Payment -->
+                        <div v-else-if="project?.paymentMethod === 'stripe'" class="space-y-4">
+                            <UAlert color="info" variant="soft" icon="i-lucide-credit-card">
+                                <template #title>Paiement sécurisé</template>
+                                <template #description>
+                                    Vous allez être redirigé vers Stripe pour effectuer un paiement sécurisé par carte
+                                    bancaire.
+                                    Votre photographe recevra une notification automatique une fois le paiement
+                                    confirmé.
+                                </template>
+                            </UAlert>
+
+                            <div
+                                class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div class="flex items-center gap-3">
+                                    <UIcon name="i-lucide-shield-check"
+                                        class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                        <h5 class="font-medium text-blue-900 dark:text-blue-100">Paiement sécurisé</h5>
+                                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                                            Vos données de paiement sont protégées par Stripe
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No payment method configured -->
+                        <div v-else class="space-y-4">
+                            <UAlert color="warning" variant="soft" icon="i-lucide-alert-triangle">
+                                <template #title>Méthode de paiement non configurée</template>
+                                <template #description>
+                                    Aucune méthode de paiement n'est configurée pour ce projet.
+                                    Veuillez contacter votre photographe pour plus d'informations.
+                                </template>
+                            </UAlert>
+                        </div>
 
                         <div class="flex items-center justify-end gap-3 pt-4">
                             <UButton variant="ghost" color="neutral" label="Annuler"
                                 @click="$emit('update:showPaymentDialog', false)" />
-                            <UButton color="success" icon="i-lucide-check-circle" label="J'ai effectué le virement"
+                            <UButton v-if="project?.paymentMethod" color="success" icon="i-lucide-check-circle"
+                                :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'J\'ai effectué le virement'"
                                 :loading="confirmingPayment" @click="$emit('confirm-payment')" />
                         </div>
                     </div>
@@ -224,6 +263,7 @@ interface Props {
         id: string;
         title: string;
         hasPassword: boolean;
+        paymentMethod?: "stripe" | "bank_transfer" | null;
         bankDetails?: {
             iban: string;
             bic: string;

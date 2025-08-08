@@ -54,6 +54,7 @@ export interface ClientProposalAccess {
     id: string;
     title: string;
     hasPassword: boolean;
+    paymentMethod: "stripe" | "bank_transfer" | null;
     bankDetails?: {
       iban: string;
       bic: string;

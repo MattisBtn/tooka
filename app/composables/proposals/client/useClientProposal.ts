@@ -42,6 +42,15 @@ export const useClientProposal = async (proposalId: string) => {
     return project.value?.hasPassword && !auth.isAuthenticated.value;
   });
 
+  // Payment method computed
+  const isBankTransfer = computed(() => {
+    return project.value?.paymentMethod === "bank_transfer";
+  });
+
+  const isStripePayment = computed(() => {
+    return project.value?.paymentMethod === "stripe";
+  });
+
   // Formatted prices
   const formattedPrice = computed(() => {
     if (!proposal.value?.price) return "0,00 €";
@@ -154,11 +163,15 @@ export const useClientProposal = async (proposalId: string) => {
       return;
     try {
       confirmingPayment.value = true;
+
+      // Use appropriate payment method
+      const paymentMethod = project.value?.paymentMethod || "bank_transfer";
+
       await $fetch<PaymentResponse>(
         `/api/proposal/client/${proposal.value.id}/payment`,
         {
           method: "POST",
-          body: { method: "bank_transfer" },
+          body: { method: paymentMethod },
         }
       );
       await reloadNuxtApp();
@@ -242,6 +255,10 @@ export const useClientProposal = async (proposalId: string) => {
     isAuthenticated,
     authError: auth.authError,
     needsPassword,
+
+    // Payment method computed
+    isBankTransfer,
+    isStripePayment,
 
     // Action states
     validatingProposal: readonly(validatingProposal),

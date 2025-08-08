@@ -9,13 +9,11 @@ type ProposalWithProject = {
   project: {
     id: string;
     title: string;
+    user_id: string;
     initial_price: number | null;
     remaining_amount: number | null;
     payment_status: string | null;
     payment_method: "stripe" | "bank_transfer" | null;
-    bank_iban: string | null;
-    bank_bic: string | null;
-    bank_beneficiary: string | null;
     client: {
       id: string;
       billing_email: string;
@@ -28,7 +26,7 @@ type ProposalWithProject = {
 
 export default defineEventHandler(async (event) => {
   const proposalId = getRouterParam(event, "id");
-  const { method } = await readBody(event); // 'bank_transfer' pour le MVP
+  const { method } = await readBody(event);
 
   if (!proposalId) {
     throw createError({
@@ -37,10 +35,10 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (method !== "bank_transfer") {
+  if (!method || (method !== "stripe" && method !== "bank_transfer")) {
     throw createError({
       statusCode: 400,
-      message: "Méthode de paiement non supportée pour le moment",
+      message: "Méthode de paiement non supportée",
     });
   }
 
@@ -56,13 +54,11 @@ export default defineEventHandler(async (event) => {
         project:projects(
           id,
           title,
+          user_id,
           initial_price,
           remaining_amount,
           payment_status,
           payment_method,
-          bank_iban,
-          bank_bic,
-          bank_beneficiary,
           client:clients(
             id,
             billing_email,
@@ -85,7 +81,7 @@ export default defineEventHandler(async (event) => {
 
     const proposal = proposalData as ProposalWithProject;
 
-    // Check if deposit is required and payment method is bank_transfer
+    // Check if deposit is required
     if (!proposal.deposit_required || !proposal.deposit_amount) {
       throw createError({
         statusCode: 400,
@@ -93,45 +89,16 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Validate payment method and bank details (now from project)
+    // Validate payment method matches project configuration
     if (
       !proposal.project.payment_method ||
-      proposal.project.payment_method !== "bank_transfer"
+      proposal.project.payment_method !== method
     ) {
       throw createError({
         statusCode: 400,
-        message: "Méthode de paiement non supportée ou manquante",
+        message: "Méthode de paiement non autorisée pour ce projet",
       });
     }
-
-    // Check if bank details are available (now from project)
-    if (
-      !proposal.project.bank_iban?.trim() ||
-      !proposal.project.bank_bic?.trim() ||
-      !proposal.project.bank_beneficiary?.trim()
-    ) {
-      throw createError({
-        statusCode: 400,
-        message: "Coordonnées bancaires manquantes",
-      });
-    }
-
-    // Generate payment reference
-    const paymentReference = `PROP-${proposalId
-      .slice(0, 8)
-      .toUpperCase()}-${Date.now()}`;
-
-    // Prepare payment details with bank coordinates from project
-    const paymentDetails = {
-      amount: proposal.deposit_amount,
-      reference: paymentReference,
-      bankDetails: {
-        iban: proposal.project.bank_iban,
-        bic: proposal.project.bank_bic,
-        beneficiary: proposal.project.bank_beneficiary,
-        reference: paymentReference,
-      },
-    };
 
     // Get client info
     const client = proposal.project.client;
@@ -139,36 +106,94 @@ export default defineEventHandler(async (event) => {
       client.company_name ||
       `${client.first_name || ""} ${client.last_name || ""}`.trim();
 
-    // Update proposal status to payment_pending
-    const { data: updatedProposal, error: updateError } = await supabase
-      .from("proposals")
-      .update({
-        status: "payment_pending",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", proposalId)
-      .select()
-      .single();
+    // Handle different payment methods
+    if (method === "bank_transfer") {
+      // Get user profile data for bank details
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("bank_account_holder, bank_bic, bank_iban, bank_name")
+        .eq("id", proposal.project.user_id)
+        .single();
 
-    if (updateError) {
+      if (userProfileError || !userProfile) {
+        throw createError({
+          statusCode: 400,
+          message: "Profil utilisateur non trouvé",
+        });
+      }
+
+      // Check if bank details are available from user profile
+      if (
+        !userProfile.bank_iban?.trim() ||
+        !userProfile.bank_bic?.trim() ||
+        !userProfile.bank_account_holder?.trim()
+      ) {
+        throw createError({
+          statusCode: 400,
+          message: "Coordonnées bancaires manquantes",
+        });
+      }
+
+      // Generate payment reference
+      const paymentReference = `PROP-${proposalId
+        .slice(0, 8)
+        .toUpperCase()}-${Date.now()}`;
+
+      // Prepare payment details with bank coordinates from user profile
+      const paymentDetails = {
+        amount: proposal.deposit_amount,
+        reference: paymentReference,
+        bankDetails: {
+          iban: userProfile.bank_iban,
+          bic: userProfile.bank_bic,
+          beneficiary: userProfile.bank_account_holder,
+          reference: paymentReference,
+        },
+      };
+
+      // Update proposal status to payment_pending
+      const { data: updatedProposal, error: updateError } = await supabase
+        .from("proposals")
+        .update({
+          status: "payment_pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposalId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw createError({
+          statusCode: 500,
+          message: "Erreur lors de la mise à jour du statut",
+        });
+      }
+
+      // Return payment details for client display
+      return {
+        success: true,
+        message: "Instructions de paiement générées",
+        payment: paymentDetails,
+        proposal: {
+          id: updatedProposal.id,
+          status: updatedProposal.status,
+          clientName,
+          projectTitle: proposal.project.title,
+        },
+      };
+    } else if (method === "stripe") {
+      // TODO: Implement Stripe payment flow
+      // For now, return a placeholder response
       throw createError({
-        statusCode: 500,
-        message: "Erreur lors de la mise à jour du statut",
+        statusCode: 501,
+        message: "Paiement Stripe non encore implémenté",
       });
     }
 
-    // Return payment details for client display
-    return {
-      success: true,
-      message: "Instructions de paiement générées",
-      payment: paymentDetails,
-      proposal: {
-        id: updatedProposal.id,
-        status: updatedProposal.status,
-        clientName,
-        projectTitle: proposal.project.title,
-      },
-    };
+    throw createError({
+      statusCode: 400,
+      message: "Méthode de paiement non supportée",
+    });
   } catch (error: unknown) {
     console.error("Payment initiation error:", error);
 

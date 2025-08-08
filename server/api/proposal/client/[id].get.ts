@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   try {
     const supabase = await serverSupabaseServiceRole(event);
 
-    // Get proposal with project info directly
+    // Get proposal with project info
     const { data: proposal, error } = await supabase
       .from("proposals")
       .select(
@@ -23,10 +23,8 @@ export default defineEventHandler(async (event) => {
           id,
           title,
           password_hash,
-          bank_iban,
-          bank_bic,
-          bank_beneficiary,
-          bank_transfer_reference
+          user_id,
+          payment_method
         )
       `
       )
@@ -48,37 +46,54 @@ export default defineEventHandler(async (event) => {
     // Only allow access to proposals that are not in draft status
 
     // TODO: Uncomment this when we have a way to handle draft proposals
-    // if (proposal.status === "draft") {
-    //   throw createError({
-    //     statusCode: 403,
-    //     statusMessage: "Cette proposition n'est pas encore accessible",
-    //   });
-    // }
+    if (proposal.status === "draft") {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Cette proposition n'est pas encore accessible",
+      });
+    }
 
     // Type assertion pour le projet
     const projectData = proposal.project as {
       id: string;
       title: string;
       password_hash: string;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-      bank_transfer_reference: string | null;
+      user_id: string;
+      payment_method: "stripe" | "bank_transfer" | null;
     };
 
-    // Prepare bank details if available
-    const bankDetails =
-      projectData.bank_iban &&
-      projectData.bank_bic &&
-      projectData.bank_beneficiary &&
-      projectData.bank_transfer_reference
-        ? {
-            iban: projectData.bank_iban,
-            bic: projectData.bank_bic,
-            beneficiary: projectData.bank_beneficiary,
-            reference: projectData.bank_transfer_reference,
-          }
-        : undefined;
+    // Get bank details only if payment method is bank_transfer
+    let bankDetails = undefined;
+    if (projectData.payment_method === "bank_transfer") {
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("bank_account_holder, bank_bic, bank_iban, bank_name")
+        .eq("id", projectData.user_id)
+        .single();
+
+      if (userProfileError) {
+        console.error(
+          "[DEBUG] Proposal API - User profile query error:",
+          userProfileError
+        );
+      }
+
+      // Prepare bank details if available from user profile
+      if (
+        userProfile?.bank_iban &&
+        userProfile?.bank_bic &&
+        userProfile?.bank_account_holder
+      ) {
+        bankDetails = {
+          iban: userProfile.bank_iban,
+          bic: userProfile.bank_bic,
+          beneficiary: userProfile.bank_account_holder,
+          reference: `PROP-${proposalId
+            .slice(0, 8)
+            .toUpperCase()}-${Date.now()}`,
+        };
+      }
+    }
 
     // Return data in the format expected by ClientProposalAccess
     return {
@@ -86,6 +101,7 @@ export default defineEventHandler(async (event) => {
         id: projectData.id,
         title: projectData.title,
         hasPassword: !!projectData.password_hash,
+        paymentMethod: projectData.payment_method,
         bankDetails,
       },
       proposal: {
