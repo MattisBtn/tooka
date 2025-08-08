@@ -34,6 +34,11 @@ export const useUserStore = defineStore("user", () => {
 
   // Derived profile info (add here if needed later)
 
+  // Unified payment setup status (Stripe Connect OR banking info)
+  const hasPaymentSetup = computed(() => {
+    return hasStripeConnect.value || hasBankingInfo.value;
+  });
+
   // Actions
   const fetchUser = async (opts?: { silent?: boolean }) => {
     const supabaseUser = useSupabaseUser();
@@ -145,6 +150,7 @@ export const useUserStore = defineStore("user", () => {
     isLogged,
     hasStripeConnect,
     hasBankingInfo,
+    hasPaymentSetup,
 
     // Actions
     fetchUser,

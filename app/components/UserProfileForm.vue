@@ -128,50 +128,6 @@
                     </div>
                 </div>
             </div>
-
-            <USeparator />
-
-            <!-- Banking Information Section -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-3 mb-6">
-                    <div
-                        class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                            Informations bancaires
-                        </h2>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            Vos coordonnées bancaires pour les paiements
-                        </p>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <UFormField label="Titulaire du compte" name="bank_account_holder">
-                        <UInput v-model="formState.bank_account_holder" placeholder="Jean Dupont"
-                            icon="i-heroicons-user" />
-                    </UFormField>
-
-                    <UFormField label="Nom de la banque" name="bank_name">
-                        <UInput v-model="formState.bank_name" placeholder="Banque Populaire"
-                            icon="i-heroicons-building-library" />
-                    </UFormField>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <UFormField label="IBAN" name="bank_iban">
-                            <UInput v-model="formState.bank_iban" placeholder="FR76 1234 5678 9012 3456 789"
-                                icon="i-heroicons-credit-card" />
-                        </UFormField>
-
-                        <UFormField label="BIC" name="bank_bic">
-                            <UInput v-model="formState.bank_bic" placeholder="BNPAFRPP"
-                                icon="i-heroicons-building-library" />
-                        </UFormField>
-                    </div>
-                </div>
-            </div>
         </UForm>
 
         <template #footer>
@@ -211,7 +167,9 @@ interface Props {
     schema: z.ZodType<UserProfileFormData>
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props & { showBankingSection?: boolean }>(), {
+    showBankingSection: true
+})
 
 const formState = defineModel<UserProfileFormData>('formState', { required: true })
 

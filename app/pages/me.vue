@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent, TabsItem } from '@nuxt/ui'
 
+import UserBankingForm from '~/components/UserBankingForm.vue'
 import { useAuth } from '~/composables/auth/useAuth'
 import { useStripeConnect } from '~/composables/user/useStripeConnect'
 import { userProfileService } from '~/services/userProfileService'
@@ -154,6 +155,16 @@ const tabs = ref<TabsItem[]>([
 ])
 
 const activeTab = ref('profile')
+const route = useRoute()
+watch(
+    () => route.query.tab,
+    (tab) => {
+        if (typeof tab === 'string' && ['profile', 'security', 'billing'].includes(tab)) {
+            activeTab.value = tab
+        }
+    },
+    { immediate: true }
+)
 
 // Mock security settings
 const securitySettings = ref({
@@ -338,7 +349,8 @@ useSeoMeta({
                     <UserProfileForm v-model:form-state="formState" :profile="profile" :is-submitting="isSubmitting"
                         :error="error" :is-profile-complete="isProfileComplete"
                         :completion-percentage="completionPercentage" :has-changes="hasChanges" :schema="schema"
-                        @submit="handleSubmit" @reset="resetForm" @reset-error="resetError" />
+                        :show-banking-section="false" @submit="handleSubmit" @reset="resetForm"
+                        @reset-error="resetError" />
                 </div>
 
                 <!-- Security Tab -->
@@ -447,7 +459,7 @@ useSeoMeta({
                                             </span>
                                             <span>{{
                                                 formatDate(subscriptionStore.currentSubscription.subscription_end_date)
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                     </div>
 
@@ -538,6 +550,17 @@ useSeoMeta({
                                             }
                                         ]" />
                                 </div>
+                            </div>
+
+                            <USeparator />
+
+                            <!-- Banking Information Section (moved from Profile) -->
+                            <div>
+                                <h4 class="font-medium mb-2">Informations bancaires</h4>
+                                <UserBankingForm v-model:form-state="formState" :profile="profile"
+                                    :is-submitting="isSubmitting" :error="error" :has-changes="hasChanges"
+                                    :schema="schema" @submit="handleSubmit" @reset="resetForm"
+                                    @reset-error="resetError" />
                             </div>
                         </div>
                     </UCard>
