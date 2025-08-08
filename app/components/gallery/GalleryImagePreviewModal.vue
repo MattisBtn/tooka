@@ -55,7 +55,6 @@
 </template>
 
 <script lang="ts" setup>
-import { useClientGalleryActions } from "~/composables/galleries/client/useClientGalleryActions";
 import type { GalleryImage } from '~/types/gallery';
 
 interface Props {
@@ -75,9 +74,6 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// Get actions for image URL management
-const actions = useClientGalleryActions();
-
 // Reactive state for image URLs
 const currentImageUrl = ref<string | null>(null)
 const thumbnailUrls = ref<Record<string, string>>({})
@@ -91,16 +87,26 @@ const handleImageError = () => {
     console.error('Failed to load image in preview modal')
 }
 
+// Get signed URL for main image via server
+const getSignedUrl = async (filePath: string): Promise<string> => {
+    try {
+        const response = await $fetch<{ url: string }>(`/api/gallery/client/${props.galleryId}/image-url`, {
+            method: 'POST',
+            body: { filePath }
+        })
+        return response.url
+    } catch (error) {
+        console.error('Error getting signed URL:', error)
+        return `https://via.placeholder.com/800x600?text=Error+Loading+Image`
+    }
+}
+
 // Load thumbnail URL for an image
 const loadThumbnailUrl = async (image: GalleryImage) => {
     if (!thumbnailUrls.value[image.id]) {
         try {
-            const url = await actions.getImageSignedUrl(props.galleryId, image.file_url)
-            if (url) {
-                thumbnailUrls.value[image.id] = url
-            } else {
-                thumbnailUrls.value[image.id] = `https://via.placeholder.com/64x64?text=Error`
-            }
+            const url = await getSignedUrl(image.file_url)
+            thumbnailUrls.value[image.id] = url
         } catch (error) {
             console.error('Error loading thumbnail URL:', error)
             thumbnailUrls.value[image.id] = `https://via.placeholder.com/64x64?text=Error`
@@ -112,8 +118,7 @@ const loadThumbnailUrl = async (image: GalleryImage) => {
 watch(() => props.currentImage, async (newImage) => {
     if (newImage) {
         try {
-            const url = await actions.getImageSignedUrl(props.galleryId, newImage.file_url)
-            currentImageUrl.value = url || `https://via.placeholder.com/800x600?text=Error+Loading+Image`
+            currentImageUrl.value = await getSignedUrl(newImage.file_url)
         } catch (error) {
             console.error('Error loading current image URL:', error)
             currentImageUrl.value = `https://via.placeholder.com/800x600?text=Error+Loading+Image`
