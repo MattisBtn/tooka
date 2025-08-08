@@ -59,7 +59,12 @@ export default defineEventHandler(async (event) => {
     // Generate signed URL (1 hour expiry)
     const { data, error } = await supabase.storage
       .from("gallery-images")
-      .createSignedUrl(imagePath, 3600);
+      .createSignedUrl(imagePath, 3600, {
+        transform: {
+          width: 400,
+          height: 400,
+        },
+      });
 
     if (error) {
       throw createError({

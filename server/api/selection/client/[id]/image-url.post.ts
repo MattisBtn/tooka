@@ -1,7 +1,6 @@
 import { serverSupabaseClient } from "#supabase/server";
 
 export default defineEventHandler(async (event) => {
-  const { id: _id } = getRouterParams(event);
   const { filePath } = await readBody(event);
 
   if (!filePath) {
@@ -14,9 +13,9 @@ export default defineEventHandler(async (event) => {
   try {
     const supabase = await serverSupabaseClient(event);
 
-    // Get signed URL for moodboard images
+    // Get signed URL for selection images
     const { data, error } = await supabase.storage
-      .from("moodboard-images")
+      .from("selection-images")
       .createSignedUrl(filePath, 3600, {
         transform: {
           width: 1080,

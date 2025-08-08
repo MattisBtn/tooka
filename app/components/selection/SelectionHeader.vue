@@ -5,20 +5,11 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and Project Info -->
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-camera" class="w-4 h-4 text-white" />
-                        </div>
-                        <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
-                    </div>
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
+
 
                     <!-- Project Title and Status -->
                     <div class="hidden md:flex items-center gap-4 min-w-0">
-                        <div class="border-l border-neutral-300 dark:border-neutral-600 pl-4">
-                            <h1 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                {{ project.title }}
-                            </h1>
-                        </div>
                         <UBadge :color="statusColor" variant="soft" size="sm">
                             <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
                             {{ statusLabel }}
@@ -203,6 +194,7 @@ const statusConfig = {
     awaiting_client: { label: "En attente de votre sélection", color: "warning" as const, icon: "i-lucide-clock" },
     revision_requested: { label: "Révision demandée", color: "info" as const, icon: "i-lucide-edit" },
     completed: { label: "Sélection validée", color: "success" as const, icon: "i-lucide-check-circle" },
+    payment_pending: { label: "Paiement en attente", color: "warning" as const, icon: "i-lucide-credit-card" },
 };
 
 const statusLabel = computed(() =>

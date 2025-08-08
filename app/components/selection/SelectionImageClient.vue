@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { useClientSelectionImages } from "~/composables/selections/client/useClientSelectionImages";
+import { useClientSelectionActions } from "~/composables/selections/client/useClientSelectionActions";
 import type { SelectionImage } from "~/types/selection";
 
 interface Props {
@@ -30,14 +30,24 @@ const props = withDefaults(defineProps<Props>(), {
     fullSize: false,
 });
 
-// Use client selection images composable with lazy loading
-const { useLazyImageLoading } = useClientSelectionImages();
+// Get image URL directly from actions
+const actions = useClientSelectionActions();
+const imageUrl = ref<string | null>(null);
+const loading = ref(false);
+const error = ref(false);
 
-// Lazy load the image with intersection observer
-const { imageUrl, loading, error, imageRef } = useLazyImageLoading(
-    props.selectionId,
-    props.image.file_url
-);
+// Load image URL on mount
+onMounted(async () => {
+    loading.value = true;
+    try {
+        imageUrl.value = await actions.getImageSignedUrl(props.selectionId, props.image.file_url);
+    } catch (err) {
+        console.error("Error loading image:", err);
+        error.value = true;
+    } finally {
+        loading.value = false;
+    }
+});
 
 // Computed classes
 const imageClasses = computed(() => [

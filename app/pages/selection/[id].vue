@@ -3,31 +3,33 @@
         <div class="min-h-screen bg-white dark:bg-neutral-900">
             <!-- Headers avec conditions mutuellement exclusives -->
             <!-- Selection Header - affiché seulement quand tout est chargé et authentifié -->
-            <SelectionHeader v-if="selection && isAuthenticated && project" :project="project" :selection="selection"
-                :is-authenticated="isAuthenticated" :show-logout-button="project?.hasPassword && isAuthenticated"
-                :selected-count="selectedCount" :max-allowed="maxAllowed" :extra-count="extraCount"
-                :extra-price="extraPrice" @validate="handleValidate" @request-revisions="handleRequestRevisions"
+            <SelectionHeader v-if="store.selection && store.isAuthenticated && store.project" :project="store.project"
+                :selection="store.selection" :is-authenticated="store.isAuthenticated"
+                :show-logout-button="store.project?.hasPassword && store.isAuthenticated"
+                :selected-count="store.selectedCount" :max-allowed="store.maxAllowed" :extra-count="store.extraCount"
+                :extra-price="store.extraPrice" @validate="handleValidate" @request-revisions="handleRequestRevisions"
                 @logout="handleLogout" />
 
             <!-- Simple header pour tous les autres états -->
             <SharedSimpleHeader v-else :config="simpleHeaderConfig" />
 
             <!-- Content avec padding approprié -->
-            <div :class="{ 'pt-16': selection && isAuthenticated && project }">
+            <div :class="{ 'pt-16': store.selection && store.isAuthenticated && store.project }">
                 <!-- Password form if needed -->
-                <SharedClientPasswordForm v-if="needsPassword && !isAuthenticated" :project="project"
-                    :selection-id="selectionId" :error="authError" :config="passwordConfig"
+                <SharedClientPasswordForm v-if="store.needsPassword && !store.isAuthenticated" :project="store.project"
+                    :selection-id="selectionId" :error="store.authError" :config="passwordConfig"
                     @authenticated="handleAuthentication" />
 
                 <!-- Selection view -->
-                <SelectionClientView v-else-if="selection && isAuthenticated && project" :selection-id="selectionId"
-                    :selection="selection" :project="project" :images="mutableImages" :has-more="hasMore"
-                    :loading-more="loadingMore" :can-interact="canInteract" :selected-count="selectedCount"
-                    :max-allowed="maxAllowed" :extra-count="extraCount" :extra-price="extraPrice" @load-more="loadMore"
-                    @toggle-selection="handleToggleSelection" />
+                <SelectionClientView v-else-if="store.selection && store.isAuthenticated && store.project"
+                    :selection-id="selectionId" :selection="store.selection" :project="store.project"
+                    :images="mutableImages" :has-more="store.hasMore" :loading-more="store.loadingMore"
+                    :can-interact="store.canInteract" :selected-count="store.selectedCount"
+                    :max-allowed="store.maxAllowed" :extra-count="store.extraCount" :extra-price="store.extraPrice"
+                    @load-more="store.loadMore" @toggle-selection="handleToggleSelection" />
 
                 <!-- Loading state -->
-                <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
+                <div v-else-if="store.loading" class="min-h-screen flex items-center justify-center">
                     <div class="text-center">
                         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-amber-600 animate-spin mx-auto mb-4" />
                         <p class="text-neutral-600 dark:text-neutral-400">Chargement de la sélection...</p>
@@ -39,12 +41,13 @@
             </div>
 
             <!-- Action Modals -->
-            <SelectionActionModals v-model:show-validate-dialog="showValidateDialog"
-                v-model:show-request-revisions-dialog="showRequestRevisionsDialog"
-                v-model:revision-comment="revisionComment" :validating-selection="validatingSelection"
-                :requesting-revisions="requestingRevisions" :selected-count="selectedCount" :max-allowed="maxAllowed"
-                :extra-count="extraCount" :extra-price="extraPrice" @validate="validateSelection"
-                @request-revisions="requestRevisions" />
+            <SelectionActionModals v-model:show-validate-dialog="actions.showValidateDialog.value"
+                v-model:show-request-revisions-dialog="actions.showRequestRevisionsDialog.value"
+                v-model:revision-comment="actions.revisionComment.value"
+                :validating-selection="actions.validatingSelection.value"
+                :requesting-revisions="actions.requestingRevisions.value" :selected-count="store.selectedCount"
+                :max-allowed="store.maxAllowed" :extra-count="store.extraCount" :extra-price="store.extraPrice"
+                @validate="actions.validateSelection" @request-revisions="actions.requestRevisions" />
 
             <!-- Footer -->
             <SharedClientFooter :config="footerConfig" />
@@ -53,10 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { useClientSelection } from '~/composables/selections/client/useClientSelection'
+import { useClientSelectionActions } from '~/composables/selections/client/useClientSelectionActions'
 import { useClientConfig } from '~/composables/shared/useClientConfig'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
+import { useClientSelectionStore } from '~/stores/public/selection'
 
 definePageMeta({
     layout: false,
@@ -79,79 +83,41 @@ const { getSelectionErrorConfig, getSelectionFooterConfig } = useClientConfig();
 const errorConfig = getSelectionErrorConfig();
 const footerConfig = getSelectionFooterConfig();
 
-// Use client selection composable with all functionality
-const {
-    // Core data
-    project,
-    selection,
-    images,
-    loading,
-    loadingMore,
-    error,
-    needsPassword,
-    isAuthenticated,
-    authError,
-    hasMore,
-    canInteract,
+// Use client selection store and actions
+const store = useClientSelectionStore()
+const actions = useClientSelectionActions()
 
-    // Selection calculations
-    selectedCount,
-    maxAllowed,
-    extraCount,
-    extraPrice,
-
-    // Action states
-    validatingSelection,
-    requestingRevisions,
-
-    // Modal states
-    showValidateDialog,
-    showRequestRevisionsDialog,
-
-    // Form state
-    revisionComment,
-
-    // Core actions
-    verifyPassword,
-    loadMore,
-
-    // Client actions
-    validateSelection,
-    requestRevisions,
-    toggleImageSelection,
-
-    // Auth methods
-    logout,
-} = await useClientSelection(selectionId)
+// Load selection data
+await store.loadSelection(selectionId)
 
 // Handle password authentication
 const handleAuthentication = async (password: string) => {
-    await verifyPassword(password)
+    await store.verifyPassword(password)
 }
 
 // Handle logout
 const handleLogout = () => {
-    logout()
+    store.logout()
 }
 
 // Handle validate action from header
 const handleValidate = () => {
-    showValidateDialog.value = true
+    actions.showValidateDialog.value = true
 }
 
 // Handle request revisions action from header
 const handleRequestRevisions = () => {
-    showRequestRevisionsDialog.value = true
+    actions.showRequestRevisionsDialog.value = true
 }
 
 // Handle image selection toggle
 const handleToggleSelection = async (imageId: string) => {
-    await toggleImageSelection(imageId)
+    await actions.toggleImageSelection(imageId)
 }
 
 // Convert readonly images to mutable for component props
 const mutableImages = computed(() => {
-    return images.value.map(image => ({
+    return store.images.map(image => ({
         ...image,
     }))
 })
@@ -159,7 +125,7 @@ const mutableImages = computed(() => {
 // SEO meta
 useHead({
     title: computed(() =>
-        selection.value ? `${project.value?.title} - Sélection` : 'Sélection'
+        store.selection ? `${store.project?.title} - Sélection` : 'Sélection'
     ),
     meta: [
         { name: 'robots', content: 'noindex, nofollow' }, // Private selections
@@ -167,7 +133,7 @@ useHead({
 })
 
 // Handle errors
-if (error.value) {
+if (store.error) {
     throw createError({
         statusCode: 404,
         message: 'Sélection non trouvée',

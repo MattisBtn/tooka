@@ -161,6 +161,8 @@ export interface ClientSelectionAccess {
     title: string;
     description: string | null;
     hasPassword: boolean;
+    maxImages?: number;
+    extraImagePrice?: number;
   };
   selection: SelectionWithImages & {
     imageCount: number;

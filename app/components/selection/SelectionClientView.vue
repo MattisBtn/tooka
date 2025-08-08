@@ -24,7 +24,8 @@
                             </template>
                             <template v-else>
                                 Sélectionnez vos images préférées en cliquant dessus.
-                                Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses.
+                                Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses, ou plus avec un coût
+                                supplémentaire.
                             </template>
                         </p>
                     </div>
@@ -89,7 +90,9 @@
                         <div class="flex items-center gap-3 justify-center">
                             <UIcon name="i-lucide-info" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
                             <p class="text-sm text-amber-700 dark:text-amber-300">
-                                Cliquez sur les images pour les sélectionner. Vos choix sont sauvegardés localement.
+                                Cliquez sur les images pour les sélectionner. Vous pouvez sélectionner plus d'images que
+                                la limite - un coût
+                                supplémentaire sera automatiquement calculé.
                             </p>
                         </div>
                     </div>
@@ -124,7 +127,8 @@
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <SelectionImageCard v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
-                    :can-interact="canInteract" @toggle-selection="$emit('toggle-selection', image.id)" />
+                    :can-interact="canInteract" @toggle-selection="$emit('toggle-selection', image.id)"
+                    @open-preview="openImagePreview" />
             </div>
 
             <!-- Loading indicator -->
@@ -143,11 +147,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- Image Preview Modal -->
+        <SelectionImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
+            :images="images" :current-index="imagePreview.currentIndex.value" :selection-id="selectionId"
+            @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
+            @go-to="imagePreview.goToImage" @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { useInfiniteScroll } from '@vueuse/core';
+import { useImagePreview } from '~/composables/shared/useImagePreview';
 import type {
     ClientSelectionAccess,
     SelectionImageWithSelection,
@@ -179,16 +190,46 @@ const emit = defineEmits<Emits>()
 // Container ref for infinite scroll
 const selectionContainer = ref<HTMLElement | null>(null)
 
-// Infinite scroll setup
+// Image preview composable
+const imagePreview = useImagePreview()
+
+// Computed for current preview image
+const currentPreviewImage = computed(() => {
+    if (!imagePreview.currentImage.value || !props.images.length) return null
+    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null
+})
+
+// Debounced load more function to prevent excessive calls
+const loadMoreDebounced = useDebounceFn(async () => {
+    if (props.hasMore && !props.loadingMore) {
+        emit('load-more')
+    }
+}, 300)
+
+// Image preview methods
+const openImagePreview = (image: SelectionImageWithSelection) => {
+    // Convert SelectionImageWithSelection to PreviewImage format
+    const previewImages = props.images.map(img => ({
+        id: img.id,
+        file_url: img.file_url,
+        created_at: img.created_at
+    }))
+
+    const previewImage = {
+        id: image.id,
+        file_url: image.file_url,
+        created_at: image.created_at
+    }
+
+    imagePreview.openPreview(previewImage, previewImages)
+}
+
+// Infinite scroll setup with better protection
 onMounted(() => {
     if (selectionContainer.value) {
         useInfiniteScroll(
             selectionContainer.value,
-            async () => {
-                if (props.hasMore && !props.loadingMore) {
-                    emit('load-more')
-                }
-            },
+            loadMoreDebounced,
             {
                 distance: 400, // Load more when 400px from bottom
                 canLoadMore: () => props.hasMore && !props.loadingMore

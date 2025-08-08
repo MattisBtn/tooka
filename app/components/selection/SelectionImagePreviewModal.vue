@@ -54,14 +54,14 @@
 </template>
 
 <script lang="ts" setup>
-import type { MoodboardImageWithInteractions } from '~/types/moodboard'
+import type { SelectionImageWithSelection } from '~/types/selection'
 
 interface Props {
     isOpen: boolean
-    currentImage: MoodboardImageWithInteractions | null
-    images: MoodboardImageWithInteractions[]
+    currentImage: SelectionImageWithSelection | null
+    images: SelectionImageWithSelection[]
     currentIndex: number
-    moodboardId: string
+    selectionId: string
 }
 
 interface Emits {
@@ -89,7 +89,7 @@ const handleImageError = () => {
 // Get signed URL for main image via server
 const getSignedUrl = async (filePath: string): Promise<string> => {
     try {
-        const response = await $fetch<{ url: string }>(`/api/moodboard/client/${props.moodboardId}/image-url`, {
+        const response = await $fetch<{ url: string }>(`/api/selection/client/${props.selectionId}/image-url`, {
             method: 'POST',
             body: { filePath }
         })
@@ -101,7 +101,7 @@ const getSignedUrl = async (filePath: string): Promise<string> => {
 }
 
 // Load thumbnail URL for an image
-const loadThumbnailUrl = async (image: MoodboardImageWithInteractions) => {
+const loadThumbnailUrl = async (image: SelectionImageWithSelection) => {
     if (!thumbnailUrls.value[image.id]) {
         try {
             const url = await getSignedUrl(image.file_url)

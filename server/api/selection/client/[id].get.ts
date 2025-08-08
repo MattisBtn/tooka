@@ -85,16 +85,29 @@ export default defineEventHandler(
       const totalImages = count || 0;
       const hasMore = offset + pageSize < totalImages;
 
+      // Map images to include userSelected field for client compatibility
+      const mappedImages = (imagesData || []).map((image) => ({
+        ...image,
+        userSelected: image.is_selected,
+      }));
+
       const result: ClientSelectionAccess = {
         project: {
           id: selection.project_id,
           title: projectData.title,
           description: projectData.description,
           hasPassword: !!projectData.password_hash,
+          maxImages:
+            selection.max_media_selection === -1
+              ? undefined
+              : selection.max_media_selection,
+          extraImagePrice: selection.extra_media_price
+            ? selection.extra_media_price / 100
+            : undefined,
         },
         selection: {
           ...selection,
-          images: imagesData || [],
+          images: mappedImages,
           imageCount: totalImages,
           hasMore,
           currentPage: page,

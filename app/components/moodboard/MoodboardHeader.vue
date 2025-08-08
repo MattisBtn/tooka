@@ -5,12 +5,7 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and Project Info -->
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-camera" class="w-4 h-4 text-white" />
-                        </div>
-                        <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
-                    </div>
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
 
                     <!-- Project Title and Status -->
                     <div class="hidden md:flex items-center gap-4 min-w-0">

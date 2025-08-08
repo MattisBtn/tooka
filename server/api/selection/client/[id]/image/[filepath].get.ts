@@ -81,7 +81,12 @@ export default defineEventHandler(async (event) => {
     const { data: signedUrlData, error: signedUrlError } =
       await supabase.storage
         .from("selection-images")
-        .createSignedUrl(decodedFilepath, 3600); // 1 hour expiry
+        .createSignedUrl(decodedFilepath, 3600, {
+          transform: {
+            width: 400,
+            height: 400,
+          },
+        }); // 1 hour expiry
 
     if (signedUrlError) {
       throw createError({
