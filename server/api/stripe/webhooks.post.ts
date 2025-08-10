@@ -97,6 +97,37 @@ export default defineEventHandler(async (event) => {
           console.log(
             `Gallery ${galleryId} payment completed via checkout.session.completed`
           );
+
+          // Check if project should be marked as completed
+          if (session.metadata?.project_id) {
+            const projectId = session.metadata.project_id;
+
+            // Get project to check remaining_amount
+            const { data: project } = await supabase
+              .from("projects")
+              .select("remaining_amount, status")
+              .eq("id", projectId)
+              .single();
+
+            // If remaining_amount is 0 or null, mark project as completed
+            if (
+              project &&
+              (project.remaining_amount === 0 ||
+                project.remaining_amount === null)
+            ) {
+              await supabase
+                .from("projects")
+                .update({
+                  status: "completed",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", projectId);
+
+              console.log(
+                `Project ${projectId} marked as completed after gallery payment (checkout.session.completed)`
+              );
+            }
+          }
         }
       }
     }
@@ -186,6 +217,37 @@ export default defineEventHandler(async (event) => {
         console.log(
           `Gallery ${galleryId} payment intent succeeded - marking as completed`
         );
+
+        // Check if project should be marked as completed
+        if (paymentIntent.metadata?.project_id) {
+          const projectId = paymentIntent.metadata.project_id;
+
+          // Get project to check remaining_amount
+          const { data: project } = await supabase
+            .from("projects")
+            .select("remaining_amount, status")
+            .eq("id", projectId)
+            .single();
+
+          // If remaining_amount is 0 or null, mark project as completed
+          if (
+            project &&
+            (project.remaining_amount === 0 ||
+              project.remaining_amount === null)
+          ) {
+            await supabase
+              .from("projects")
+              .update({
+                status: "completed",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", projectId);
+
+            console.log(
+              `Project ${projectId} marked as completed after gallery payment`
+            );
+          }
+        }
       }
     }
 
