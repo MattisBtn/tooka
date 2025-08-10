@@ -172,11 +172,18 @@ export default defineEventHandler(async (event) => {
               );
             }
 
+            // Re-fetch project to get updated remaining_amount
+            const { data: updatedProject } = await supabase
+              .from("projects")
+              .select("remaining_amount, status")
+              .eq("id", projectId)
+              .single();
+
             // If remaining_amount is 0 or null, mark project as completed
             if (
-              project &&
-              (project.remaining_amount === 0 ||
-                project.remaining_amount === null)
+              updatedProject &&
+              (updatedProject.remaining_amount === 0 ||
+                updatedProject.remaining_amount === null)
             ) {
               await supabase
                 .from("projects")
@@ -355,11 +362,18 @@ export default defineEventHandler(async (event) => {
             );
           }
 
+          // Re-fetch project to get updated remaining_amount
+          const { data: updatedProject } = await supabase
+            .from("projects")
+            .select("remaining_amount, status")
+            .eq("id", projectId)
+            .single();
+
           // If remaining_amount is 0 or null, mark project as completed
           if (
-            project &&
-            (project.remaining_amount === 0 ||
-              project.remaining_amount === null)
+            updatedProject &&
+            (updatedProject.remaining_amount === 0 ||
+              updatedProject.remaining_amount === null)
           ) {
             await supabase
               .from("projects")
