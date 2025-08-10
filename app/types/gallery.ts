@@ -150,6 +150,13 @@ export interface ClientGalleryAccess {
     description: string | null;
     hasPassword: boolean;
     remainingAmount: number;
+    paymentMethod: "stripe" | "bank_transfer" | null;
+    bankDetails?: {
+      iban: string;
+      bic: string;
+      beneficiary: string;
+      reference: string;
+    };
   };
   gallery: GalleryWithDetails;
 }
@@ -196,6 +203,7 @@ export interface GalleryPaymentData {
   method: string;
   amount: number;
   reference: string;
+  checkoutUrl?: string; // For Stripe payments
   bankDetails?: {
     iban: string;
     bic: string;

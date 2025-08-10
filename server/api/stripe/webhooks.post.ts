@@ -73,6 +73,32 @@ export default defineEventHandler(async (event) => {
           );
         }
       }
+
+      // Handle gallery payment completion (backup for immediate payment methods)
+      if (session.metadata?.gallery_id && session.payment_status === "paid") {
+        const galleryId = session.metadata.gallery_id;
+
+        // Only update if the gallery is still in payment_pending status
+        const { data: gallery } = await supabase
+          .from("galleries")
+          .select("status")
+          .eq("id", galleryId)
+          .single();
+
+        if (gallery?.status === "payment_pending") {
+          await supabase
+            .from("galleries")
+            .update({
+              status: "completed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", galleryId);
+
+          console.log(
+            `Gallery ${galleryId} payment completed via checkout.session.completed`
+          );
+        }
+      }
     }
 
     if (webhook.type === "customer.subscription.updated") {
@@ -143,6 +169,24 @@ export default defineEventHandler(async (event) => {
           `Proposal ${proposalId} payment intent succeeded - marking as completed`
         );
       }
+
+      // Handle gallery payment intent success
+      if (paymentIntent.metadata?.gallery_id) {
+        const galleryId = paymentIntent.metadata.gallery_id;
+
+        // Update gallery status to completed
+        await supabase
+          .from("galleries")
+          .update({
+            status: "completed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", galleryId);
+
+        console.log(
+          `Gallery ${galleryId} payment intent succeeded - marking as completed`
+        );
+      }
     }
 
     if (webhook.type === "payment_intent.payment_failed") {
@@ -162,6 +206,24 @@ export default defineEventHandler(async (event) => {
 
         console.log(
           `Proposal ${proposalId} payment failed - reverting to awaiting_client`
+        );
+      }
+
+      // Handle gallery payment intent failure
+      if (paymentIntent.metadata?.gallery_id) {
+        const galleryId = paymentIntent.metadata.gallery_id;
+
+        // Update gallery status back to awaiting_client
+        await supabase
+          .from("galleries")
+          .update({
+            status: "awaiting_client",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", galleryId);
+
+        console.log(
+          `Gallery ${galleryId} payment failed - reverting to awaiting_client`
         );
       }
     }

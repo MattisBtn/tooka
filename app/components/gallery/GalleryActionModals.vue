@@ -118,8 +118,8 @@
 
                 <USeparator />
 
-                <!-- Payment Information -->
-                <div class="space-y-4">
+                <!-- Bank Transfer Payment -->
+                <div v-if="project?.paymentMethod === 'bank_transfer' && project?.bankDetails" class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
                             class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
@@ -129,16 +129,114 @@
                             paiement</h4>
                     </div>
 
-                    <UAlert color="primary" variant="soft" icon="i-heroicons-credit-card" title="Paiement sécurisé">
-                        <template #description>
-                            <div class="space-y-2">
-                                <p>Le paiement sera traité via virement bancaire sécurisé</p>
-                                <ul class="text-sm space-y-1 ml-4 list-disc">
-                                    <li>Instructions de virement fournies immédiatement</li>
-                                    <li>Référence unique pour traçabilité</li>
-                                    <li>Accès au téléchargement dès réception</li>
-                                </ul>
+                    <!-- Bank Details -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                IBAN
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
+                                    {{ project.bankDetails.iban }}
+                                </code>
+                                <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
                             </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                BIC/SWIFT
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
+                                    {{ project.bankDetails.bic }}
+                                </code>
+                                <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                Bénéficiaire
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <code class="flex-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded text-sm">
+                                    {{ project.bankDetails.beneficiary }}
+                                </code>
+                                <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                                Référence (obligatoire)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <code
+                                    class="flex-1 p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded text-sm font-medium">
+                                    {{ project.bankDetails.reference }}
+                                </code>
+                                <UButton size="xs" variant="ghost" icon="i-lucide-copy" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <UAlert color="info" variant="soft" icon="i-lucide-info">
+                        <template #title>Instructions importantes</template>
+                        <template #description>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                <li>Indiquez impérativement la référence dans le libellé de votre virement</li>
+                                <li>Le virement peut prendre 1-2 jours ouvrés pour être traité</li>
+                                <li>Vous recevrez une confirmation par email une fois le paiement reçu</li>
+                            </ul>
+                        </template>
+                    </UAlert>
+
+                    <div
+                        class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-3">
+                            <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <div>
+                                <h5 class="font-medium text-green-900 dark:text-green-100">Confirmation
+                                    automatique</h5>
+                                <p class="text-sm text-green-700 dark:text-green-300">
+                                    Votre galerie sera automatiquement validée après le paiement
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stripe Payment -->
+                <div v-else-if="project?.paymentMethod === 'stripe'" class="space-y-4">
+                    <UAlert color="info" variant="soft" icon="i-lucide-credit-card">
+                        <template #title>Paiement sécurisé</template>
+                        <template #description>
+                            Vous allez être redirigé vers Stripe pour effectuer un paiement sécurisé par carte bancaire.
+                            Votre photographe recevra une notification automatique une fois le paiement confirmé.
+                        </template>
+                    </UAlert>
+                    <div
+                        class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div class="flex items-center gap-3">
+                            <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <div>
+                                <h5 class="font-medium text-blue-900 dark:text-blue-100">Paiement sécurisé</h5>
+                                <p class="text-sm text-blue-700 dark:text-blue-300">
+                                    Vos données de paiement sont protégées par Stripe
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No payment method configured -->
+                <div v-else class="space-y-4">
+                    <UAlert color="warning" variant="soft" icon="i-lucide-alert-triangle">
+                        <template #title>Méthode de paiement non configurée</template>
+                        <template #description>
+                            Aucune méthode de paiement n'est configurée pour ce projet.
+                            Veuillez contacter votre photographe pour plus d'informations.
                         </template>
                     </UAlert>
                 </div>
@@ -183,10 +281,10 @@
                     <UButton variant="ghost" @click="showPaymentDialog = false">
                         Annuler
                     </UButton>
-                    <UButton color="success" :loading="confirmingPayment" icon="i-heroicons-credit-card"
-                        @click="$emit('confirm-payment')">
-                        Procéder au paiement
-                    </UButton>
+                    <UButton v-if="project?.paymentMethod" color="success" :loading="confirmingPayment"
+                        :icon="project.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
+                        :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'J\'ai effectué le virement'"
+                        @click="$emit('confirm-payment')" />
                 </div>
             </div>
         </template>
@@ -243,6 +341,8 @@
 </template>
 
 <script setup lang="ts">
+import type { ClientGalleryAccess } from "~/types/gallery";
+
 interface Props {
     showValidateDialog: boolean;
     showPaymentDialog: boolean;
@@ -252,6 +352,7 @@ interface Props {
     confirmingPayment: boolean;
     revisionComment: string;
     formattedRemainingAmount: string | null;
+    project: ClientGalleryAccess["project"] | null;
 }
 
 interface Emits {

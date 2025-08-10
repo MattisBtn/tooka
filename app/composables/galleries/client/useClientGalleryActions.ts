@@ -1,3 +1,5 @@
+import type { GalleryPaymentResponse } from "~/types/gallery";
+
 export const useClientGalleryActions = () => {
   const store = useClientGalleryStore();
 
@@ -161,24 +163,34 @@ export const useClientGalleryActions = () => {
 
     try {
       confirmingPayment.value = true;
-      await $fetch<{ success: boolean; message: string }>(
+
+      // Use appropriate payment method
+      const paymentMethod = store.project?.paymentMethod || "bank_transfer";
+
+      const response = await $fetch<GalleryPaymentResponse>(
         `/api/gallery/client/${store.gallery.id}/payment`,
         {
           method: "POST",
-          body: { method: "bank_transfer" },
+          body: { method: paymentMethod },
         }
       );
 
-      // Update gallery status locally instead of full reload
-      store.updateGalleryStatus("payment_pending");
+      // Handle different payment methods
+      if (paymentMethod === "stripe" && response.payment.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.payment.checkoutUrl;
+      } else {
+        // For bank transfer, update status locally
+        store.updateGalleryStatus("payment_pending");
 
-      const toast = useToast();
-      toast.add({
-        title: "Paiement confirmé",
-        description: "Le paiement a été confirmé avec succès",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      });
+        const toast = useToast();
+        toast.add({
+          title: "Paiement confirmé",
+          description: "Le paiement a été confirmé avec succès",
+          icon: "i-lucide-check-circle",
+          color: "success",
+        });
+      }
     } catch (error) {
       console.error("Failed to confirm payment:", error);
       const toast = useToast();

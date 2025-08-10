@@ -210,12 +210,6 @@ export const proposalService = {
       status: "completed",
     });
 
-    // Update project payment status
-    await projectService.updateProject(proposal.project_id, {
-      payment_status: "completed",
-      payment_completed_at: new Date().toISOString(),
-    });
-
     return updatedProposal;
   },
 

@@ -31,6 +31,15 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
 
   const authError = computed(() => (auth.value ? auth.value.authError : null));
 
+  // Payment method computed
+  const isBankTransfer = computed(() => {
+    return project.value?.paymentMethod === "bank_transfer";
+  });
+
+  const isStripePayment = computed(() => {
+    return project.value?.paymentMethod === "stripe";
+  });
+
   const hasRemainingAmount = computed(() => {
     return !!(
       project.value?.remainingAmount &&
@@ -214,6 +223,8 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     logout,
 
     // Payment
+    isBankTransfer,
+    isStripePayment,
     hasRemainingAmount,
     formattedRemainingAmount,
 

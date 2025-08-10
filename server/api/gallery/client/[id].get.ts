@@ -33,7 +33,9 @@ export default defineEventHandler(
             description,
             password_hash,
             status,
-            remaining_amount
+            remaining_amount,
+            payment_method,
+            user_id
           )
         `
         )
@@ -93,7 +95,41 @@ export default defineEventHandler(
         password_hash: string;
         status: string;
         remaining_amount: number;
+        payment_method: "stripe" | "bank_transfer" | null;
+        user_id: string;
       };
+
+      // Fetch bank details from user_profiles if payment_method is bank_transfer
+      let bankDetails = undefined;
+      if (projectData.payment_method === "bank_transfer") {
+        const { data: userProfile, error: userProfileError } = await supabase
+          .from("user_profiles")
+          .select("bank_account_holder, bank_bic, bank_iban, bank_name")
+          .eq("id", projectData.user_id)
+          .single();
+
+        if (userProfileError) {
+          console.error(
+            "[DEBUG] Gallery API - User profile query error:",
+            userProfileError
+          );
+        }
+
+        if (
+          userProfile?.bank_iban &&
+          userProfile?.bank_bic &&
+          userProfile?.bank_account_holder
+        ) {
+          bankDetails = {
+            iban: userProfile.bank_iban,
+            bic: userProfile.bank_bic,
+            beneficiary: userProfile.bank_account_holder,
+            reference: `GAL-${galleryId
+              .slice(0, 8)
+              .toUpperCase()}-${Date.now()}`,
+          };
+        }
+      }
 
       const totalImages = countResult.count || 0;
       const hasMore = offset + pageSize < totalImages;
@@ -106,6 +142,8 @@ export default defineEventHandler(
           description: projectData.description,
           hasPassword: !!projectData.password_hash,
           remainingAmount: projectData.remaining_amount,
+          paymentMethod: projectData.payment_method,
+          bankDetails,
         },
         gallery: {
           ...gallery,

@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import Stripe from "stripe";
 
 // Type pour les galeries avec info de projet et paiement
 type GalleryWithProject = {
@@ -10,9 +11,7 @@ type GalleryWithProject = {
     title: string;
     remaining_amount: number | null;
     payment_method: "stripe" | "bank_transfer" | null;
-    bank_iban: string | null;
-    bank_bic: string | null;
-    bank_beneficiary: string | null;
+    user_id: string;
     client: {
       id: string;
       billing_email: string;
@@ -25,7 +24,7 @@ type GalleryWithProject = {
 
 export default defineEventHandler(async (event) => {
   const galleryId = getRouterParam(event, "id");
-  const { method } = await readBody(event); // 'bank_transfer' pour le MVP
+  const { method } = await readBody(event);
 
   if (!galleryId) {
     throw createError({
@@ -34,15 +33,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (method !== "bank_transfer") {
+  if (!method || (method !== "bank_transfer" && method !== "stripe")) {
     throw createError({
       statusCode: 400,
-      message: "Méthode de paiement non supportée pour le moment",
+      message: "Méthode de paiement non supportée",
     });
   }
 
   try {
     const supabase = await serverSupabaseServiceRole(event);
+    const config = useRuntimeConfig();
 
     // Get gallery with project info including payment details
     const { data: galleryData, error: galleryError } = await supabase
@@ -55,9 +55,7 @@ export default defineEventHandler(async (event) => {
           title,
           remaining_amount,
           payment_method,
-          bank_iban,
-          bank_bic,
-          bank_beneficiary,
+          user_id,
           client:clients(
             id,
             billing_email,
@@ -107,10 +105,10 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Validate payment method and bank details
+    // Validate payment method
     if (
       !gallery.project.payment_method ||
-      gallery.project.payment_method !== "bank_transfer"
+      gallery.project.payment_method !== method
     ) {
       throw createError({
         statusCode: 400,
@@ -118,71 +116,201 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Check if bank details are available
-    if (
-      !gallery.project.bank_iban?.trim() ||
-      !gallery.project.bank_bic?.trim() ||
-      !gallery.project.bank_beneficiary?.trim()
-    ) {
-      throw createError({
-        statusCode: 400,
-        message: "Coordonnées bancaires manquantes",
-      });
-    }
-
-    // Generate payment reference
-    const paymentReference = `GAL-${galleryId
-      .slice(0, 8)
-      .toUpperCase()}-${Date.now()}`;
-
-    // Prepare payment details with bank coordinates
-    const paymentDetails = {
-      amount: gallery.project.remaining_amount,
-      reference: paymentReference,
-      bankDetails: {
-        iban: gallery.project.bank_iban,
-        bic: gallery.project.bank_bic,
-        beneficiary: gallery.project.bank_beneficiary,
-        reference: paymentReference,
-      },
-    };
-
     // Get client info
     const client = gallery.project.client;
     const clientName =
       client.company_name ||
       `${client.first_name || ""} ${client.last_name || ""}`.trim();
 
-    // Update gallery status to payment_pending
-    const { data: updatedGallery, error: updateError } = await supabase
-      .from("galleries")
-      .update({
-        status: "payment_pending",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", galleryId)
-      .select()
-      .single();
+    if (method === "bank_transfer") {
+      // Get photographer's bank details from user_profiles
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("bank_account_holder, bank_bic, bank_iban, bank_name")
+        .eq("id", gallery.project.user_id)
+        .single();
 
-    if (updateError) {
-      throw createError({
-        statusCode: 500,
-        message: "Erreur lors de la mise à jour du statut",
+      if (userProfileError || !userProfile) {
+        throw createError({
+          statusCode: 400,
+          message: "Profil photographe non trouvé",
+        });
+      }
+
+      // Check if bank details are available
+      if (
+        !userProfile.bank_iban?.trim() ||
+        !userProfile.bank_bic?.trim() ||
+        !userProfile.bank_account_holder?.trim()
+      ) {
+        throw createError({
+          statusCode: 400,
+          message: "Coordonnées bancaires manquantes",
+        });
+      }
+
+      // Generate payment reference
+      const paymentReference = `GAL-${galleryId
+        .slice(0, 8)
+        .toUpperCase()}-${Date.now()}`;
+
+      // Prepare payment details with bank coordinates
+      const paymentDetails = {
+        amount: gallery.project.remaining_amount,
+        reference: paymentReference,
+        bankDetails: {
+          iban: userProfile.bank_iban,
+          bic: userProfile.bank_bic,
+          beneficiary: userProfile.bank_account_holder,
+          reference: paymentReference,
+        },
+      };
+
+      // Update gallery status to payment_pending
+      const { data: updatedGallery, error: updateError } = await supabase
+        .from("galleries")
+        .update({
+          status: "payment_pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", galleryId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw createError({
+          statusCode: 500,
+          message: "Erreur lors de la mise à jour du statut",
+        });
+      }
+
+      // Return payment details for client display
+      return {
+        success: true,
+        message: "Instructions de paiement générées",
+        payment: paymentDetails,
+        gallery: {
+          id: updatedGallery.id,
+          status: updatedGallery.status,
+          clientName,
+          projectTitle: gallery.project.title,
+        },
+      };
+    } else if (method === "stripe") {
+      // Get photographer's Stripe account
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("user_profiles")
+        .select("stripe_account_id, stripe_account_status")
+        .eq("id", gallery.project.user_id)
+        .single();
+
+      if (userProfileError || !userProfile) {
+        throw createError({
+          statusCode: 400,
+          message: "Profil photographe non trouvé",
+        });
+      }
+
+      if (!userProfile.stripe_account_id) {
+        throw createError({
+          statusCode: 400,
+          message: "Compte Stripe du photographe non configuré",
+        });
+      }
+
+      if (userProfile.stripe_account_status !== "complete") {
+        throw createError({
+          statusCode: 400,
+          message: "Compte Stripe du photographe non activé",
+        });
+      }
+
+      // Initialize Stripe
+      const stripe = new Stripe(config.STRIPE_SECRET_KEY);
+
+      // Generate payment reference
+      const paymentReference = `GAL-${galleryId
+        .slice(0, 8)
+        .toUpperCase()}-${Date.now()}`;
+
+      // Create Checkout Session with destination charge
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "eur",
+              product_data: {
+                name: `Solde restant - ${gallery.project.title}`,
+                description: `Paiement du solde restant pour la galerie ${galleryId}`,
+              },
+              unit_amount: Math.round(gallery.project.remaining_amount * 100), // Convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${
+          config.public.baseUrl || "http://localhost:3000"
+        }/gallery/${galleryId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${
+          config.public.baseUrl || "http://localhost:3000"
+        }/gallery/${galleryId}?canceled=true`,
+        metadata: {
+          gallery_id: galleryId,
+          project_id: gallery.project.id,
+          payment_reference: paymentReference,
+          client_name: clientName,
+        },
+        payment_intent_data: {
+          transfer_data: {
+            destination: userProfile.stripe_account_id,
+          },
+          metadata: {
+            gallery_id: galleryId,
+            project_id: gallery.project.id,
+            payment_reference: paymentReference,
+            client_name: clientName,
+          },
+        },
       });
-    }
 
-    // Return payment details for client display
-    return {
-      success: true,
-      message: "Instructions de paiement générées",
-      payment: paymentDetails,
-      gallery: {
-        id: updatedGallery.id,
-        status: updatedGallery.status,
-        clientName,
-        projectTitle: gallery.project.title,
-      },
-    };
+      // Update gallery status to payment_pending
+      const { data: updatedGallery, error: updateError } = await supabase
+        .from("galleries")
+        .update({
+          status: "payment_pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", galleryId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw createError({
+          statusCode: 500,
+          message: "Erreur lors de la mise à jour du statut",
+        });
+      }
+
+      // Return Stripe checkout URL
+      return {
+        success: true,
+        message: "Session de paiement créée",
+        payment: {
+          method: "stripe",
+          amount: gallery.project.remaining_amount,
+          reference: paymentReference,
+          checkoutUrl: session.url,
+        },
+        gallery: {
+          id: updatedGallery.id,
+          status: updatedGallery.status,
+          clientName,
+          projectTitle: gallery.project.title,
+        },
+      };
+    }
   } catch (error: unknown) {
     console.error("Gallery payment initiation error:", error);
 

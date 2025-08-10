@@ -44,8 +44,9 @@
           v-model:revision-comment="actions.revisionComment.value" :validating-gallery="actions.validatingGallery.value"
           :requesting-revisions="actions.requestingRevisions.value"
           :confirming-payment="actions.confirmingPayment.value"
-          :formatted-remaining-amount="store.formattedRemainingAmount" @validate="actions.validateGallery"
-          @confirm-payment="actions.confirmPayment" @request-revisions="actions.requestRevisions" />
+          :formatted-remaining-amount="store.formattedRemainingAmount" :project="store.project"
+          @validate="actions.validateGallery" @confirm-payment="actions.confirmPayment"
+          @request-revisions="actions.requestRevisions" />
 
         <!-- Footer -->
         <SharedClientFooter :config="footerConfig" />

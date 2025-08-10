@@ -23,11 +23,16 @@
                         <!-- Awaiting client actions -->
                         <template v-if="gallery?.status === 'awaiting_client'">
                             <!-- Pay remaining amount button (for galleries with payment required and remaining amount > 0) -->
-                            <UButton v-if="hasRemainingAmount" color="success" size="sm" icon="i-heroicons-credit-card"
+                            <UButton v-if="hasRemainingAmount" color="success" size="sm"
+                                :icon="project?.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
                                 class="hidden sm:flex" :loading="confirmingPayment"
                                 @click="$emit('pay-remaining-amount')">
-                                <span class="hidden lg:inline">Payer le solde</span>
-                                <span class="lg:hidden">Payer</span>
+                                <span class="hidden lg:inline">
+                                    {{ project?.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'Payer le solde' }}
+                                </span>
+                                <span class="lg:hidden">
+                                    {{ project?.paymentMethod === 'stripe' ? 'Stripe' : 'Payer' }}
+                                </span>
                             </UButton>
 
                             <!-- Validate without payment or with payment already made -->
@@ -81,9 +86,11 @@
                                     <template v-if="gallery?.status === 'awaiting_client'">
                                         <!-- Pay remaining amount -->
                                         <UButton v-if="hasRemainingAmount" color="success" variant="solid" size="lg"
-                                            icon="i-heroicons-credit-card" block :loading="confirmingPayment"
-                                            @click="$emit('pay-remaining-amount')">
-                                            Payer le solde
+                                            :icon="project?.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
+                                            block :loading="confirmingPayment" @click="$emit('pay-remaining-amount')">
+                                            {{ project?.paymentMethod === 'stripe' ?
+                                                'Payer avec Stripe' :
+                                                'Payer le solde' }}
                                         </UButton>
 
                                         <!-- Validate without payment -->
@@ -123,7 +130,7 @@
                                             <span class="text-neutral-600 dark:text-neutral-400">Photos</span>
                                             <span class="text-neutral-900 dark:text-neutral-100">{{ gallery?.imageCount
                                                 || 0
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div v-if="hasRemainingAmount"
                                             class="flex items-center justify-between text-sm">

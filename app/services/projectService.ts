@@ -232,9 +232,6 @@ export const projectService = {
       | "user_id"
       | "password_hash"
       | "password_expires_at"
-      | "workflow_started_at"
-      | "workflow_completed_at"
-      | "workflow_step"
     > & { require_password?: boolean }
   ): Promise<ProjectWithClient> {
     const supabase = useSupabaseClient();
@@ -282,8 +279,7 @@ export const projectService = {
    * Generate random password for project access
    */
   generatePassword(): string {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const chars = "0123456789";
     let password = "";
 
     for (let i = 0; i < 6; i++) {
@@ -385,31 +381,6 @@ export const projectService = {
   },
 
   /**
-   * Start workflow for a project
-   */
-  async startWorkflow(projectId: string): Promise<void> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour démarrer le workflow");
-    }
-
-    const { error } = await supabase
-      .from("projects")
-      .update({
-        workflow_started_at: new Date().toISOString(),
-        workflow_step: 1,
-      })
-      .eq("id", projectId)
-      .eq("user_id", user.value.id);
-
-    if (error) {
-      throw new Error(`Failed to start workflow: ${error.message}`);
-    }
-  },
-
-  /**
    * Check if project should be updated to in_progress status
    */
   shouldUpdateProjectStatus(project: ProjectWithClient): boolean {
@@ -477,31 +448,6 @@ export const projectService = {
       if (error) {
         throw new Error(`Failed to update project status: ${error.message}`);
       }
-    }
-  },
-
-  /**
-   * Update workflow step for a project
-   */
-  async updateWorkflowStep(projectId: string, step: number): Promise<void> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier le workflow");
-    }
-
-    const { error } = await supabase
-      .from("projects")
-      .update({
-        workflow_step: step,
-        workflow_completed_at: step === 4 ? new Date().toISOString() : null,
-      })
-      .eq("id", projectId)
-      .eq("user_id", user.value.id);
-
-    if (error) {
-      throw new Error(`Failed to update workflow step: ${error.message}`);
     }
   },
 };

@@ -141,10 +141,11 @@
                             variant="outline" color="neutral" label="Aperçu client"
                             :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
 
-                        <!-- Confirm Payment Action - Only for payment_pending -->
-                        <UButton v-if="galleryStore.gallery?.status === 'payment_pending'" icon="i-lucide-check-circle"
-                            size="sm" variant="outline" color="success" label="Confirmer paiement"
-                            :loading="galleryStore.loading" @click="handleConfirmPayment" />
+                        <!-- Confirm Payment Action - Only for payment_pending and bank_transfer -->
+                        <UButton
+                            v-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer'"
+                            icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
+                            label="Confirmer paiement" :loading="galleryStore.loading" @click="handleConfirmPayment" />
 
                         <!-- Delete Action - Only for draft -->
                         <UButton v-if="galleryStore.gallery?.status === 'draft'" icon="i-lucide-trash-2" size="sm"
@@ -390,7 +391,7 @@ const handleDelete = async () => {
 }
 
 const handleConfirmPayment = async () => {
-    if (!galleryStore.gallery) return
+    if (!galleryStore.gallery || projectSetupStore.project?.payment_method !== 'bank_transfer') return
 
     try {
         await galleryStore.confirmPayment(galleryStore.gallery.id)

@@ -177,6 +177,9 @@ export const useProjectsStore = defineStore("projects", () => {
         payment_status: null,
         stripe_payment_intent_id: null,
         stripe_session_id: null,
+        workflow_completed_at: null,
+        workflow_started_at: null,
+        workflow_step: null,
       });
       projects.value = [newProject, ...projects.value];
       closeModal();
