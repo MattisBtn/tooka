@@ -71,6 +71,50 @@ export default defineEventHandler(async (event) => {
           console.log(
             `Proposal ${proposalId} payment completed via checkout.session.completed`
           );
+
+          // Update project remaining_amount if project_id is available
+          if (session.metadata?.project_id) {
+            const projectId = session.metadata.project_id;
+
+            // Get current project data
+            const { data: project } = await supabase
+              .from("projects")
+              .select("remaining_amount, initial_price")
+              .eq("id", projectId)
+              .single();
+
+            if (
+              project &&
+              project.remaining_amount &&
+              project.remaining_amount > 0
+            ) {
+              // Calculate new remaining amount (subtract deposit amount)
+              const proposalData = await supabase
+                .from("proposals")
+                .select("deposit_amount")
+                .eq("id", proposalId)
+                .single();
+
+              if (proposalData.data?.deposit_amount) {
+                const newRemainingAmount = Math.max(
+                  0,
+                  project.remaining_amount - proposalData.data.deposit_amount
+                );
+
+                await supabase
+                  .from("projects")
+                  .update({
+                    remaining_amount: newRemainingAmount,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", projectId);
+
+                console.log(
+                  `Project ${projectId} remaining_amount updated to ${newRemainingAmount} after proposal payment (checkout.session.completed)`
+                );
+              }
+            }
+          }
         }
       }
 
@@ -108,6 +152,25 @@ export default defineEventHandler(async (event) => {
               .select("remaining_amount, status")
               .eq("id", projectId)
               .single();
+
+            // Update remaining_amount to 0 since this is the final payment
+            if (
+              project &&
+              project.remaining_amount &&
+              project.remaining_amount > 0
+            ) {
+              await supabase
+                .from("projects")
+                .update({
+                  remaining_amount: 0,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", projectId);
+
+              console.log(
+                `Project ${projectId} remaining_amount set to 0 after gallery payment (checkout.session.completed)`
+              );
+            }
 
             // If remaining_amount is 0 or null, mark project as completed
             if (
@@ -199,6 +262,50 @@ export default defineEventHandler(async (event) => {
         console.log(
           `Proposal ${proposalId} payment intent succeeded - marking as completed`
         );
+
+        // Update project remaining_amount if project_id is available
+        if (paymentIntent.metadata?.project_id) {
+          const projectId = paymentIntent.metadata.project_id;
+
+          // Get current project data
+          const { data: project } = await supabase
+            .from("projects")
+            .select("remaining_amount, initial_price")
+            .eq("id", projectId)
+            .single();
+
+          if (
+            project &&
+            project.remaining_amount &&
+            project.remaining_amount > 0
+          ) {
+            // Calculate new remaining amount (subtract deposit amount)
+            const proposal = await supabase
+              .from("proposals")
+              .select("deposit_amount")
+              .eq("id", proposalId)
+              .single();
+
+            if (proposal.data?.deposit_amount) {
+              const newRemainingAmount = Math.max(
+                0,
+                project.remaining_amount - proposal.data.deposit_amount
+              );
+
+              await supabase
+                .from("projects")
+                .update({
+                  remaining_amount: newRemainingAmount,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", projectId);
+
+              console.log(
+                `Project ${projectId} remaining_amount updated to ${newRemainingAmount} after proposal payment`
+              );
+            }
+          }
+        }
       }
 
       // Handle gallery payment intent success
@@ -228,6 +335,25 @@ export default defineEventHandler(async (event) => {
             .select("remaining_amount, status")
             .eq("id", projectId)
             .single();
+
+          // Update remaining_amount to 0 since this is the final payment
+          if (
+            project &&
+            project.remaining_amount &&
+            project.remaining_amount > 0
+          ) {
+            await supabase
+              .from("projects")
+              .update({
+                remaining_amount: 0,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", projectId);
+
+            console.log(
+              `Project ${projectId} remaining_amount set to 0 after gallery payment`
+            );
+          }
 
           // If remaining_amount is 0 or null, mark project as completed
           if (

@@ -242,10 +242,41 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
+      const { projectService } = await import("~/services/projectService");
+
       const updatedProposal = await proposalService.confirmPayment(
         proposal.value.id
       );
       proposal.value = updatedProposal;
+
+      // Update project remaining_amount by subtracting deposit amount
+      if (proposal.value.deposit_amount && proposal.value.deposit_amount > 0) {
+        const project = await projectService.getProjectById(
+          proposal.value.project_id
+        );
+
+        if (
+          project &&
+          project.remaining_amount &&
+          project.remaining_amount > 0
+        ) {
+          const newRemainingAmount = Math.max(
+            0,
+            project.remaining_amount - proposal.value.deposit_amount
+          );
+
+          await projectService.updateProject(proposal.value.project_id, {
+            remaining_amount: newRemainingAmount,
+          });
+
+          const { useProjectSetupStore } = await import(
+            "~/stores/admin/projectSetup"
+          );
+          const projectSetupStore = useProjectSetupStore();
+          await projectSetupStore.refreshProject();
+        }
+      }
+
       return updatedProposal;
     } catch (err) {
       error.value =

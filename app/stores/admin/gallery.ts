@@ -297,12 +297,28 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
+      const { projectService } = await import("~/services/projectService");
+
       await galleryService.confirmPayment(galleryId);
+
+      // Update project remaining_amount to 0 since this is the final payment
+      if (gallery.value?.project_id) {
+        await projectService.updateProject(gallery.value.project_id, {
+          remaining_amount: 0,
+        });
+      }
 
       // Reload data
       if (gallery.value?.project_id) {
         await loadGallery(gallery.value.project_id);
       }
+
+      // Check and update project status automatically
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      await projectSetupStore.refreshProject();
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to confirm payment");
