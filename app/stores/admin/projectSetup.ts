@@ -32,6 +32,11 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     formatDate(project.value?.created_at || "")
   );
 
+  // Project completion state
+  const isProjectCompleted = computed<boolean>(() => {
+    return project.value?.status === "completed";
+  });
+
   // Actions
   const fetchProject = async (projectId: string) => {
     if (loading.value) return;
@@ -138,6 +143,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     error: readonly(error),
     isLoading,
     hasError,
+    isProjectCompleted,
     clientDisplayName,
     statusInfo,
     formattedPrice,

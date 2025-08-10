@@ -133,24 +133,54 @@
                     <div
                         class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
                         <!-- Edit Action - Available for draft and revision_requested -->
-                        <UButton v-if="galleryStore.canEdit" icon="i-lucide-edit" size="sm" variant="outline"
-                            color="neutral" label="Modifier" @click="galleryStore.openForm()" />
+                        <UTooltip v-if="galleryStore.canEdit && !isProjectCompleted" text="Modifier la galerie">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                @click="galleryStore.openForm()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="galleryStore.canEdit && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                disabled />
+                        </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UButton v-if="galleryStore.gallery?.status !== 'draft'" icon="i-lucide-external-link" size="sm"
-                            variant="outline" color="neutral" label="Aperçu client"
-                            :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
+                        <UTooltip v-if="galleryStore.gallery?.status !== 'draft' && !isProjectCompleted"
+                            text="Voir l'aperçu client">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
+                        </UTooltip>
+                        <UTooltip v-else-if="galleryStore.gallery?.status !== 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" disabled />
+                        </UTooltip>
 
                         <!-- Confirm Payment Action - Only for payment_pending and bank_transfer -->
-                        <UButton
-                            v-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer'"
-                            icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
-                            label="Confirmer paiement" :loading="galleryStore.loading" @click="handleConfirmPayment" />
+                        <UTooltip
+                            v-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
+                            text="Confirmer le paiement reçu">
+                            <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
+                                label="Confirmer paiement" :loading="galleryStore.loading"
+                                @click="handleConfirmPayment" />
+                        </UTooltip>
+                        <UTooltip
+                            v-else-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
+                                label="Confirmer paiement" disabled />
+                        </UTooltip>
 
                         <!-- Delete Action - Only for draft -->
-                        <UButton v-if="galleryStore.gallery?.status === 'draft'" icon="i-lucide-trash-2" size="sm"
-                            variant="outline" color="error" label="Supprimer" :loading="galleryStore.loading"
-                            @click="handleDelete" />
+                        <UTooltip v-if="galleryStore.gallery?.status === 'draft' && !isProjectCompleted"
+                            text="Supprimer la galerie">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                :loading="galleryStore.loading" @click="handleDelete" />
+                        </UTooltip>
+                        <UTooltip v-else-if="galleryStore.gallery?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                disabled />
+                        </UTooltip>
                     </div>
                 </div>
             </UCard>
@@ -203,10 +233,17 @@
                     </div>
 
                     <!-- Create button -->
-                    <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
-                        :loading="galleryStore.formLoading" @click="galleryStore.openForm()">
+                    <UButton v-if="!isProjectCompleted" icon="i-lucide-plus" color="primary" size="lg"
+                        class="w-full sm:w-auto" :loading="galleryStore.formLoading" @click="galleryStore.openForm()">
                         Oui, créer une galerie
                     </UButton>
+                    <UTooltip v-else
+                        text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                        <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
+                            :loading="galleryStore.formLoading" disabled>
+                            Oui, créer une galerie
+                        </UButton>
+                    </UTooltip>
                 </div>
             </UCard>
         </div>
@@ -263,6 +300,9 @@ import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 const projectSetupStore = useProjectSetupStore()
 const galleryStore = useGalleryStore()
 const proposalStore = useProposalStore()
+
+// Use store-level reactive flag
+const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {

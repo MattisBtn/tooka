@@ -113,18 +113,40 @@
                     <div
                         class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
                         <!-- Edit Action - Available for draft and revision_requested -->
-                        <UButton v-if="selectionStore.canEdit" icon="i-lucide-edit" size="sm" variant="outline"
-                            color="neutral" label="Modifier" @click="selectionStore.openForm()" />
+                        <UTooltip v-if="selectionStore.canEdit && !isProjectCompleted" text="Modifier la sélection">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                @click="selectionStore.openForm()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="selectionStore.canEdit && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                disabled />
+                        </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UButton v-if="selectionStore.selection?.status !== 'draft'" icon="i-lucide-external-link"
-                            size="sm" variant="outline" color="neutral" label="Aperçu client"
-                            :to="`/selection/${selectionStore.selection?.id}`" target="_blank" />
+                        <UTooltip v-if="selectionStore.selection?.status !== 'draft' && !isProjectCompleted"
+                            text="Voir l'aperçu client">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" :to="`/selection/${selectionStore.selection?.id}`"
+                                target="_blank" />
+                        </UTooltip>
+                        <UTooltip v-else-if="selectionStore.selection?.status !== 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" disabled />
+                        </UTooltip>
 
                         <!-- Delete Action - Only for draft -->
-                        <UButton v-if="selectionStore.selection?.status === 'draft'" icon="i-lucide-trash-2" size="sm"
-                            variant="outline" color="error" label="Supprimer" :loading="selectionStore.loading"
-                            @click="handleDelete" />
+                        <UTooltip v-if="selectionStore.selection?.status === 'draft' && !isProjectCompleted"
+                            text="Supprimer la sélection">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                :loading="selectionStore.loading" @click="handleDelete" />
+                        </UTooltip>
+                        <UTooltip v-else-if="selectionStore.selection?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                disabled />
+                        </UTooltip>
                     </div>
                 </div>
             </UCard>
@@ -177,10 +199,18 @@
                     </div>
 
                     <!-- Create button -->
-                    <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
-                        :loading="selectionStore.formLoading" @click="selectionStore.openForm()">
+                    <UButton v-if="!isProjectCompleted" icon="i-lucide-plus" color="primary" size="lg"
+                        class="w-full sm:w-auto" :loading="selectionStore.formLoading"
+                        @click="selectionStore.openForm()">
                         Oui, créer une sélection
                     </UButton>
+                    <UTooltip v-else
+                        text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                        <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
+                            :loading="selectionStore.formLoading" disabled>
+                            Oui, créer une sélection
+                        </UButton>
+                    </UTooltip>
                 </div>
             </UCard>
         </div>
@@ -233,6 +263,9 @@ import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const selectionStore = useSelectionStore()
+
+// Use store-level reactive flag
+const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
 
 // Initialize selection store when project is loaded
 watch(() => projectSetupStore.project, async (project) => {

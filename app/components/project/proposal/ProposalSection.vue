@@ -101,27 +101,63 @@
                     <div
                         class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
                         <!-- Edit Action - Available for draft and revision_requested -->
-                        <UButton v-if="proposalStore.canEdit" icon="i-lucide-edit" size="sm" variant="outline"
-                            color="neutral" label="Modifier" @click="proposalStore.openForm()" />
+                        <UTooltip v-if="proposalStore.canEdit && !isProjectCompleted" text="Modifier la proposition">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                @click="proposalStore.openForm()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="proposalStore.canEdit && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
+                                disabled />
+                        </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UButton v-if="proposalStore.proposal?.status !== 'draft'" icon="i-lucide-external-link"
-                            size="sm" variant="outline" color="neutral" label="Aperçu client"
-                            :to="`/proposal/${proposalStore.proposal?.id}`" target="_blank" />
+                        <UTooltip v-if="proposalStore.proposal?.status !== 'draft' && !isProjectCompleted"
+                            text="Voir l'aperçu client">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" :to="`/proposal/${proposalStore.proposal?.id}`" target="_blank" />
+                        </UTooltip>
+                        <UTooltip v-else-if="proposalStore.proposal?.status !== 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
+                                label="Aperçu client" disabled />
+                        </UTooltip>
 
                         <!-- Send to Client Action - Only for draft -->
-                        <UButton v-if="proposalStore.proposal?.status === 'draft'" icon="i-lucide-send" size="sm"
-                            variant="solid" color="primary" label="Envoyer au client" @click="sendToClient()" />
+                        <UTooltip v-if="proposalStore.proposal?.status === 'draft' && !isProjectCompleted"
+                            text="Envoyer la proposition au client">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" @click="sendToClient()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="proposalStore.proposal?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" disabled />
+                        </UTooltip>
 
                         <!-- Mark as Completed Action - Only for payment_pending -->
-                        <UButton v-if="proposalStore.proposal?.status === 'payment_pending'"
-                            icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
-                            label="Marquer comme terminé" @click="markAsCompleted()" />
+                        <UTooltip v-if="proposalStore.proposal?.status === 'payment_pending' && !isProjectCompleted"
+                            text="Marquer la proposition comme terminée">
+                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
+                                label="Marquer comme terminé" @click="markAsCompleted()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="proposalStore.proposal?.status === 'payment_pending' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
+                                label="Marquer comme terminé" disabled />
+                        </UTooltip>
 
                         <!-- Delete Action - Only for draft -->
-                        <UButton v-if="proposalStore.proposal?.status === 'draft'" icon="i-lucide-trash-2" size="sm"
-                            variant="outline" color="error" label="Supprimer" :loading="proposalStore.loading"
-                            @click="handleDelete" />
+                        <UTooltip v-if="proposalStore.proposal?.status === 'draft' && !isProjectCompleted"
+                            text="Supprimer la proposition">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                :loading="proposalStore.loading" @click="handleDelete" />
+                        </UTooltip>
+                        <UTooltip v-else-if="proposalStore.proposal?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
+                                disabled />
+                        </UTooltip>
                     </div>
                 </div>
             </UCard>
@@ -174,10 +210,17 @@
                     </div>
 
                     <!-- Create button -->
-                    <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
-                        :loading="proposalStore.formLoading" @click="proposalStore.openForm()">
+                    <UButton v-if="!isProjectCompleted" icon="i-lucide-plus" color="primary" size="lg"
+                        class="w-full sm:w-auto" :loading="proposalStore.formLoading" @click="proposalStore.openForm()">
                         Oui, créer une proposition
                     </UButton>
+                    <UTooltip v-else
+                        text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                        <UButton icon="i-lucide-plus" color="primary" size="lg" class="w-full sm:w-auto"
+                            :loading="proposalStore.formLoading" disabled>
+                            Oui, créer une proposition
+                        </UButton>
+                    </UTooltip>
                 </div>
             </UCard>
         </div>
@@ -231,6 +274,10 @@ import { getStatusColor } from "~/utils/formatters";
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
+
+// Use store-level reactive flag
+const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
 // Avoid deep type instantiation by narrowing proposal type access
 const currentStatus = computed<string>(() => {
     const p = proposalStore.proposal as unknown as { status?: string } | null
