@@ -12,7 +12,7 @@
       <div class="flex items-center gap-3">
         <UInput :model-value="store.searchQuery" icon="i-lucide-search" placeholder="Rechercher un client..."
           class="flex-1" @update:model-value="store.setSearchQuery" />
-        <USelectMenu :model-value="store.typeFilter" :items="store.typeOptions" value-key="value"
+        <USelectMenu :model-value="store.typeFilter" :items="typeOptions" value-key="value"
           placeholder="Filtrer par type" class="w-48" @update:model-value="store.setTypeFilter" />
         <UDropdownMenu :items="sortOptions" :popper="{ placement: 'bottom-end' }">
           <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" size="lg" label="Ordre de tri" />
@@ -21,13 +21,13 @@
     </div>
 
     <!-- Bulk Actions Bar -->
-    <div v-if="selectedClientsCount > 0"
+    <div v-if="Object.keys(rowSelection).length > 0"
       class="mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-lucide-check-circle" class="text-gray-500 dark:text-gray-400" />
           <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {{ selectedClientsCount }} client(s) sélectionné(s)
+            {{ Object.keys(rowSelection).length }} client(s) sélectionné(s)
           </span>
         </div>
         <UButton icon="i-lucide-trash-2" color="error" variant="soft" size="sm" label="Supprimer la sélection"
@@ -36,8 +36,8 @@
     </div>
 
     <div ref="tableContainer" class="mt-6">
-      <UTable ref="table" v-model:row-selection="rowSelection" :columns="columns" :data="store.filteredClients" sticky
-        :loading="store.isLoading" empty="Aucun client trouvé"
+      <UTable ref="table" v-model:row-selection="rowSelection" :columns="columns" :data="store.clients" sticky
+        :loading="store.loading" empty="Aucun client trouvé"
         :ui="{ thead: 'bg-transparent backdrop-blur-none', th: 'bg-transparent' }" :get-row-id="(row) => row.id" />
     </div>
 
@@ -48,14 +48,16 @@
     </div>
 
     <!-- Client Modal -->
-    <ClientModal :model-value="store.showModal" :client="store.selectedClient" @update:model-value="store.closeModal" />
+    <ClientModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
+      :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined"
+      @update:model-value="store.closeModal" />
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="store.showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
+    <UModal :open="store.modalState.type === 'delete'" :title="deleteModalTitle" :description="deleteModalDescription">
       <template #footer>
         <div class="flex items-center justify-end gap-3 w-full">
           <UButton color="neutral" variant="ghost" label="Annuler" :disabled="store.deletionLoading"
-            @click="store.closeDeleteModal" />
+            @click="store.closeModal" />
           <UButton color="error" label="Supprimer définitivement" :loading="store.deletionLoading"
             @click="confirmDelete" />
         </div>
@@ -63,12 +65,12 @@
     </UModal>
 
     <!-- Multiple Delete Confirmation Modal -->
-    <UModal v-model:open="store.showMultipleDeleteModal" :title="multipleDeleteModalTitle"
+    <UModal :open="store.modalState.type === 'multiple-delete'" :title="multipleDeleteModalTitle"
       :description="multipleDeleteModalDescription">
       <template #footer>
         <div class="flex items-center justify-end gap-3 w-full">
           <UButton color="neutral" variant="ghost" label="Annuler" :disabled="store.multipleDeletionLoading"
-            @click="store.closeMultipleDeleteModal" />
+            @click="store.closeModal" />
           <UButton color="error" label="Supprimer définitivement" :loading="store.multipleDeletionLoading"
             @click="confirmMultipleDelete" />
         </div>
@@ -93,24 +95,37 @@ const store = useClientsStore()
 // Row selection
 const rowSelection = ref({})
 
-// Computed properties for bulk actions
-const selectedClientsCount = computed(() => Object.keys(rowSelection.value).length)
+// UI Options moved from store to component
+const typeOptions = [
+  { value: null, label: "Tous les types" },
+  { value: "individual" as const, label: "Particulier", color: "primary" },
+  { value: "company" as const, label: "Professionnel", color: "secondary" },
+]
 
-const selectedClients = computed(() => {
-  const selectedIds = Object.keys(rowSelection.value)
-  return store.clients.filter(client => selectedIds.includes(client.id))
-})
-
-// Sort options for dropdown
-const sortOptions = computed(() => [
+const sortOptions = [
   [
-    ...store.sortOptions.map(option => ({
-      label: option.label,
-      icon: option.icon,
-      onSelect: () => store.setSortOrder(option.value)
-    }))
+    {
+      label: "Plus récents",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_desc")
+    },
+    {
+      label: "Plus anciens",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_asc")
+    },
+    {
+      label: "Nom A-Z",
+      icon: "i-lucide-sort-asc",
+      onSelect: () => store.setSortOrder("name_asc")
+    },
+    {
+      label: "Nom Z-A",
+      icon: "i-lucide-sort-desc",
+      onSelect: () => store.setSortOrder("name_desc")
+    }
   ]
-])
+]
 
 // Initialize store
 onMounted(async () => {
@@ -219,28 +234,33 @@ const columns: TableColumn<Client>[] = [
 const deleteModalTitle = computed(() => 'Supprimer le client')
 
 const deleteModalDescription = computed(() => {
-  if (!store.clientToDelete) return ''
+  const client = store.modalState.data as Client
+  if (!client) return ''
 
-  const clientName = store.clientToDelete.type === 'individual'
-    ? `${store.clientToDelete.first_name} ${store.clientToDelete.last_name}`
-    : store.clientToDelete.company_name
+  const clientName = client.type === 'individual'
+    ? `${client.first_name} ${client.last_name}`
+    : client.company_name
 
   return `Êtes-vous sûr de vouloir supprimer le client "${clientName}" ? Cette action est irréversible.`
 })
 
 // Computed properties for multiple delete modal
-const multipleDeleteModalTitle = computed(() => `Supprimer ${selectedClientsCount.value} client(s)`)
+const multipleDeleteModalTitle = computed(() => {
+  const clients = store.modalState.data as Client[]
+  return `Supprimer ${clients?.length || 0} client(s)`
+})
 
 const multipleDeleteModalDescription = computed(() => {
-  if (!store.clientsToDelete.length) return ''
+  const clients = store.modalState.data as Client[]
+  if (!clients?.length) return ''
 
-  const clientNames = store.clientsToDelete.map(client =>
+  const clientNames = clients.map(client =>
     client.type === 'individual'
       ? `${client.first_name} ${client.last_name}`
       : client.company_name
   ).join(', ')
 
-  return `Êtes-vous sûr de vouloir supprimer définitivement ${selectedClientsCount.value} client(s) : ${clientNames} ? Cette action est irréversible.`
+  return `Êtes-vous sûr de vouloir supprimer définitivement ${clients.length} client(s) : ${clientNames} ? Cette action est irréversible.`
 })
 
 // Event handlers
@@ -249,32 +269,28 @@ const handlePageChange = async (page: number) => {
 }
 
 const confirmDelete = async () => {
-  if (!store.clientToDelete) return
+  const client = store.modalState.data as Client
+  if (!client) return
 
-  try {
-    const result = await store.deleteClient(store.clientToDelete.id)
-    if (result?.resetSelection) {
-      rowSelection.value = {}
-    }
-  } catch (error) {
-    console.error('Error deleting client:', error)
+  const result = await store.deleteClient(client.id)
+  if (result?.resetSelection) {
+    rowSelection.value = {}
   }
 }
 
 const handleBulkDelete = () => {
-  if (selectedClients.value.length > 0) {
-    store.openMultipleDeleteModal(selectedClients.value)
+  const selectedIds = Object.keys(rowSelection.value)
+  const selectedClients = store.clients.filter(client => selectedIds.includes(client.id))
+
+  if (selectedClients.length > 0) {
+    store.openMultipleDeleteModal(selectedClients)
   }
 }
 
 const confirmMultipleDelete = async () => {
-  try {
-    const result = await store.deleteMultipleClients()
-    if (result?.resetSelection) {
-      rowSelection.value = {}
-    }
-  } catch (error) {
-    console.error('Error deleting multiple clients:', error)
+  const result = await store.deleteMultipleClients()
+  if (result?.resetSelection) {
+    rowSelection.value = {}
   }
 }
 </script>

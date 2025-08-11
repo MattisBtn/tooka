@@ -53,12 +53,15 @@ export const useEntityStore = defineStore("entity", () => {
   const searchQuery = ref("");
   const statusFilter = ref<EntityStatus | null>(null);
 
-  // Modal State
-  const showModal = ref(false);
-  const selectedEntity = ref<Entity | undefined>(undefined);
-  const showDeleteModal = ref(false);
-  const entityToDelete = ref<Entity | null>(null);
+  // Simplified Modal State (YAGNI/KISS)
+  const modalState = ref<{
+    type: "create" | "edit" | "delete" | "multiple-delete" | null;
+    data?: Entity | Entity[];
+  }>({ type: null });
+
+  // Loading States
   const deletionLoading = ref(false);
+  const multipleDeletionLoading = ref(false);
 });
 ```
 
@@ -71,18 +74,13 @@ const getCurrentFilters = (): IEntityFilters => ({
   status: statusFilter.value || undefined,
 });
 
-// Computed Getters
-const filteredEntities = computed(() => entities.value);
-const isLoading = computed(() => loading.value);
-const hasError = computed(() => error.value !== null);
+// Essential Computed Only (YAGNI/KISS)
 const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
 
-// UI Options
-const statusOptions = [
-  { value: null, label: "Tous les statuts" },
-  { value: "draft" as const, label: "Brouillon", color: "neutral" },
-  { value: "active" as const, label: "Actif", color: "success" },
-];
+// ❌ AVOID: Redundant getters
+// const filteredEntities = computed(() => entities.value);
+// const isLoading = computed(() => loading.value);
+// const hasError = computed(() => error.value !== null);
 ```
 
 ### 2.3 Actions Pattern
@@ -187,7 +185,7 @@ const deleteEntity = async (id: string) => {
   try {
     await entityService.deleteEntity(id);
     entities.value = entities.value.filter((e) => e.id !== id);
-    closeDeleteModal();
+    closeModal();
   } catch (err) {
     error.value =
       err instanceof Error ? err : new Error("Failed to delete entity");
@@ -198,35 +196,34 @@ const deleteEntity = async (id: string) => {
 };
 ```
 
-### 2.4 Modal Management
+### 2.4 Simplified Modal Management (YAGNI/KISS)
 
 ```typescript
-// Modal Actions
+// Single Modal State Management
 const openCreateModal = () => {
-  selectedEntity.value = undefined;
-  showModal.value = true;
+  modalState.value = { type: "create" };
 };
 
 const openEditModal = (entity: Entity) => {
-  selectedEntity.value = entity;
-  showModal.value = true;
+  modalState.value = { type: "edit", data: entity };
 };
 
 const closeModal = () => {
-  showModal.value = false;
-  selectedEntity.value = undefined;
+  modalState.value = { type: null };
 };
 
 const openDeleteModal = (entity: Entity) => {
-  entityToDelete.value = entity;
-  showDeleteModal.value = true;
+  modalState.value = { type: "delete", data: entity };
 };
 
-const closeDeleteModal = () => {
-  showDeleteModal.value = false;
-  entityToDelete.value = null;
-  deletionLoading.value = false;
+const openMultipleDeleteModal = (selectedEntities: Entity[]) => {
+  modalState.value = { type: "multiple-delete", data: selectedEntities };
 };
+
+// ❌ AVOID: Multiple modal states
+// const showModal = ref(false);
+// const showDeleteModal = ref(false);
+// const showMultipleDeleteModal = ref(false);
 ```
 
 ### 2.5 Return Statement
@@ -249,17 +246,9 @@ return {
   statusFilter,
 
   // Modal State
-  showModal,
-  selectedEntity: readonly(selectedEntity),
-  showDeleteModal,
-  entityToDelete: readonly(entityToDelete),
+  modalState: readonly(modalState),
   deletionLoading: readonly(deletionLoading),
-
-  // Getters
-  filteredEntities,
-  isLoading,
-  hasError,
-  statusOptions,
+  multipleDeletionLoading: readonly(multipleDeletionLoading),
 
   // Actions
   reset,
@@ -273,7 +262,7 @@ return {
   openEditModal,
   closeModal,
   openDeleteModal,
-  closeDeleteModal,
+  openMultipleDeleteModal,
   createEntity,
   updateEntity,
   deleteEntity,
@@ -282,122 +271,615 @@ return {
 };
 ```
 
-## Best Practices
+## YAGNI/KISS Best Practices
 
-### 3.1 Error Handling
-
-- **Consistent Error Types**: Toujours utiliser `Error` ou des types d'erreur personnalisés
-- **Error State Management**: Maintenir un état d'erreur centralisé
-- **User-Friendly Messages**: Traduire les erreurs techniques en messages utilisateur
-
-### 3.2 Performance Optimization
-
-- **Debounced Search**: Utiliser `useDebounceFn` pour les recherches
-- **Lazy Loading**: Implémenter la pagination avec chargement à la demande
-- **State Immutability**: Utiliser `readonly()` pour l'état externe
-
-### 3.3 Type Safety
-
-- **Strong Typing**: Tous les types doivent être explicitement définis
-- **Interface Consistency**: Utiliser les interfaces des types partagés
-- **Generic Patterns**: Éviter `any`, utiliser des types génériques quand nécessaire
-
-### 3.4 State Management
-
-- **Single Source of Truth**: Un store par domaine métier
-- **Normalized State**: Éviter la duplication de données
-- **Reactive Updates**: Utiliser les réactivités Vue 3
-
-## Service Integration
-
-### 4.1 Service Pattern
+### 3.1 Avoid Redundant Getters
 
 ```typescript
-// Service Interface
-interface IEntityService {
-  getEntities(
-    filters: IEntityFilters,
-    pagination: IPagination
-  ): Promise<PaginatedResult<Entity>>;
-  getEntity(id: string): Promise<Entity | null>;
-  createEntity(data: EntityFormData): Promise<Entity>;
-  updateEntity(id: string, updates: Partial<Entity>): Promise<Entity>;
-  deleteEntity(id: string): Promise<void>;
+// ❌ DON'T: Create getters for simple state access
+const filteredEntities = computed(() => entities.value);
+const isLoading = computed(() => loading.value);
+const hasError = computed(() => error.value !== null);
+
+// ✅ DO: Use state directly in components
+// In component: store.entities, store.loading, store.error
+```
+
+### 3.2 Keep UI Options in Components
+
+```typescript
+// ❌ DON'T: Store UI options in store
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+];
+
+// ✅ DO: Define UI options in component
+// In component:
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+];
+```
+
+### 3.3 Simplified Modal State
+
+```typescript
+// ❌ DON'T: Multiple modal states
+const showModal = ref(false);
+const showDeleteModal = ref(false);
+const showMultipleDeleteModal = ref(false);
+const selectedEntity = ref<Entity | undefined>(undefined);
+const entityToDelete = ref<Entity | null>(null);
+
+// ✅ DO: Single modal state with type
+const modalState = ref<{
+  type: "create" | "edit" | "delete" | "multiple-delete" | null;
+  data?: Entity | Entity[];
+}>({ type: null });
+```
+
+### 3.4 Error Handling in Store Only
+
+```typescript
+// ❌ DON'T: Handle errors in components
+try {
+  await store.deleteEntity(id);
+} catch (error) {
+  console.error("Error deleting entity:", error);
+}
+
+// ✅ DO: Let store handle errors, component just calls
+try {
+  await store.deleteEntity(id);
+} catch {
+  // Store handles error display
 }
 ```
 
-### 4.2 Repository Pattern
+## Component Integration
+
+### 4.1 Direct State Access
 
 ```typescript
-// Repository Layer
-class EntityRepository {
-  async findMany(
-    filters: IEntityFilters,
-    pagination: IPagination
-  ): Promise<Entity[]> {
-    // Supabase query implementation
-  }
+// ✅ Use state directly
+const store = useEntityStore();
 
-  async findById(id: string): Promise<Entity | null> {
-    // Single entity fetch
-  }
-}
+// Access state directly
+const entities = store.entities;
+const loading = store.loading;
+const error = store.error;
+
+// No need for computed wrappers
+```
+
+### 4.2 Modal State Usage
+
+```typescript
+// ✅ Use modal state in template
+<UModal :open="store.modalState.type === 'delete'">
+  <!-- Modal content -->
+</UModal>
+
+<ClientModal
+  :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
+  :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined"
+  @update:model-value="store.closeModal"
+/>
+```
+
+### 4.3 UI Options in Component
+
+```typescript
+// ✅ Define options in component
+const typeOptions = [
+  { value: null, label: "Tous les types" },
+  { value: "individual" as const, label: "Particulier", color: "primary" },
+  { value: "company" as const, label: "Professionnel", color: "secondary" },
+];
+
+const sortOptions = [
+  [
+    {
+      label: "Plus récents",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_desc"),
+    },
+    // ... more options
+  ],
+];
+```
+
+## Performance Optimization
+
+### 5.1 Debounced Search
+
+```typescript
+// ✅ Use debounced search for performance
+const debouncedSearch = useDebounceFn(async () => {
+  await refresh(getCurrentFilters());
+}, 300);
+```
+
+### 5.2 State Immutability
+
+```typescript
+// ✅ Use readonly for external state access
+return {
+  entities: readonly(entities),
+  loading: readonly(loading),
+  error: readonly(error),
+  // ...
+};
 ```
 
 ## File Size Guidelines
 
-### 5.1 Store Size Limits
+### 6.1 Store Size Limits
 
 - **Maximum 300 lines** par store
 - **Extract complex logic** vers des composables si nécessaire
 - **Split large stores** par sous-domaine si dépassement
 
-### 5.2 Complexity Red Flags
+### 6.2 Complexity Red Flags
 
 - **Plus de 5 actions CRUD** → Considérer la séparation
 - **Plus de 3 états de modal** → Extraire la logique modale
 - **Plus de 10 getters** → Réorganiser la structure
-
-## Testing Considerations
-
-### 6.1 Store Testing
-
-```typescript
-// Test Pattern
-describe("useEntityStore", () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-  });
-
-  it("should fetch entities", async () => {
-    const store = useEntityStore();
-    await store.fetchEntities();
-    expect(store.entities).toHaveLength(2);
-  });
-});
-```
-
-## Migration & Evolution
-
-### 7.1 Store Evolution
-
-- **Backward Compatibility**: Maintenir l'API publique stable
-- **Gradual Migration**: Évoluer les stores existants progressivement
-- **Documentation**: Documenter les changements d'API
-
-### 7.2 Refactoring Triggers
-
-- **Store > 300 lignes**: Extraire des sous-stores ou composables
-- **Plus de 5 dépendances**: Considérer la séparation des responsabilités
-- **Logique métier complexe**: Déplacer vers les services
+- **UI options dans le store** → Déplacer vers le composant
 
 ## Summary
 
 Ce pattern garantit:
 
+- **YAGNI/KISS**: Code simple et direct, pas d'abstractions inutiles
 - **Consistency**: Structure uniforme across tous les stores
 - **Maintainability**: Code prévisible et facile à maintenir
 - **Performance**: Optimisations intégrées (debouncing, pagination)
 - **Type Safety**: TypeScript strict avec interfaces claires
+- **Scalability**: Architecture extensible pour la croissance
+- **Testing**: Structure testable avec patterns clairs
+
+- **Scalability**: Architecture extensible pour la croissance
+- **Testing**: Structure testable avec patterns clairs
+
+# Pinia Store Pattern - Nuxt 3 TypeScript
+
+## Architecture & Structure
+
+### 1.1 Store Organization
+
+**Feature-Based Stores**: Un store par domaine métier, organisé par fonctionnalité.
+
+**Structure Standard**:
+
+```
+~/stores/
+  ├── clients.ts          # Gestion des clients
+  ├── projects.ts         # Gestion des projets
+  ├── galleries.ts        # Gestion des galeries
+  ├── moodboards.ts       # Gestion des moodboards
+  ├── proposals.ts        # Gestion des propositions
+  └── selections.ts       # Gestion des sélections
+```
+
+### 1.2 Dependencies Pattern
+
+**Service Layer**: Chaque store utilise un service dédié pour les opérations CRUD.
+
+```typescript
+// Pattern de dépendance
+import { clientService } from "~/services/clientService";
+import type { Client, IClientFilters } from "~/types/client";
+```
+
+## Store Structure Template
+
+### 2.1 State Management
+
+```typescript
+export const useEntityStore = defineStore("entity", () => {
+  // Core State
+  const entities = ref<Entity[]>([]);
+  const loading = ref(false);
+  const error = ref<Error | null>(null);
+  const isInitialized = ref(false);
+
+  // Pagination State
+  const currentPage = ref(1);
+  const totalItems = ref(0);
+  const itemsPerPage = 20;
+
+  // Filter State
+  const searchQuery = ref("");
+  const statusFilter = ref<EntityStatus | null>(null);
+
+  // Simplified Modal State (YAGNI/KISS)
+  const modalState = ref<{
+    type: "create" | "edit" | "delete" | "multiple-delete" | null;
+    data?: Entity | Entity[];
+  }>({ type: null });
+
+  // Loading States
+  const deletionLoading = ref(false);
+  const multipleDeletionLoading = ref(false);
+});
+```
+
+### 2.2 Getters & Computed
+
+```typescript
+// Filter Helpers
+const getCurrentFilters = (): IEntityFilters => ({
+  search: searchQuery.value.trim() || undefined,
+  status: statusFilter.value || undefined,
+});
+
+// Essential Computed Only (YAGNI/KISS)
+const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
+
+// ❌ AVOID: Redundant getters
+// const filteredEntities = computed(() => entities.value);
+// const isLoading = computed(() => loading.value);
+// const hasError = computed(() => error.value !== null);
+```
+
+### 2.3 Actions Pattern
+
+```typescript
+// Reset & Initialization
+const reset = () => {
+  entities.value = [];
+  currentPage.value = 1;
+  totalItems.value = 0;
+  error.value = null;
+  isInitialized.value = false;
+};
+
+// Data Fetching
+const fetchEntities = async (filters: IEntityFilters = {}, page = 1) => {
+  if (loading.value) return;
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const pagination = { page, pageSize: itemsPerPage };
+    const result = await entityService.getEntities(filters, pagination);
+
+    entities.value = result.data;
+    totalItems.value = result.total;
+    currentPage.value = page;
+
+    if (page === 1) {
+      isInitialized.value = true;
+    }
+
+    return result.data;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to fetch entities");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Search & Filter Actions
+const debouncedSearch = useDebounceFn(async () => {
+  await refresh(getCurrentFilters());
+}, 300);
+
+const setSearchQuery = (query: string) => {
+  searchQuery.value = query;
+  debouncedSearch();
+};
+
+const setStatusFilter = (status: EntityStatus | null) => {
+  statusFilter.value = status;
+  debouncedSearch();
+};
+
+// CRUD Operations
+const createEntity = async (entityData: EntityFormData) => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const newEntity = await entityService.createEntity(entityData);
+    entities.value = [newEntity, ...entities.value];
+    closeModal();
+    return newEntity;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to create entity");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const updateEntity = async (id: string, updates: Partial<Entity>) => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const updatedEntity = await entityService.updateEntity(id, updates);
+    const index = entities.value.findIndex((e) => e.id === id);
+    if (index !== -1) {
+      entities.value[index] = updatedEntity;
+    }
+    closeModal();
+    return updatedEntity;
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to update entity");
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteEntity = async (id: string) => {
+  deletionLoading.value = true;
+
+  try {
+    await entityService.deleteEntity(id);
+    entities.value = entities.value.filter((e) => e.id !== id);
+    closeModal();
+  } catch (err) {
+    error.value =
+      err instanceof Error ? err : new Error("Failed to delete entity");
+    throw err;
+  } finally {
+    deletionLoading.value = false;
+  }
+};
+```
+
+### 2.4 Simplified Modal Management (YAGNI/KISS)
+
+```typescript
+// Single Modal State Management
+const openCreateModal = () => {
+  modalState.value = { type: "create" };
+};
+
+const openEditModal = (entity: Entity) => {
+  modalState.value = { type: "edit", data: entity };
+};
+
+const closeModal = () => {
+  modalState.value = { type: null };
+};
+
+const openDeleteModal = (entity: Entity) => {
+  modalState.value = { type: "delete", data: entity };
+};
+
+const openMultipleDeleteModal = (selectedEntities: Entity[]) => {
+  modalState.value = { type: "multiple-delete", data: selectedEntities };
+};
+
+// ❌ AVOID: Multiple modal states
+// const showModal = ref(false);
+// const showDeleteModal = ref(false);
+// const showMultipleDeleteModal = ref(false);
+```
+
+### 2.5 Return Statement
+
+```typescript
+return {
+  // State (readonly for external access)
+  entities: readonly(entities),
+  loading: readonly(loading),
+  error: readonly(error),
+  isInitialized: readonly(isInitialized),
+
+  // Pagination State
+  currentPage,
+  totalItems: readonly(totalItems),
+  totalPages,
+
+  // Filter State
+  searchQuery,
+  statusFilter,
+
+  // Modal State
+  modalState: readonly(modalState),
+  deletionLoading: readonly(deletionLoading),
+  multipleDeletionLoading: readonly(multipleDeletionLoading),
+
+  // Actions
+  reset,
+  initialize,
+  fetchEntities,
+  refresh,
+  setSearchQuery,
+  setStatusFilter,
+  setPage,
+  openCreateModal,
+  openEditModal,
+  closeModal,
+  openDeleteModal,
+  openMultipleDeleteModal,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+  addEntityToList,
+  updateEntityInList,
+};
+```
+
+## YAGNI/KISS Best Practices
+
+### 3.1 Avoid Redundant Getters
+
+```typescript
+// ❌ DON'T: Create getters for simple state access
+const filteredEntities = computed(() => entities.value);
+const isLoading = computed(() => loading.value);
+const hasError = computed(() => error.value !== null);
+
+// ✅ DO: Use state directly in components
+// In component: store.entities, store.loading, store.error
+```
+
+### 3.2 Keep UI Options in Components
+
+```typescript
+// ❌ DON'T: Store UI options in store
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+];
+
+// ✅ DO: Define UI options in component
+// In component:
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+];
+```
+
+### 3.3 Simplified Modal State
+
+```typescript
+// ❌ DON'T: Multiple modal states
+const showModal = ref(false);
+const showDeleteModal = ref(false);
+const showMultipleDeleteModal = ref(false);
+const selectedEntity = ref<Entity | undefined>(undefined);
+const entityToDelete = ref<Entity | null>(null);
+
+// ✅ DO: Single modal state with type
+const modalState = ref<{
+  type: "create" | "edit" | "delete" | "multiple-delete" | null;
+  data?: Entity | Entity[];
+}>({ type: null });
+```
+
+### 3.4 Error Handling in Store Only
+
+```typescript
+// ❌ DON'T: Handle errors in components
+try {
+  await store.deleteEntity(id);
+} catch (error) {
+  console.error("Error deleting entity:", error);
+}
+
+// ✅ DO: Let store handle errors, component just calls
+try {
+  await store.deleteEntity(id);
+} catch {
+  // Store handles error display
+}
+```
+
+## Component Integration
+
+### 4.1 Direct State Access
+
+```typescript
+// ✅ Use state directly
+const store = useEntityStore();
+
+// Access state directly
+const entities = store.entities;
+const loading = store.loading;
+const error = store.error;
+
+// No need for computed wrappers
+```
+
+### 4.2 Modal State Usage
+
+```typescript
+// ✅ Use modal state in template
+<UModal :open="store.modalState.type === 'delete'">
+  <!-- Modal content -->
+</UModal>
+
+<ClientModal
+  :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
+  :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined"
+  @update:model-value="store.closeModal"
+/>
+```
+
+### 4.3 UI Options in Component
+
+```typescript
+// ✅ Define options in component
+const typeOptions = [
+  { value: null, label: "Tous les types" },
+  { value: "individual" as const, label: "Particulier", color: "primary" },
+  { value: "company" as const, label: "Professionnel", color: "secondary" },
+];
+
+const sortOptions = [
+  [
+    {
+      label: "Plus récents",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_desc"),
+    },
+    // ... more options
+  ],
+];
+```
+
+## Performance Optimization
+
+### 5.1 Debounced Search
+
+```typescript
+// ✅ Use debounced search for performance
+const debouncedSearch = useDebounceFn(async () => {
+  await refresh(getCurrentFilters());
+}, 300);
+```
+
+### 5.2 State Immutability
+
+```typescript
+// ✅ Use readonly for external state access
+return {
+  entities: readonly(entities),
+  loading: readonly(loading),
+  error: readonly(error),
+  // ...
+};
+```
+
+## File Size Guidelines
+
+### 6.1 Store Size Limits
+
+- **Maximum 300 lines** par store
+- **Extract complex logic** vers des composables si nécessaire
+- **Split large stores** par sous-domaine si dépassement
+
+### 6.2 Complexity Red Flags
+
+- **Plus de 5 actions CRUD** → Considérer la séparation
+- **Plus de 3 états de modal** → Extraire la logique modale
+- **Plus de 10 getters** → Réorganiser la structure
+- **UI options dans le store** → Déplacer vers le composant
+
+## Summary
+
+Ce pattern garantit:
+
+- **YAGNI/KISS**: Code simple et direct, pas d'abstractions inutiles
+- **Consistency**: Structure uniforme across tous les stores
+- **Maintainability**: Code prévisible et facile à maintenir
+- **Performance**: Optimisations intégrées (debouncing, pagination)
+- **Type Safety**: TypeScript strict avec interfaces claires
+- **Scalability**: Architecture extensible pour la croissance
+- **Testing**: Structure testable avec patterns clairs
+
 - **Scalability**: Architecture extensible pour la croissance
 - **Testing**: Structure testable avec patterns clairs

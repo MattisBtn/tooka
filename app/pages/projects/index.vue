@@ -12,7 +12,7 @@
       <div class="flex items-center gap-3">
         <UInput :model-value="store.searchQuery" icon="i-lucide-search" placeholder="Rechercher un projet..."
           class="flex-1" @update:model-value="store.setSearchQuery" />
-        <USelectMenu :model-value="store.statusFilter" :items="store.statusOptions" value-key="value"
+        <USelectMenu :model-value="store.statusFilter" :items="statusOptions" value-key="value"
           placeholder="Filtrer par statut" class="w-48" @update:model-value="store.setStatusFilter" />
         <UDropdownMenu :items="sortOptions" :popper="{ placement: 'bottom-end' }">
           <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" size="lg" label="Ordre de tri" />
@@ -36,8 +36,8 @@
     </div>
 
     <div ref="tableContainer" class="mt-6">
-      <UTable ref="table" v-model:row-selection="rowSelection" :columns="columns" :data="store.filteredProjects" sticky
-        :loading="store.isLoading" empty="Aucun projet trouvé"
+      <UTable ref="table" v-model:row-selection="rowSelection" :columns="columns" :data="[...store.projects]" sticky
+        :loading="store.loading" empty="Aucun projet trouvé"
         :ui="{ thead: 'bg-transparent backdrop-blur-none', th: 'bg-transparent' }" :get-row-id="(row) => row.id" />
     </div>
 
@@ -47,18 +47,17 @@
         @update:page="handlePageChange" />
     </div>
 
-
-
     <!-- Project Modal -->
-    <ProjectModal :model-value="store.showModal" :project="store.selectedProject"
+    <ProjectModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
+      :project="store.modalState.type === 'edit' ? (store.modalState.data as ProjectWithClient) : undefined"
       @update:model-value="store.closeModal" />
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="store.showDeleteModal" :title="deleteModalTitle" :description="deleteModalDescription">
+    <UModal :open="store.modalState.type === 'delete'" :title="deleteModalTitle" :description="deleteModalDescription">
       <template #footer>
         <div class="flex items-center justify-end gap-3 w-full">
           <UButton color="neutral" variant="ghost" label="Annuler" :disabled="store.deletionLoading"
-            @click="store.closeDeleteModal" />
+            @click="store.closeModal" />
           <UButton color="error" label="Supprimer définitivement" :loading="store.deletionLoading"
             @click="confirmDelete" />
         </div>
@@ -66,12 +65,12 @@
     </UModal>
 
     <!-- Multiple Delete Confirmation Modal -->
-    <UModal v-model:open="store.showMultipleDeleteModal" :title="multipleDeleteModalTitle"
+    <UModal :open="store.modalState.type === 'multiple-delete'" :title="multipleDeleteModalTitle"
       :description="multipleDeleteModalDescription">
       <template #footer>
         <div class="flex items-center justify-end gap-3 w-full">
           <UButton color="neutral" variant="ghost" label="Annuler" :disabled="store.multipleDeletionLoading"
-            @click="store.closeMultipleDeleteModal" />
+            @click="store.closeModal" />
           <UButton color="error" label="Supprimer définitivement" :loading="store.multipleDeletionLoading"
             @click="confirmMultipleDelete" />
         </div>
@@ -96,6 +95,49 @@ const store = useProjectsStore()
 // Row selection
 const rowSelection = ref({})
 
+// UI Options (defined in component as per pattern)
+const statusOptions = [
+  { value: null, label: "Tous les statuts" },
+  { value: "draft" as const, label: "Brouillon", color: "neutral" },
+  { value: "in_progress" as const, label: "En cours", color: "info" },
+  { value: "completed" as const, label: "Terminé", color: "success" },
+]
+
+const sortOptions = [
+  [
+    {
+      label: "Plus récents",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_desc")
+    },
+    {
+      label: "Plus anciens",
+      icon: "i-lucide-calendar-days",
+      onSelect: () => store.setSortOrder("created_asc")
+    },
+    {
+      label: "Titre A-Z",
+      icon: "i-lucide-sort-asc",
+      onSelect: () => store.setSortOrder("title_asc")
+    },
+    {
+      label: "Titre Z-A",
+      icon: "i-lucide-sort-desc",
+      onSelect: () => store.setSortOrder("title_desc")
+    },
+    {
+      label: "Statut A-Z",
+      icon: "i-lucide-sort-asc",
+      onSelect: () => store.setSortOrder("status_asc")
+    },
+    {
+      label: "Statut Z-A",
+      icon: "i-lucide-sort-desc",
+      onSelect: () => store.setSortOrder("status_desc")
+    }
+  ]
+]
+
 // Computed properties for bulk actions
 const selectedProjectsCount = computed(() => Object.keys(rowSelection.value).length)
 
@@ -103,17 +145,6 @@ const selectedProjects = computed(() => {
   const selectedIds = Object.keys(rowSelection.value)
   return store.projects.filter(project => selectedIds.includes(project.id))
 })
-
-// Sort options for dropdown
-const sortOptions = computed(() => [
-  [
-    ...store.sortOptions.map(option => ({
-      label: option.label,
-      icon: option.icon,
-      onSelect: () => store.setSortOrder(option.value)
-    }))
-  ]
-])
 
 // Initialize store
 onMounted(async () => {
@@ -190,7 +221,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
     header: 'Statut',
     cell: ({ row }) => {
       const status = row.original.status
-      const statusOption = store.statusOptions.find(s => s.value === status)
+      const statusOption = statusOptions.find(s => s.value === status)
 
       return h(UBadge, {
         color: statusOption?.color || 'gray',
@@ -239,18 +270,20 @@ const columns: TableColumn<ProjectWithClient>[] = [
 const deleteModalTitle = computed(() => 'Supprimer le projet')
 
 const deleteModalDescription = computed(() => {
-  if (!store.projectToDelete) return ''
+  const projectToDelete = store.modalState.type === 'delete' ? (store.modalState.data as ProjectWithClient) : null
+  if (!projectToDelete) return ''
 
-  return `Êtes-vous sûr de vouloir supprimer le projet "${store.projectToDelete.title}" ? Cette action est irréversible.`
+  return `Êtes-vous sûr de vouloir supprimer le projet "${projectToDelete.title}" ? Cette action est irréversible.`
 })
 
 // Computed properties for multiple delete modal
 const multipleDeleteModalTitle = computed(() => `Supprimer ${selectedProjectsCount.value} projet(s)`)
 
 const multipleDeleteModalDescription = computed(() => {
-  if (!store.projectsToDelete.length) return ''
+  const projectsToDelete = store.modalState.type === 'multiple-delete' ? (store.modalState.data as ProjectWithClient[]) : []
+  if (!projectsToDelete.length) return ''
 
-  const projectNames = store.projectsToDelete.map(project => project.title).join(', ')
+  const projectNames = projectsToDelete.map(project => project.title).join(', ')
 
   return `Êtes-vous sûr de vouloir supprimer définitivement ${selectedProjectsCount.value} projet(s) : ${projectNames} ? Cette action est irréversible.`
 })
@@ -261,15 +294,12 @@ const handlePageChange = async (page: number) => {
 }
 
 const confirmDelete = async () => {
-  if (!store.projectToDelete) return
+  const projectToDelete = store.modalState.type === 'delete' ? (store.modalState.data as ProjectWithClient) : null
+  if (!projectToDelete) return
 
-  try {
-    const result = await store.deleteProject(store.projectToDelete.id)
-    if (result?.resetSelection) {
-      rowSelection.value = {}
-    }
-  } catch (error) {
-    console.error('Error deleting project:', error)
+  const result = await store.deleteProject(projectToDelete.id)
+  if (result?.resetSelection) {
+    rowSelection.value = {}
   }
 }
 
@@ -280,13 +310,9 @@ const handleBulkDelete = () => {
 }
 
 const confirmMultipleDelete = async () => {
-  try {
-    const result = await store.deleteMultipleProjects()
-    if (result?.resetSelection) {
-      rowSelection.value = {}
-    }
-  } catch (error) {
-    console.error('Error deleting multiple projects:', error)
+  const result = await store.deleteMultipleProjects()
+  if (result?.resetSelection) {
+    rowSelection.value = {}
   }
 }
 </script>

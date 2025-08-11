@@ -7,18 +7,18 @@ import type {
 } from "~/types/project";
 
 export const useProjectsStore = defineStore("projects", () => {
-  // State
+  // Core State
   const projects = ref<ProjectWithClient[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const isInitialized = ref(false);
 
-  // Pagination state
+  // Pagination State
   const currentPage = ref(1);
   const totalItems = ref(0);
   const itemsPerPage = 20;
 
-  // Filters state
+  // Filter State
   const searchQuery = ref("");
   const statusFilter = ref<"draft" | "in_progress" | "completed" | null>(null);
   const sortOrder = ref<
@@ -30,72 +30,25 @@ export const useProjectsStore = defineStore("projects", () => {
     | "status_desc"
   >("created_desc");
 
-  // Modal state
-  const showModal = ref(false);
-  const selectedProject = ref<ProjectWithClient | undefined>(undefined);
-  const showDeleteModal = ref(false);
-  const projectToDelete = ref<ProjectWithClient | null>(null);
-  const deletionLoading = ref(false);
+  // Simplified Modal State (YAGNI/KISS)
+  const modalState = ref<{
+    type: "create" | "edit" | "delete" | "multiple-delete" | null;
+    data?: ProjectWithClient | ProjectWithClient[];
+  }>({ type: null });
 
-  // Multiple deletion state
-  const showMultipleDeleteModal = ref(false);
-  const projectsToDelete = ref<ProjectWithClient[]>([]);
+  // Loading States
+  const deletionLoading = ref(false);
   const multipleDeletionLoading = ref(false);
 
-  // Get current filters
+  // Filter Helpers
   const getCurrentFilters = (): IProjectFilters => ({
     search: searchQuery.value.trim() || undefined,
     status: statusFilter.value || undefined,
     sort: sortOrder.value,
   });
 
-  // Getters
-  const filteredProjects = computed(() => projects.value);
-  const isLoading = computed(() => loading.value);
-  const hasError = computed(() => error.value !== null);
+  // Essential Computed Only (YAGNI/KISS)
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
-
-  // Status options for UI
-  const statusOptions = [
-    { value: null, label: "Tous les statuts" },
-    { value: "draft" as const, label: "Brouillon", color: "neutral" },
-    { value: "in_progress" as const, label: "En cours", color: "info" },
-    { value: "completed" as const, label: "Terminé", color: "success" },
-  ];
-
-  // Sort options for UI
-  const sortOptions = [
-    {
-      value: "created_desc" as const,
-      label: "Plus récents",
-      icon: "i-lucide-calendar-days",
-    },
-    {
-      value: "created_asc" as const,
-      label: "Plus anciens",
-      icon: "i-lucide-calendar-days",
-    },
-    {
-      value: "title_asc" as const,
-      label: "Titre A-Z",
-      icon: "i-lucide-sort-asc",
-    },
-    {
-      value: "title_desc" as const,
-      label: "Titre Z-A",
-      icon: "i-lucide-sort-desc",
-    },
-    {
-      value: "status_asc" as const,
-      label: "Statut A-Z",
-      icon: "i-lucide-sort-asc",
-    },
-    {
-      value: "status_desc" as const,
-      label: "Statut Z-A",
-      icon: "i-lucide-sort-desc",
-    },
-  ];
 
   // Actions
   const reset = () => {
@@ -113,11 +66,7 @@ export const useProjectsStore = defineStore("projects", () => {
     error.value = null;
 
     try {
-      const pagination = {
-        page,
-        pageSize: itemsPerPage,
-      };
-
+      const pagination = { page, pageSize: itemsPerPage };
       const result = await projectService.getProjects(filters, pagination);
 
       projects.value = result.data;
@@ -144,21 +93,18 @@ export const useProjectsStore = defineStore("projects", () => {
     return await fetchProjects(filtersToUse, 1);
   };
 
-  // Initialize store - follows Pinia best practices for Nuxt
   const initialize = async (filters?: IProjectFilters) => {
     if (isInitialized.value && projects.value.length > 0) {
       return projects.value;
     }
-
     return await refresh(filters);
   };
 
-  // Create debounced search function using VueUse
+  // Search & Filter Actions
   const debouncedSearch = useDebounceFn(async () => {
     await refresh(getCurrentFilters());
   }, 300);
 
-  // Search and filter actions
   const setSearchQuery = (query: string) => {
     searchQuery.value = query;
     debouncedSearch();
@@ -188,26 +134,25 @@ export const useProjectsStore = defineStore("projects", () => {
     await fetchProjects(getCurrentFilters(), page);
   };
 
-  // Modal actions
+  // Simplified Modal Management (YAGNI/KISS)
   const openCreateModal = () => {
-    selectedProject.value = undefined;
-    showModal.value = true;
+    modalState.value = { type: "create" };
+  };
+
+  const openEditModal = (project: ProjectWithClient) => {
+    modalState.value = { type: "edit", data: project };
   };
 
   const closeModal = () => {
-    showModal.value = false;
-    selectedProject.value = undefined;
+    modalState.value = { type: null };
   };
 
   const openDeleteModal = (project: ProjectWithClient) => {
-    projectToDelete.value = project;
-    showDeleteModal.value = true;
+    modalState.value = { type: "delete", data: project };
   };
 
-  const closeDeleteModal = () => {
-    showDeleteModal.value = false;
-    projectToDelete.value = null;
-    deletionLoading.value = false;
+  const openMultipleDeleteModal = (selectedProjects: ProjectWithClient[]) => {
+    modalState.value = { type: "multiple-delete", data: selectedProjects };
   };
 
   // Navigation action
@@ -215,7 +160,7 @@ export const useProjectsStore = defineStore("projects", () => {
     navigateTo(`/projects/${id}/setup`);
   };
 
-  // CRUD actions
+  // CRUD Operations
   const createProject = async (projectData: ProjectFormData) => {
     loading.value = true;
     error.value = null;
@@ -283,8 +228,7 @@ export const useProjectsStore = defineStore("projects", () => {
     try {
       await projectService.deleteProject(id);
       projects.value = projects.value.filter((p) => p.id !== id);
-      closeDeleteModal();
-      // Reset row selection after deletion
+      closeModal();
       return { resetSelection: true };
     } catch (err) {
       error.value =
@@ -295,64 +239,48 @@ export const useProjectsStore = defineStore("projects", () => {
     }
   };
 
-  // Multiple deletion actions
-  const openMultipleDeleteModal = (selectedProjects: ProjectWithClient[]) => {
-    projectsToDelete.value = selectedProjects;
-    showMultipleDeleteModal.value = true;
-  };
-
-  const closeMultipleDeleteModal = () => {
-    showMultipleDeleteModal.value = false;
-    projectsToDelete.value = [];
-    multipleDeletionLoading.value = false;
-  };
-
   const deleteMultipleProjects = async () => {
-    if (!projectsToDelete.value.length) return;
+    const projectsToDelete = modalState.value.data as ProjectWithClient[];
+    if (!projectsToDelete?.length) return;
 
     multipleDeletionLoading.value = true;
     error.value = null;
 
     try {
-      const ids = projectsToDelete.value.map((project) => project.id);
+      const ids = projectsToDelete.map((project) => project.id);
       const result = await projectService.deleteMultipleProjects(ids);
 
-      // Remove successfully deleted projects from the list
       if (result.success.length > 0) {
         projects.value = projects.value.filter(
           (project) => !result.success.includes(project.id)
         );
       }
 
-      // Show appropriate message based on results
       if (result.success.length > 0 && result.failed.length === 0) {
-        // All successful
-        closeMultipleDeleteModal();
+        closeModal();
         return { resetSelection: true };
       } else if (result.success.length > 0 && result.failed.length > 0) {
-        // Partial success - show error with details
         const errorMessage = `Suppression partielle : ${
           result.success.length
         } projet(s) supprimé(s), ${
           result.failed.length
         } échec(s). Erreurs : ${result.errors.join(", ")}`;
         error.value = new Error(errorMessage);
-        closeMultipleDeleteModal();
+        closeModal();
         return { resetSelection: true };
       } else {
-        // All failed
         const errorMessage = `Échec de la suppression : ${result.errors.join(
           ", "
         )}`;
         error.value = new Error(errorMessage);
-        closeMultipleDeleteModal();
+        closeModal();
       }
     } catch (err) {
       error.value =
         err instanceof Error
           ? err
           : new Error("Failed to delete multiple projects");
-      closeMultipleDeleteModal();
+      closeModal();
     } finally {
       multipleDeletionLoading.value = false;
     }
@@ -376,57 +304,36 @@ export const useProjectsStore = defineStore("projects", () => {
     error: error,
     isInitialized: isInitialized,
 
-    // Pagination state
+    // Pagination State
     currentPage,
     totalItems: totalItems,
     totalPages,
 
-    // Filter state
+    // Filter State
     searchQuery,
     statusFilter,
     sortOrder,
 
-    // Modal state
-    showModal,
-    selectedProject: selectedProject,
-    showDeleteModal,
-    projectToDelete: projectToDelete,
+    // Modal State
+    modalState: modalState,
     deletionLoading: deletionLoading,
-    showMultipleDeleteModal,
-    projectsToDelete: projectsToDelete,
     multipleDeletionLoading: multipleDeletionLoading,
-
-    // Getters
-    filteredProjects,
-    isLoading,
-    hasError,
-    statusOptions,
-    sortOptions,
 
     // Actions
     reset,
     initialize,
     fetchProjects,
     refresh,
-
-    // Filter actions
     setSearchQuery,
     setStatusFilter,
     setSortOrder,
     setPage,
-
-    // Modal actions
     openCreateModal,
+    openEditModal,
     closeModal,
     openDeleteModal,
-    closeDeleteModal,
     openMultipleDeleteModal,
-    closeMultipleDeleteModal,
-
-    // Navigation
     viewProject,
-
-    // CRUD actions
     createProject,
     updateProject,
     deleteProject,

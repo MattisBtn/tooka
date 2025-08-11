@@ -21,16 +21,14 @@ export const useClientsStore = defineStore("clients", () => {
     "name_asc" | "name_desc" | "created_asc" | "created_desc"
   >("created_desc");
 
-  // Modal state
-  const showModal = ref(false);
-  const selectedClient = ref<Client | undefined>(undefined);
-  const showDeleteModal = ref(false);
-  const clientToDelete = ref<Client | null>(null);
-  const deletionLoading = ref(false);
+  // Simplified modal state
+  const modalState = ref<{
+    type: "create" | "edit" | "delete" | "multiple-delete" | null;
+    data?: Client | Client[];
+  }>({ type: null });
 
-  // Multiple deletion state
-  const showMultipleDeleteModal = ref(false);
-  const clientsToDelete = ref<Client[]>([]);
+  // Loading states
+  const deletionLoading = ref(false);
   const multipleDeletionLoading = ref(false);
 
   // Get current filters
@@ -40,38 +38,8 @@ export const useClientsStore = defineStore("clients", () => {
     sort: sortOrder.value,
   });
 
-  // Getters
-  const filteredClients = computed(() => clients.value);
-  const isLoading = computed(() => loading.value);
-  const hasError = computed(() => error.value !== null);
+  // Computed
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
-
-  // Type options for UI
-  const typeOptions = [
-    { value: null, label: "Tous les types" },
-    { value: "individual" as const, label: "Particulier", color: "primary" },
-    { value: "company" as const, label: "Professionnel", color: "secondary" },
-  ];
-
-  // Sort options for UI
-  const sortOptions = [
-    {
-      value: "created_desc" as const,
-      label: "Plus récents",
-      icon: "i-lucide-calendar-days",
-    },
-    {
-      value: "created_asc" as const,
-      label: "Plus anciens",
-      icon: "i-lucide-calendar-days",
-    },
-    { value: "name_asc" as const, label: "Nom A-Z", icon: "i-lucide-sort-asc" },
-    {
-      value: "name_desc" as const,
-      label: "Nom Z-A",
-      icon: "i-lucide-sort-desc",
-    },
-  ];
 
   // Actions
   const reset = () => {
@@ -156,31 +124,25 @@ export const useClientsStore = defineStore("clients", () => {
     await fetchClients(getCurrentFilters(), page);
   };
 
-  // Modal actions
+  // Simplified modal actions
   const openCreateModal = () => {
-    selectedClient.value = undefined;
-    showModal.value = true;
+    modalState.value = { type: "create" };
   };
 
   const openEditModal = (client: Client) => {
-    selectedClient.value = client;
-    showModal.value = true;
+    modalState.value = { type: "edit", data: client };
   };
 
   const closeModal = () => {
-    showModal.value = false;
-    selectedClient.value = undefined;
+    modalState.value = { type: null };
   };
 
   const openDeleteModal = (client: Client) => {
-    clientToDelete.value = client;
-    showDeleteModal.value = true;
+    modalState.value = { type: "delete", data: client };
   };
 
-  const closeDeleteModal = () => {
-    showDeleteModal.value = false;
-    clientToDelete.value = null;
-    deletionLoading.value = false;
+  const openMultipleDeleteModal = (selectedClients: Client[]) => {
+    modalState.value = { type: "multiple-delete", data: selectedClients };
   };
 
   // CRUD actions
@@ -231,8 +193,7 @@ export const useClientsStore = defineStore("clients", () => {
     try {
       await clientService.deleteClient(id);
       clients.value = clients.value.filter((c) => c.id !== id);
-      closeDeleteModal();
-      // Reset row selection after deletion
+      closeModal();
       return { resetSelection: true };
     } catch (err) {
       error.value =
@@ -244,25 +205,15 @@ export const useClientsStore = defineStore("clients", () => {
   };
 
   // Multiple deletion actions
-  const openMultipleDeleteModal = (selectedClients: Client[]) => {
-    clientsToDelete.value = selectedClients;
-    showMultipleDeleteModal.value = true;
-  };
-
-  const closeMultipleDeleteModal = () => {
-    showMultipleDeleteModal.value = false;
-    clientsToDelete.value = [];
-    multipleDeletionLoading.value = false;
-  };
-
   const deleteMultipleClients = async () => {
-    if (!clientsToDelete.value.length) return;
+    const clientsToDelete = modalState.value.data as Client[];
+    if (!clientsToDelete?.length) return;
 
     multipleDeletionLoading.value = true;
     error.value = null;
 
     try {
-      const ids = clientsToDelete.value.map((client) => client.id);
+      const ids = clientsToDelete.map((client) => client.id);
       const result = await clientService.deleteMultipleClients(ids);
 
       // Remove successfully deleted clients from the list
@@ -275,7 +226,7 @@ export const useClientsStore = defineStore("clients", () => {
       // Show appropriate message based on results
       if (result.success.length > 0 && result.failed.length === 0) {
         // All successful
-        closeMultipleDeleteModal();
+        closeModal();
         return { resetSelection: true };
       } else if (result.success.length > 0 && result.failed.length > 0) {
         // Partial success - show error with details
@@ -285,7 +236,7 @@ export const useClientsStore = defineStore("clients", () => {
           result.failed.length
         } échec(s). Erreurs : ${result.errors.join(", ")}`;
         error.value = new Error(errorMessage);
-        closeMultipleDeleteModal();
+        closeModal();
         return { resetSelection: true };
       } else {
         // All failed
@@ -293,14 +244,14 @@ export const useClientsStore = defineStore("clients", () => {
           ", "
         )}`;
         error.value = new Error(errorMessage);
-        closeMultipleDeleteModal();
+        closeModal();
       }
     } catch (err) {
       error.value =
         err instanceof Error
           ? err
           : new Error("Failed to delete multiple clients");
-      closeMultipleDeleteModal();
+      closeModal();
     } finally {
       multipleDeletionLoading.value = false;
     }
@@ -319,14 +270,14 @@ export const useClientsStore = defineStore("clients", () => {
 
   return {
     // State
-    clients,
-    loading,
-    error,
-    isInitialized,
+    clients: clients,
+    loading: loading,
+    error: error,
+    isInitialized: isInitialized,
 
     // Pagination state
     currentPage,
-    totalItems,
+    totalItems: totalItems,
     totalPages,
 
     // Filter state
@@ -335,21 +286,9 @@ export const useClientsStore = defineStore("clients", () => {
     sortOrder,
 
     // Modal state
-    showModal,
-    selectedClient,
-    showDeleteModal,
-    clientToDelete,
-    deletionLoading,
-    showMultipleDeleteModal,
-    clientsToDelete,
-    multipleDeletionLoading,
-
-    // Getters
-    filteredClients,
-    isLoading,
-    hasError,
-    typeOptions,
-    sortOptions,
+    modalState: modalState,
+    deletionLoading: deletionLoading,
+    multipleDeletionLoading: multipleDeletionLoading,
 
     // Actions
     reset,
@@ -368,9 +307,7 @@ export const useClientsStore = defineStore("clients", () => {
     openEditModal,
     closeModal,
     openDeleteModal,
-    closeDeleteModal,
     openMultipleDeleteModal,
-    closeMultipleDeleteModal,
 
     // CRUD actions
     createClient,
