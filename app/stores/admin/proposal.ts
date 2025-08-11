@@ -79,13 +79,18 @@ export const useProposalStore = defineStore("proposal", () => {
         );
       }
 
+      // For free projects, force payment settings to be free
+      const { projectService } = await import("~/services/projectService");
+      const project = await projectService.getProjectById(projectId);
+      const isFree = !project?.initial_price || project.initial_price === 0;
+
       const data = {
         project_id: projectId,
         content_json: proposalData.content_json,
         content_html: proposalData.content_html,
-        price: proposalData.price,
-        deposit_required: proposalData.deposit_required,
-        deposit_amount: proposalData.deposit_amount || null,
+        price: isFree ? 0 : proposalData.price,
+        deposit_required: isFree ? false : proposalData.deposit_required,
+        deposit_amount: isFree ? null : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
         status: shouldValidate
@@ -98,9 +103,12 @@ export const useProposalStore = defineStore("proposal", () => {
       proposal.value = result.proposal;
 
       // Conditionally update project payment method if deposit is required and a method is selected
-      const { projectService } = await import("~/services/projectService");
-
-      if (proposalData.deposit_required && projectData.payment_method) {
+      // Only for non-free projects
+      if (
+        !isFree &&
+        proposalData.deposit_required &&
+        projectData.payment_method
+      ) {
         await projectService.updateProject(projectId, {
           payment_method: projectData.payment_method,
         });
@@ -169,13 +177,20 @@ export const useProposalStore = defineStore("proposal", () => {
       const currentSet = new Set(currentPaths);
       const removedPaths = previousPaths.filter((p) => !currentSet.has(p));
 
+      // For free projects, force payment settings to be free
+      const { projectService } = await import("~/services/projectService");
+      const project = await projectService.getProjectById(
+        proposal.value!.project_id
+      );
+      const isFree = !project?.initial_price || project.initial_price === 0;
+
       const data = {
         project_id: proposal.value!.project_id,
         content_json: proposalData.content_json,
         content_html: proposalData.content_html,
-        price: proposalData.price,
-        deposit_required: proposalData.deposit_required,
-        deposit_amount: proposalData.deposit_amount || null,
+        price: isFree ? 0 : proposalData.price,
+        deposit_required: isFree ? false : proposalData.deposit_required,
+        deposit_amount: isFree ? null : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
         status: shouldValidate
@@ -200,9 +215,12 @@ export const useProposalStore = defineStore("proposal", () => {
         }
       }
 
-      const { projectService } = await import("~/services/projectService");
-
-      if (proposalData.deposit_required && projectData.payment_method) {
+      // Only for non-free projects
+      if (
+        !isFree &&
+        proposalData.deposit_required &&
+        projectData.payment_method
+      ) {
         await projectService.updateProject(proposal.value!.project_id, {
           payment_method: projectData.payment_method,
         });

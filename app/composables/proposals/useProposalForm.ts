@@ -33,12 +33,18 @@ export const useProposalForm = (
 ) => {
   const isEditMode = computed(() => !!proposal);
 
+  // Check if project is free
+  const isFree = computed(() => {
+    const price = proposal?.price || project?.price || projectInitialPrice || 0;
+    return !price || price === 0;
+  });
+
   // Use specialized composables
   const fileUpload = useProposalFileUpload();
   const pricing = useProposalPricing(
     proposal?.price || project?.price || projectInitialPrice || 0,
-    proposal?.deposit_required,
-    proposal?.deposit_amount,
+    isFree.value ? false : proposal?.deposit_required, // Force deposit_required to false for free projects
+    isFree.value ? null : proposal?.deposit_amount, // Force deposit_amount to null for free projects
     project
   );
   const componentManager = useProposalComponentManager();
@@ -139,6 +145,7 @@ export const useProposalForm = (
     projectState,
     proposalSchema,
     isEditMode,
+    isFree,
 
     // File handling
     contractFile: fileUpload.contractFile,

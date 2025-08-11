@@ -337,7 +337,6 @@ export type Database = {
           remaining_amount: number | null
           status: Database["public"]["Enums"]["project_status"]
           stripe_payment_intent_id: string | null
-          stripe_session_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -367,7 +366,6 @@ export type Database = {
           remaining_amount?: number | null
           status?: Database["public"]["Enums"]["project_status"]
           stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -397,7 +395,6 @@ export type Database = {
           remaining_amount?: number | null
           status?: Database["public"]["Enums"]["project_status"]
           stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -760,10 +757,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_remaining_amount: {
-        Args: { project_id_param: string }
-        Returns: number
-      }
+      [_ in never]: never
     }
     Enums: {
       client_type: "individual" | "company"

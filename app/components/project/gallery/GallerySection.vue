@@ -64,7 +64,7 @@
                     </div>
 
                     <!-- Pricing Information -->
-                    <div v-if="galleryStore.pricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div v-if="!isFree && galleryStore.pricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="space-y-1">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix
@@ -157,14 +157,14 @@
 
                         <!-- Confirm Payment Action - Only for payment_pending and bank_transfer -->
                         <UTooltip
-                            v-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
+                            v-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
                             text="Confirmer le paiement reçu">
                             <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
                                 label="Confirmer paiement" :loading="galleryStore.loading"
                                 @click="handleConfirmPayment" />
                         </UTooltip>
                         <UTooltip
-                            v-else-if="galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && isProjectCompleted"
+                            v-else-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
                                 label="Confirmer paiement" disabled />
@@ -191,9 +191,8 @@
             <UCard variant="outline">
                 <template #header>
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-solar-gallery-bold" class="w-5 h-5 text-white" />
+                        <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                            <UIcon name="i-solar-gallery-bold" class="w-5 h-5 text-white dark:text-black" />
                         </div>
                         <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
@@ -214,19 +213,19 @@
                             ?</h4>
                         <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Livrable final pour le client</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Téléchargement en haute résolution</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Gestion des paiements</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Interface client sécurisée</span>
                             </li>
                         </ul>
@@ -303,6 +302,9 @@ const proposalStore = useProposalStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Check if project is free
+const isFree = computed(() => projectSetupStore.isFree)
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
@@ -431,7 +433,7 @@ const handleDelete = async () => {
 }
 
 const handleConfirmPayment = async () => {
-    if (!galleryStore.gallery || projectSetupStore.project?.payment_method !== 'bank_transfer') return
+    if (!galleryStore.gallery || projectSetupStore.project?.payment_method !== 'bank_transfer' || isFree.value) return
 
     try {
         await galleryStore.confirmPayment(galleryStore.gallery.id)

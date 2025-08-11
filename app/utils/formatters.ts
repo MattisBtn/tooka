@@ -205,9 +205,8 @@ const isStepLockedByPreviousStep = (
     return stepNumber < 4; // Only step 4 is accessible
   }
 
-  // Find the last completed step and check if there are gaps
+  // Find the last completed step
   let lastCompletedStep = 0;
-  let hasGaps = false;
 
   for (let i = 1; i <= 4; i++) {
     const moduleKey = moduleMap[i as keyof typeof moduleMap];
@@ -217,40 +216,16 @@ const isStepLockedByPreviousStep = (
 
     if (exists && status === "completed") {
       lastCompletedStep = i;
-    } else if (lastCompletedStep > 0 && !exists) {
-      // If we have a completed step and find a gap (inexistant step), mark it
-      hasGaps = true;
     }
   }
 
-  // If there are gaps after completed steps, only allow access to the next step after the last completed
-  if (hasGaps && lastCompletedStep > 0) {
-    // Find the next step that exists or can be created
-    let nextAccessibleStep = lastCompletedStep + 1;
-
-    // Look for the next step that exists or is the first gap
-    for (let i = lastCompletedStep + 1; i <= 4; i++) {
-      const moduleKey = moduleMap[i as keyof typeof moduleMap];
-      const { exists } = normalizeModule(
-        project[moduleKey as keyof typeof project]
-      );
-
-      if (exists) {
-        nextAccessibleStep = i;
-        break;
-      } else {
-        // This is a gap, it becomes the next accessible step
-        nextAccessibleStep = i;
-        break;
-      }
-    }
-
-    // Only allow access to the next accessible step
-    return stepNumber !== nextAccessibleStep;
+  // If we have completed steps, allow access to all subsequent steps
+  if (lastCompletedStep > 0) {
+    return stepNumber <= lastCompletedStep; // Only lock steps before or equal to last completed
   }
 
   // If no previous step is completed, this step is locked
-  return lastCompletedStep === 0;
+  return true;
 };
 
 // Determine step status based on project modules

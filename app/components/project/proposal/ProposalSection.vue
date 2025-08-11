@@ -16,9 +16,8 @@
                 <template #header>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div
-                                class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white" />
+                            <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white dark:text-black" />
                             </div>
                             <div>
                                 <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
@@ -39,7 +38,7 @@
 
                 <div class="space-y-6">
                     <!-- Pricing Information -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div v-if="!isFree" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix</span>
@@ -60,7 +59,7 @@
                     </div>
 
                     <!-- Payment Method Info -->
-                    <div v-if="proposalStore.proposal?.deposit_required" class="space-y-3">
+                    <div v-if="!isFree && proposalStore.proposal?.deposit_required" class="space-y-3">
                         <div class="flex items-center gap-2">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Méthode
@@ -168,9 +167,8 @@
             <UCard variant="outline">
                 <template #header>
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white" />
+                        <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white dark:text-black" />
                         </div>
                         <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
@@ -277,6 +275,9 @@ const proposalStore = useProposalStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Check if project is free
+const isFree = computed(() => projectSetupStore.isFree)
 
 // Avoid deep type instantiation by narrowing proposal type access
 const currentStatus = computed<string>(() => {

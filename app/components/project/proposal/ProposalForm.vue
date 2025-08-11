@@ -27,13 +27,14 @@
         <USeparator />
 
         <!-- Pricing Section -->
-        <ProjectProposalPricingSection :price="price" :deposit-required="depositRequired"
+
+        <ProjectProposalPricingSection v-if="!isFree" :price="price" :deposit-required="depositRequired"
             :deposit-amount="depositAmount" :deposit-percentage="depositPercentage"
             :quick-deposit-options="quickDepositOptions" :project-payment="projectState"
             :set-deposit-from-percentage="setDepositFromPercentage" @update:deposit-required="onUpdateDepositRequired"
             @update:deposit-amount="onUpdateDepositAmount" @update:project-payment="onUpdateProjectPayment" />
 
-        <USeparator />
+        <USeparator v-if="!isFree" />
 
         <!-- Documents Section -->
         <ProjectProposalDocumentsSection :contract-file="contractFile" :quote-file="quoteFile"
@@ -85,6 +86,12 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Use stores
+const projectSetupStore = useProjectSetupStore()
+
+// Check if project is free
+const isFree = computed(() => projectSetupStore.isFree)
 
 const {
     proposalState,

@@ -16,8 +16,8 @@
 
             <!-- Payment Configuration -->
             <div class="space-y-4">
-                <UFormField label="Paiement requis pour téléchargement" name="payment_required">
-                    <USwitch v-model="state.payment_required" color="primary" size="md" />
+                <UFormField v-if="!isFree" label="Paiement requis pour téléchargement" name="payment_required">
+                    <USwitch v-model="state.payment_required" color="primary" size="md" :disabled="isFree" />
                 </UFormField>
 
                 <!-- Payment Information Section -->
@@ -130,13 +130,6 @@
                     variant="soft" icon="i-lucide-check-circle" title="Paiement déjà effectué">
                     <template #description>
                         L'acompte couvre le prix total. Le client pourra télécharger les images gratuitement.
-                    </template>
-                </UAlert>
-
-                <UAlert v-else-if="!state.payment_required" color="success" variant="soft" icon="i-lucide-gift"
-                    title="Téléchargement gratuit">
-                    <template #description>
-                        Le client pourra télécharger toutes les images gratuitement une fois la galerie validée.
                     </template>
                 </UAlert>
             </div>
@@ -254,12 +247,25 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+// Use stores
+const projectSetupStore = useProjectSetupStore()
+
+// Check if project is free
+const isFree = computed(() => projectSetupStore.isFree)
+
 // Form state
 const state = reactive<GalleryFormData>({
     payment_required: props.gallery?.payment_required ?? true,
     selection_id: props.gallery?.selection_id || null,
     status: props.gallery?.status || "draft",
 });
+
+// Watch isFree to update payment_required when project changes
+watch(isFree, (free) => {
+    if (free) {
+        state.payment_required = false;
+    }
+}, { immediate: true });
 
 // Project state for payment info
 const projectState = reactive<ProjectPaymentData>({
@@ -328,7 +334,11 @@ const formattedRemainingAmount = computed(() => {
 });
 
 // Payment info computed
-const isPaymentInfoRequired = computed(() => state.payment_required && (pricing.value?.remainingAmount ?? 0) > 0);
+const isPaymentInfoRequired = computed(() => {
+    // Si le projet est gratuit, le paiement n'est jamais requis
+    if (isFree.value) return false;
+    return state.payment_required && (pricing.value?.remainingAmount ?? 0) > 0;
+});
 const isPaymentInfoMissing = computed(() => {
     if (!isPaymentInfoRequired.value) return false;
     if (projectState.payment_method === 'bank_transfer') {

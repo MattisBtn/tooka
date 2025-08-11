@@ -16,9 +16,8 @@
                 <template #header>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div
-                                class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-image" class="w-5 h-5 text-white" />
+                            <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-image" class="w-5 h-5 text-white dark:text-black" />
                             </div>
                             <div>
                                 <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
@@ -155,9 +154,8 @@
             <UCard variant="outline">
                 <template #header>
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-image" class="w-5 h-5 text-white" />
+                        <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-image" class="w-5 h-5 text-white dark:text-black" />
                         </div>
                         <div class="flex flex-col items-start">
                             <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">
@@ -178,19 +176,19 @@
                             ?</h4>
                         <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Planche d'inspiration visuelle pour le client</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Validation des directions créatives</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Commentaires et réactions du client</span>
                             </li>
                             <li class="flex items-start gap-2">
-                                <UIcon name="i-lucide-check" class="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0" />
+                                <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                 <span>Collaboration en temps réel</span>
                             </li>
                         </ul>

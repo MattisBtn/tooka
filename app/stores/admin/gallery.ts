@@ -143,11 +143,16 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
+      // For free projects, force payment_required to false
+      const project = await projectService.getProjectById(projectId);
+      const isFree = !project?.initial_price || project.initial_price === 0;
+
       const data = {
         project_id: projectId,
-        payment_required: galleryData.payment_required,
+        payment_required: isFree ? false : galleryData.payment_required,
         selection_id: galleryData.selection_id || null,
         status: galleryData.status,
+        revision_last_comment: null,
       };
 
       const result = await galleryService.createGallery(
@@ -155,8 +160,8 @@ export const useGalleryStore = defineStore("gallery", () => {
         galleryData.status === "awaiting_client"
       );
 
-      // Update project if needed
-      if (projectData) {
+      // Update project if needed (only for non-free projects)
+      if (!isFree && projectData) {
         await projectService.updateProject(projectId, projectData);
       }
 
@@ -201,10 +206,17 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
+      // For free projects, force payment_required to false
+      const project = await projectService.getProjectById(
+        gallery.value!.project_id
+      );
+      const isFree = !project?.initial_price || project.initial_price === 0;
+
       const data = {
-        payment_required: galleryData.payment_required,
+        payment_required: isFree ? false : galleryData.payment_required,
         selection_id: galleryData.selection_id || null,
         status: galleryData.status,
+        revision_last_comment: null,
       };
 
       const result = await galleryService.updateGallery(
@@ -213,8 +225,8 @@ export const useGalleryStore = defineStore("gallery", () => {
         galleryData.status === "awaiting_client"
       );
 
-      // Update project if needed
-      if (projectData && gallery.value?.project_id) {
+      // Update project if needed (only for non-free projects)
+      if (!isFree && projectData && gallery.value?.project_id) {
         await projectService.updateProject(
           gallery.value.project_id,
           projectData
@@ -302,10 +314,18 @@ export const useGalleryStore = defineStore("gallery", () => {
       await galleryService.confirmPayment(galleryId);
 
       // Update project remaining_amount to 0 since this is the final payment
+      // Only for non-free projects
       if (gallery.value?.project_id) {
-        await projectService.updateProject(gallery.value.project_id, {
-          remaining_amount: 0,
-        });
+        const project = await projectService.getProjectById(
+          gallery.value.project_id
+        );
+        const isFree = !project?.initial_price || project.initial_price === 0;
+
+        if (!isFree) {
+          await projectService.updateProject(gallery.value.project_id, {
+            remaining_amount: 0,
+          });
+        }
       }
 
       // Reload data

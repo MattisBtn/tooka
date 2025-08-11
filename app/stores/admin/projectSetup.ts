@@ -37,6 +37,11 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     return project.value?.status === "completed";
   });
 
+  // Check if project is free (no initial price or price is 0)
+  const isFree = computed<boolean>(() => {
+    return !project.value?.initial_price || project.value.initial_price === 0;
+  });
+
   // Actions
   const fetchProject = async (projectId: string) => {
     if (loading.value) return;
@@ -144,6 +149,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     isLoading,
     hasError,
     isProjectCompleted,
+    isFree,
     clientDisplayName,
     statusInfo,
     formattedPrice,

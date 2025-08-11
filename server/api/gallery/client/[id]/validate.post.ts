@@ -64,7 +64,17 @@ export default defineEventHandler(async (event) => {
       .select()
       .single();
 
-    if (updateError) {
+    const { data: updatedProject, error: updateProjectError } = await supabase
+      .from("projects")
+      .update({
+        status: "completed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", gallery.project.id)
+      .select()
+      .single();
+
+    if (updateError || updateProjectError) {
       throw createError({
         statusCode: 500,
         message: "Erreur lors de la validation de la galerie",
@@ -74,6 +84,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       gallery: updatedGallery,
+      project: updatedProject,
       message: "Galerie validée avec succès",
     };
   } catch (error) {
