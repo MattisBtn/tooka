@@ -67,10 +67,8 @@ export const projectService = {
     }
 
     // Build query for data
-    let query = supabase
-      .from("projects")
-      .select(
-        `
+    let query = supabase.from("projects").select(
+      `
         *,
         client:clients(
           id,
@@ -81,12 +79,41 @@ export const projectService = {
           billing_email
         )
       `
-      )
-      .order("created_at", { ascending: false })
-      .range(
-        (pagination.page - 1) * pagination.pageSize,
-        pagination.page * pagination.pageSize - 1
-      );
+    );
+
+    // Apply sorting
+    if (filters.sort) {
+      switch (filters.sort) {
+        case "created_desc":
+          query = query.order("created_at", { ascending: false });
+          break;
+        case "created_asc":
+          query = query.order("created_at", { ascending: true });
+          break;
+        case "title_asc":
+          query = query.order("title", { ascending: true });
+          break;
+        case "title_desc":
+          query = query.order("title", { ascending: false });
+          break;
+        case "status_asc":
+          query = query.order("status", { ascending: true });
+          break;
+        case "status_desc":
+          query = query.order("status", { ascending: false });
+          break;
+        default:
+          query = query.order("created_at", { ascending: false });
+      }
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+
+    // Apply pagination
+    query = query.range(
+      (pagination.page - 1) * pagination.pageSize,
+      pagination.page * pagination.pageSize - 1
+    );
 
     if (filters.status) {
       query = query.eq("status", filters.status);
@@ -352,6 +379,44 @@ export const projectService = {
     if (error) {
       throw new Error(`Failed to delete project: ${error.message}`);
     }
+  },
+
+  /**
+   * Delete multiple projects with dependency checks
+   */
+  async deleteMultipleProjects(
+    ids: string[]
+  ): Promise<{ success: string[]; failed: string[]; errors: string[] }> {
+    if (!ids.length) {
+      return { success: [], failed: [], errors: [] };
+    }
+
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour supprimer ces projets");
+    }
+
+    const results = {
+      success: [] as string[],
+      failed: [] as string[],
+      errors: [] as string[],
+    };
+
+    // Delete projects one by one to handle individual errors
+    for (const id of ids) {
+      try {
+        await this.deleteProject(id);
+        results.success.push(id);
+      } catch (error) {
+        results.failed.push(id);
+        results.errors.push(
+          error instanceof Error ? error.message : "Erreur inconnue"
+        );
+      }
+    }
+
+    return results;
   },
 
   getStatusOptions() {

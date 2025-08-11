@@ -36,10 +36,28 @@ export const clientService = {
     }
 
     // Build query for data
-    let query = supabase
-      .from("clients")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("clients").select("*");
+
+    // Apply sorting
+    if (filters.sort) {
+      switch (filters.sort) {
+        case "created_desc":
+          query = query.order("created_at", { ascending: false });
+          break;
+        case "created_asc":
+          query = query.order("created_at", { ascending: true });
+          break;
+        case "name_asc":
+        case "name_desc":
+          // For name sorting, we'll handle it in business logic
+          query = query.order("created_at", { ascending: false });
+          break;
+        default:
+          query = query.order("created_at", { ascending: false });
+      }
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
 
     // Apply pagination only if pageSize is not null
     if (pagination.pageSize !== null) {
@@ -67,7 +85,29 @@ export const clientService = {
 
     const clients = data || [];
 
-    // Business logic: sort by priority if needed
+    // Business logic: apply name sorting if requested
+    if (filters.sort === "name_asc" || filters.sort === "name_desc") {
+      const sortedClients = clients.sort((a, b) => {
+        const nameA =
+          a.type === "individual"
+            ? `${a.first_name || ""} ${a.last_name || ""}`.trim()
+            : a.company_name || "";
+        const nameB =
+          b.type === "individual"
+            ? `${b.first_name || ""} ${b.last_name || ""}`.trim()
+            : b.company_name || "";
+
+        const comparison = nameA.localeCompare(nameB);
+        return filters.sort === "name_asc" ? comparison : -comparison;
+      });
+
+      return {
+        data: sortedClients,
+        total: count || 0,
+      };
+    }
+
+    // Business logic: sort by priority if needed (legacy behavior)
     if (filters.type === "company") {
       return {
         data: clients.sort((a, b) =>
@@ -216,6 +256,44 @@ export const clientService = {
     if (error) {
       throw new Error(`Failed to delete client: ${error.message}`);
     }
+  },
+
+  /**
+   * Delete multiple clients with dependency checks
+   */
+  async deleteMultipleClients(
+    ids: string[]
+  ): Promise<{ success: string[]; failed: string[]; errors: string[] }> {
+    if (!ids.length) {
+      return { success: [], failed: [], errors: [] };
+    }
+
+    const user = useSupabaseUser();
+
+    if (!user.value) {
+      throw new Error("Vous devez être connecté pour supprimer ces clients");
+    }
+
+    const results = {
+      success: [] as string[],
+      failed: [] as string[],
+      errors: [] as string[],
+    };
+
+    // Delete clients one by one to handle individual errors
+    for (const id of ids) {
+      try {
+        await this.deleteClient(id);
+        results.success.push(id);
+      } catch (error) {
+        results.failed.push(id);
+        results.errors.push(
+          error instanceof Error ? error.message : "Erreur inconnue"
+        );
+      }
+    }
+
+    return results;
   },
 
   /**

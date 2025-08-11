@@ -7,6 +7,13 @@ export interface IProjectFilters {
   search?: string;
   status?: "draft" | "in_progress" | "completed" | null;
   client_id?: string;
+  sort?:
+    | "title_asc"
+    | "title_desc"
+    | "created_asc"
+    | "created_desc"
+    | "status_asc"
+    | "status_desc";
 }
 
 export interface IPagination {

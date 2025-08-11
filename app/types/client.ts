@@ -6,6 +6,7 @@ export type Client = Tables<"clients">;
 export interface IClientFilters {
   search?: string;
   type?: "individual" | "company" | null;
+  sort?: "name_asc" | "name_desc" | "created_asc" | "created_desc";
 }
 
 export interface IPagination {

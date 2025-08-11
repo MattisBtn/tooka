@@ -17,6 +17,9 @@ export const useClientsStore = defineStore("clients", () => {
   // Filters state
   const searchQuery = ref("");
   const typeFilter = ref<"individual" | "company" | null>(null);
+  const sortOrder = ref<
+    "name_asc" | "name_desc" | "created_asc" | "created_desc"
+  >("created_desc");
 
   // Modal state
   const showModal = ref(false);
@@ -25,10 +28,16 @@ export const useClientsStore = defineStore("clients", () => {
   const clientToDelete = ref<Client | null>(null);
   const deletionLoading = ref(false);
 
+  // Multiple deletion state
+  const showMultipleDeleteModal = ref(false);
+  const clientsToDelete = ref<Client[]>([]);
+  const multipleDeletionLoading = ref(false);
+
   // Get current filters
   const getCurrentFilters = (): IClientFilters => ({
     search: searchQuery.value.trim() || undefined,
     type: typeFilter.value || undefined,
+    sort: sortOrder.value,
   });
 
   // Getters
@@ -42,6 +51,26 @@ export const useClientsStore = defineStore("clients", () => {
     { value: null, label: "Tous les types" },
     { value: "individual" as const, label: "Particulier", color: "primary" },
     { value: "company" as const, label: "Professionnel", color: "secondary" },
+  ];
+
+  // Sort options for UI
+  const sortOptions = [
+    {
+      value: "created_desc" as const,
+      label: "Plus récents",
+      icon: "i-lucide-calendar-days",
+    },
+    {
+      value: "created_asc" as const,
+      label: "Plus anciens",
+      icon: "i-lucide-calendar-days",
+    },
+    { value: "name_asc" as const, label: "Nom A-Z", icon: "i-lucide-sort-asc" },
+    {
+      value: "name_desc" as const,
+      label: "Nom Z-A",
+      icon: "i-lucide-sort-desc",
+    },
   ];
 
   // Actions
@@ -113,6 +142,13 @@ export const useClientsStore = defineStore("clients", () => {
 
   const setTypeFilter = (type: "individual" | "company" | null) => {
     typeFilter.value = type;
+    debouncedSearch();
+  };
+
+  const setSortOrder = (
+    order: "name_asc" | "name_desc" | "created_asc" | "created_desc"
+  ) => {
+    sortOrder.value = order;
     debouncedSearch();
   };
 
@@ -196,12 +232,77 @@ export const useClientsStore = defineStore("clients", () => {
       await clientService.deleteClient(id);
       clients.value = clients.value.filter((c) => c.id !== id);
       closeDeleteModal();
+      // Reset row selection after deletion
+      return { resetSelection: true };
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete client");
       throw err;
     } finally {
       deletionLoading.value = false;
+    }
+  };
+
+  // Multiple deletion actions
+  const openMultipleDeleteModal = (selectedClients: Client[]) => {
+    clientsToDelete.value = selectedClients;
+    showMultipleDeleteModal.value = true;
+  };
+
+  const closeMultipleDeleteModal = () => {
+    showMultipleDeleteModal.value = false;
+    clientsToDelete.value = [];
+    multipleDeletionLoading.value = false;
+  };
+
+  const deleteMultipleClients = async () => {
+    if (!clientsToDelete.value.length) return;
+
+    multipleDeletionLoading.value = true;
+    error.value = null;
+
+    try {
+      const ids = clientsToDelete.value.map((client) => client.id);
+      const result = await clientService.deleteMultipleClients(ids);
+
+      // Remove successfully deleted clients from the list
+      if (result.success.length > 0) {
+        clients.value = clients.value.filter(
+          (client) => !result.success.includes(client.id)
+        );
+      }
+
+      // Show appropriate message based on results
+      if (result.success.length > 0 && result.failed.length === 0) {
+        // All successful
+        closeMultipleDeleteModal();
+        return { resetSelection: true };
+      } else if (result.success.length > 0 && result.failed.length > 0) {
+        // Partial success - show error with details
+        const errorMessage = `Suppression partielle : ${
+          result.success.length
+        } client(s) supprimé(s), ${
+          result.failed.length
+        } échec(s). Erreurs : ${result.errors.join(", ")}`;
+        error.value = new Error(errorMessage);
+        closeMultipleDeleteModal();
+        return { resetSelection: true };
+      } else {
+        // All failed
+        const errorMessage = `Échec de la suppression : ${result.errors.join(
+          ", "
+        )}`;
+        error.value = new Error(errorMessage);
+        closeMultipleDeleteModal();
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error
+          ? err
+          : new Error("Failed to delete multiple clients");
+      closeMultipleDeleteModal();
+    } finally {
+      multipleDeletionLoading.value = false;
     }
   };
 
@@ -231,6 +332,7 @@ export const useClientsStore = defineStore("clients", () => {
     // Filter state
     searchQuery,
     typeFilter,
+    sortOrder,
 
     // Modal state
     showModal,
@@ -238,12 +340,16 @@ export const useClientsStore = defineStore("clients", () => {
     showDeleteModal,
     clientToDelete: readonly(clientToDelete),
     deletionLoading: readonly(deletionLoading),
+    showMultipleDeleteModal,
+    clientsToDelete: readonly(clientsToDelete),
+    multipleDeletionLoading: readonly(multipleDeletionLoading),
 
     // Getters
     filteredClients,
     isLoading,
     hasError,
     typeOptions,
+    sortOptions,
 
     // Actions
     reset,
@@ -254,6 +360,7 @@ export const useClientsStore = defineStore("clients", () => {
     // Filter actions
     setSearchQuery,
     setTypeFilter,
+    setSortOrder,
     setPage,
 
     // Modal actions
@@ -262,11 +369,14 @@ export const useClientsStore = defineStore("clients", () => {
     closeModal,
     openDeleteModal,
     closeDeleteModal,
+    openMultipleDeleteModal,
+    closeMultipleDeleteModal,
 
     // CRUD actions
     createClient,
     updateClient,
     deleteClient,
+    deleteMultipleClients,
     addClientToList,
     updateClientInList,
   };
