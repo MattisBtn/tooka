@@ -113,7 +113,8 @@ export const galleryService = {
 
       const basePrice = project.initial_price || 0;
       const remainingAmount = project.remaining_amount || 0;
-      const depositPaid = basePrice - remainingAmount;
+      const depositPaid =
+        basePrice - remainingAmount < 0 ? 0 : basePrice - remainingAmount;
 
       return {
         basePrice,

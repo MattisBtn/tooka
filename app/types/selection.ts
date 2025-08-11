@@ -139,6 +139,7 @@ export interface SelectionWithProjectDetails extends Selection {
     description: string | null;
     password_hash: string;
     status: "draft" | "in_progress" | "completed";
+    remaining_amount: number | null;
   };
   images: SelectionImage[];
   imageCount: number;

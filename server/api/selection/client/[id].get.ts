@@ -102,7 +102,7 @@ export default defineEventHandler(
               ? undefined
               : selection.max_media_selection,
           extraImagePrice: selection.extra_media_price
-            ? selection.extra_media_price / 100
+            ? selection.extra_media_price
             : undefined,
         },
         selection: {

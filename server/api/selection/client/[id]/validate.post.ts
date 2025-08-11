@@ -40,7 +40,8 @@ export default defineEventHandler(async (event) => {
           id,
           title,
           password_hash,
-          status
+          status,
+          remaining_amount
         )
       `
       )
@@ -86,6 +87,38 @@ export default defineEventHandler(async (event) => {
 
       if (selectError) {
         throw new Error(`Failed to update selections: ${selectError.message}`);
+      }
+    }
+
+    const selectedCount = selectedImages.length;
+
+    // Calculate extra cost if selection exceeds max_media_selection
+
+    let extraCost = 0;
+    if (
+      selectedCount > selection.max_media_selection &&
+      selection.extra_media_price
+    ) {
+      const excessImages = selectedCount - selection.max_media_selection;
+      extraCost = excessImages * selection.extra_media_price;
+    }
+
+    // Update project remaining_amount if there's extra cost
+    if (extraCost > 0) {
+      const { error: projectUpdateError } = await supabase
+        .from("projects")
+        .update({
+          remaining_amount:
+            (selection.project.remaining_amount || 0) + extraCost,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selection.project_id);
+
+      if (projectUpdateError) {
+        console.error("❌ Error updating project:", projectUpdateError);
+        throw new Error(
+          `Failed to update project remaining amount: ${projectUpdateError.message}`
+        );
       }
     }
 

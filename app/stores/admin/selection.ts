@@ -88,7 +88,7 @@ export const useSelectionStore = defineStore("selection", () => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
       currency: "EUR",
-    }).format(selection.value.extra_media_price / 100);
+    }).format(selection.value.extra_media_price);
   });
 
   // Format selection limit for display
