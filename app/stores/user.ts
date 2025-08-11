@@ -142,7 +142,7 @@ export const useUserStore = defineStore("user", () => {
   return {
     // State
     user,
-    isLoading: readonly(isLoading),
+    isLoading: isLoading,
 
     // Getters
     plan,

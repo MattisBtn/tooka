@@ -319,14 +319,14 @@ export const useClientsStore = defineStore("clients", () => {
 
   return {
     // State
-    clients: readonly(clients),
-    loading: readonly(loading),
-    error: readonly(error),
-    isInitialized: readonly(isInitialized),
+    clients,
+    loading,
+    error,
+    isInitialized,
 
     // Pagination state
     currentPage,
-    totalItems: readonly(totalItems),
+    totalItems,
     totalPages,
 
     // Filter state
@@ -336,13 +336,13 @@ export const useClientsStore = defineStore("clients", () => {
 
     // Modal state
     showModal,
-    selectedClient: readonly(selectedClient),
+    selectedClient,
     showDeleteModal,
-    clientToDelete: readonly(clientToDelete),
-    deletionLoading: readonly(deletionLoading),
+    clientToDelete,
+    deletionLoading,
     showMultipleDeleteModal,
-    clientsToDelete: readonly(clientsToDelete),
-    multipleDeletionLoading: readonly(multipleDeletionLoading),
+    clientsToDelete,
+    multipleDeletionLoading,
 
     // Getters
     filteredClients,

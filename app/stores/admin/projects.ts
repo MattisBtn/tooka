@@ -371,14 +371,14 @@ export const useProjectsStore = defineStore("projects", () => {
 
   return {
     // State
-    projects: readonly(projects),
-    loading: readonly(loading),
-    error: readonly(error),
-    isInitialized: readonly(isInitialized),
+    projects: projects,
+    loading: loading,
+    error: error,
+    isInitialized: isInitialized,
 
     // Pagination state
     currentPage,
-    totalItems: readonly(totalItems),
+    totalItems: totalItems,
     totalPages,
 
     // Filter state
@@ -388,13 +388,13 @@ export const useProjectsStore = defineStore("projects", () => {
 
     // Modal state
     showModal,
-    selectedProject: readonly(selectedProject),
+    selectedProject: selectedProject,
     showDeleteModal,
-    projectToDelete: readonly(projectToDelete),
-    deletionLoading: readonly(deletionLoading),
+    projectToDelete: projectToDelete,
+    deletionLoading: deletionLoading,
     showMultipleDeleteModal,
-    projectsToDelete: readonly(projectsToDelete),
-    multipleDeletionLoading: readonly(multipleDeletionLoading),
+    projectsToDelete: projectsToDelete,
+    multipleDeletionLoading: multipleDeletionLoading,
 
     // Getters
     filteredProjects,

@@ -159,11 +159,11 @@ export const useSubscriptionStore = defineStore("subscription", () => {
 
   return {
     // State
-    plans: readonly(plans),
-    currentSubscription: readonly(currentSubscription),
-    loading: readonly(loading),
-    error: readonly(error),
-    selectedInterval: readonly(selectedInterval),
+    plans: plans,
+    currentSubscription: currentSubscription,
+    loading: loading,
+    error: error,
+    selectedInterval: selectedInterval,
 
     // Getters
     isLoading,
