@@ -126,16 +126,9 @@
 
                 <!-- Action Buttons -->
                 <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-                    <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                        <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-                        <span>Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</span>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
-                            @click="cancelEditing" />
-                        <UButton type="submit" color="primary" :loading="isSubmitting" label="Enregistrer" />
-                    </div>
+                    <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
+                        @click="cancelEditing" />
+                    <UButton type="submit" color="primary" :loading="isSubmitting" label="Enregistrer" />
                 </div>
             </UForm>
         </div>

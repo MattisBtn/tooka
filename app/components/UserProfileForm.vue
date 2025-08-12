@@ -24,8 +24,8 @@
             <div class="space-y-4">
                 <div class="flex items-center gap-3 mb-6">
                     <div
-                        class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-heroicons-user" class="w-4 h-4 text-white" />
+                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-heroicons-user" class="w-4 h-4 text-white dark:text-black" />
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -61,8 +61,8 @@
             <div class="space-y-4">
                 <div class="flex items-center gap-3 mb-6">
                     <div
-                        class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-heroicons-building-office" class="w-4 h-4 text-white" />
+                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-heroicons-building-office" class="w-4 h-4 text-white dark:text-black" />
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -132,17 +132,11 @@
 
         <template #footer>
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-                    <span>Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</span>
-                </div>
 
-                <div class="flex items-center gap-3">
-                    <UButton v-if="hasChanges" color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
-                        @click="$emit('reset')" />
-                    <UButton type="submit" form="profile-form" color="primary" :loading="isSubmitting"
-                        label="Sauvegarder" :disabled="!hasChanges" />
-                </div>
+                <UButton v-if="hasChanges" color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
+                    @click="$emit('reset')" />
+                <UButton type="submit" form="profile-form" color="primary" :loading="isSubmitting" label="Sauvegarder"
+                    :disabled="!hasChanges" />
             </div>
         </template>
     </UCard>

@@ -4,8 +4,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-folder" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-folder" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations du projet</h2>
@@ -39,8 +39,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
@@ -64,8 +64,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Sécurité</h2>
@@ -88,15 +88,8 @@
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-                <span>Les champs marqués d'un <span class="text-red-500">*</span> sont obligatoires</span>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting" />
-                <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
-            </div>
+            <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting" />
+            <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
         </div>
     </UForm>
 </template>
