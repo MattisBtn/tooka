@@ -164,11 +164,13 @@ export const clientService = {
       throw new Error("Company name is required for company clients");
     }
 
+    const userStore = useUserStore();
+
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
       .from("clients")
-      .insert(clientData)
+      .insert({ ...clientData, user_id: userStore.user?.auth?.id || "" })
       .select()
       .single();
 
