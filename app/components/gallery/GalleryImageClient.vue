@@ -2,6 +2,10 @@
     <div class="w-full h-full" @click="$emit('click', $event)">
         <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="`Image de galerie`" :class="imageClasses"
             @error="handleImageError" />
+        <div v-else-if="loading"
+            class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
+        </div>
         <div v-else class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
             <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
         </div>
@@ -9,13 +13,12 @@
 </template>
 
 <script setup lang="ts">
-import { useClientGalleryActions } from "~/composables/galleries/client/useClientGalleryActions";
-import type { GalleryImage } from "~/types/gallery";
+import type { GalleryImageWithSignedUrl } from "~/types/gallery";
 
 interface Props {
-    image: GalleryImage;
+    image: GalleryImageWithSignedUrl;
     fullSize?: boolean;
-    galleryId: string;
+    signedUrl?: string | null;
 }
 
 interface Emits {
@@ -28,14 +31,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<Emits>()
 
-// Get image URL directly from actions
-const actions = useClientGalleryActions();
-const imageUrl = ref<string | null>(null);
-
-// Load image URL on mount
-onMounted(async () => {
-    imageUrl.value = await actions.getImageSignedUrl(props.galleryId, props.image.file_url);
-});
+// Use signed URL from props or fallback to loading state
+const imageUrl = computed(() => props.signedUrl);
+const loading = computed(() => !props.signedUrl && !error.value);
+const error = ref(false);
 
 // Computed classes
 const imageClasses = computed(() => [
@@ -46,5 +45,6 @@ const imageClasses = computed(() => [
 // Handle image load error
 const handleImageError = () => {
     console.error("Image failed to load:", props.image.file_url);
+    error.value = true;
 };
 </script>

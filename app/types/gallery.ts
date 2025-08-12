@@ -5,6 +5,11 @@ export type Gallery = Tables<"galleries">;
 export type GalleryImage = Tables<"gallery_images">;
 export type GalleryComment = Tables<"gallery_comments">;
 
+// Gallery image with signed URL for client access
+export interface GalleryImageWithSignedUrl extends GalleryImage {
+  signed_url?: string | null;
+}
+
 export interface IGalleryFilters {
   search?: string;
   status?:
@@ -106,7 +111,7 @@ export interface GalleryWithDetails extends Gallery {
     readonly title: string;
     readonly status: "draft" | "in_progress" | "completed";
   };
-  images?: readonly GalleryImage[];
+  images?: readonly GalleryImageWithSignedUrl[];
   imageCount?: number;
   hasMore?: boolean;
   currentPage?: number;
@@ -121,7 +126,7 @@ export interface GalleryWithProjectDetails extends Gallery {
     password_hash: string;
     status: "draft" | "in_progress" | "completed";
   };
-  images: GalleryImage[];
+  images: GalleryImageWithSignedUrl[];
   imageCount: number;
 }
 

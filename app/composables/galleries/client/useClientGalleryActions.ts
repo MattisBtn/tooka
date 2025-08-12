@@ -17,62 +17,6 @@ export const useClientGalleryActions = () => {
   // Form state
   const revisionComment = ref("");
 
-  // Image URL management - cache pour éviter de redemander les URLs
-  const urlCache = new Map<string, { url: string; expires: number }>();
-  const loadingImages = new Set<string>();
-
-  const getImageSignedUrl = async (
-    galleryId: string,
-    filePath: string
-  ): Promise<string | null> => {
-    if (!galleryId || !filePath) return null;
-
-    // Check cache first
-    const cacheKey = `${galleryId}:${filePath}`;
-    const cached = urlCache.get(cacheKey);
-    const now = Date.now();
-
-    if (cached && cached.expires > now) {
-      return cached.url;
-    }
-
-    // Prevent duplicate requests
-    if (loadingImages.has(cacheKey)) {
-      // Wait for ongoing request
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      const retryCache = urlCache.get(cacheKey);
-      if (retryCache && retryCache.expires > now) {
-        return retryCache.url;
-      }
-    }
-
-    try {
-      loadingImages.add(cacheKey);
-
-      // Encode filePath pour l'URL
-      const encodedFilePath = encodeURIComponent(filePath);
-
-      const response = await $fetch<{ signedUrl: string }>(
-        `/api/gallery/client/${galleryId}/image/${encodedFilePath}`
-      );
-
-      const signedUrl = response.signedUrl;
-
-      // Cache for 50 minutes (signed URLs expire after 1 hour)
-      urlCache.set(cacheKey, {
-        url: signedUrl,
-        expires: now + 50 * 60 * 1000,
-      });
-
-      return signedUrl;
-    } catch (error) {
-      console.error("Failed to get signed URL:", error);
-      return null;
-    } finally {
-      loadingImages.delete(cacheKey);
-    }
-  };
-
   // Client actions
   const validateGallery = async () => {
     if (!store.gallery) return;
@@ -260,12 +204,6 @@ export const useClientGalleryActions = () => {
     }
   };
 
-  // Clear URL cache
-  const clearCache = () => {
-    urlCache.clear();
-    loadingImages.clear();
-  };
-
   // Load more action
   const loadMore = async () => {
     if (!store.hasMore || !store.isAuthenticated || store.loadingMore) {
@@ -288,12 +226,10 @@ export const useClientGalleryActions = () => {
     revisionComment,
 
     // Actions
-    getImageSignedUrl,
     validateGallery,
     requestRevisions,
     confirmPayment,
     downloadGallery,
     loadMore,
-    clearCache,
   };
 };

@@ -5,15 +5,11 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and Project Info -->
                 <div class="flex items-center gap-4 min-w-0 flex-1">
-                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto hidden sm:block" />
-
-                    <!-- Project Title and Status -->
-                    <div class="hidden md:flex items-center gap-4 min-w-0">
-                        <UBadge :color="statusColor" variant="soft" size="sm">
-                            <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
-                            {{ statusLabel }}
-                        </UBadge>
-                    </div>
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto" />
+                    <UBadge :color="statusColor" variant="soft" size="sm">
+                        <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
+                        {{ statusLabel }}
+                    </UBadge>
                 </div>
 
                 <!-- Actions and Controls -->

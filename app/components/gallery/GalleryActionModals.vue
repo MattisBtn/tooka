@@ -83,8 +83,8 @@
         <template #header>
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Payer le solde restant</h3>
@@ -98,14 +98,6 @@
             <div class="space-y-6">
                 <!-- Payment Amount Section -->
                 <div class="space-y-4">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-banknotes" class="w-3 h-3 text-white" />
-                        </div>
-                        <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Montant à payer</h4>
-                    </div>
-
                     <div
                         class="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
                         <div class="flex items-center justify-between">
@@ -216,18 +208,6 @@
                             Votre photographe recevra une notification automatique une fois le paiement confirmé.
                         </template>
                     </UAlert>
-                    <div
-                        class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div class="flex items-center gap-3">
-                            <UIcon name="i-lucide-shield-check" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                            <div>
-                                <h5 class="font-medium text-blue-900 dark:text-blue-100">Paiement sécurisé</h5>
-                                <p class="text-sm text-blue-700 dark:text-blue-300">
-                                    Vos données de paiement sont protégées par Stripe
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- No payment method configured -->
@@ -247,8 +227,8 @@
                 <div class="space-y-4">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-heroicons-star" class="w-3 h-3 text-white" />
+                            class="w-6 h-6 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                            <UIcon name="i-heroicons-star" class="w-3 h-3 text-white dark:text-black" />
                         </div>
                         <h4 class="text-base font-medium text-neutral-900 dark:text-neutral-100">Après le paiement</h4>
                     </div>
@@ -276,16 +256,14 @@
         </template>
 
         <template #footer>
-            <div class="flex items-center justify-end w-full">
-                <div class="flex items-center gap-3">
-                    <UButton variant="ghost" @click="showPaymentDialog = false">
-                        Annuler
-                    </UButton>
-                    <UButton v-if="project?.paymentMethod" color="success" :loading="confirmingPayment"
-                        :icon="project.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
-                        :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'J\'ai effectué le virement'"
-                        @click="$emit('confirm-payment')" />
-                </div>
+            <div class="flex items-center justify-between w-full gap-3">
+                <UButton variant="ghost" @click="showPaymentDialog = false">
+                    Annuler
+                </UButton>
+                <UButton v-if="project?.paymentMethod" color="primary" :loading="confirmingPayment"
+                    :icon="project.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
+                    :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'J\'ai effectué le virement'"
+                    @click="$emit('confirm-payment')" />
             </div>
         </template>
     </UModal>
@@ -294,8 +272,8 @@
     <UModal v-model:open="showRequestRevisionsDialog">
         <template #header>
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-edit" class="w-4 h-4 text-white" />
+                <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-edit" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold">Demander des retouches</h3>
@@ -330,9 +308,9 @@
         </template>
 
         <template #footer>
-            <div class="flex items-center justify-end gap-3">
+            <div class="flex items-center justify-between w-full gap-3">
                 <UButton variant="ghost" @click="cancelRequestRevisions">Annuler</UButton>
-                <UButton color="warning" :loading="requestingRevisions" icon="i-lucide-edit" @click="requestRevisions">
+                <UButton color="neutral" :loading="requestingRevisions" icon="i-lucide-edit" @click="requestRevisions">
                     Envoyer
                 </UButton>
             </div>

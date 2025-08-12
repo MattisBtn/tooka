@@ -1,17 +1,23 @@
 import { defineStore } from "pinia";
-import type { ClientGalleryAccess, GalleryImage } from "~/types/gallery";
+import type {
+  ClientGalleryAccess,
+  GalleryImageWithSignedUrl,
+} from "~/types/gallery";
 
 export const useClientGalleryStore = defineStore("clientGallery", () => {
   // Core state
   const galleryId = ref<string | null>(null);
   const project = ref<ClientGalleryAccess["project"] | null>(null);
   const gallery = ref<ClientGalleryAccess["gallery"] | null>(null);
-  const images = ref<GalleryImage[]>([]);
+  const images = ref<GalleryImageWithSignedUrl[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const hasMore = ref(true);
   const currentPage = ref(1);
   const loadingMore = ref(false);
+
+  // Image signed URLs management
+  const imageSignedUrls = ref<Map<string, string>>(new Map());
 
   // Auth state - use composable for persistence
   const auth = ref<ReturnType<typeof useClientAuth> | null>(null);
@@ -75,6 +81,7 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     error.value = null;
     hasMore.value = true;
     currentPage.value = 1;
+    imageSignedUrls.value.clear();
     auth.value = null;
   };
 
@@ -101,6 +108,16 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
       images.value = Array.from(response.gallery.images || []);
       hasMore.value = response.gallery.hasMore || false;
       currentPage.value = response.gallery.currentPage || 1;
+
+      // Store signed URLs
+      imageSignedUrls.value.clear();
+      if (response.gallery.images) {
+        response.gallery.images.forEach((image) => {
+          if (image.signed_url) {
+            imageSignedUrls.value.set(image.file_url, image.signed_url);
+          }
+        });
+      }
 
       // Initialize auth for password-protected projects
       if (response.project.hasPassword && auth.value) {
@@ -148,6 +165,14 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
         images.value = [...images.value, ...response.gallery.images];
         hasMore.value = response.gallery.hasMore || false;
         currentPage.value = nextPage;
+
+        // Store signed URLs for new images
+        response.gallery.images.forEach((image) => {
+          if (image.signed_url) {
+            imageSignedUrls.value.set(image.file_url, image.signed_url);
+          }
+        });
+
         return true;
       } else {
         hasMore.value = false;
@@ -203,6 +228,11 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     }
   };
 
+  // Get signed URL for an image
+  const getImageSignedUrl = (fileUrl: string) => {
+    return imageSignedUrls.value.get(fileUrl) || null;
+  };
+
   return {
     // State
     galleryId: readonly(galleryId),
@@ -214,6 +244,7 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     error: readonly(error),
     hasMore: readonly(hasMore),
     currentPage: readonly(currentPage),
+    imageSignedUrls: readonly(imageSignedUrls),
 
     // Auth
     isAuthenticated,
@@ -234,5 +265,6 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     loadMore,
     updateGalleryStatus,
     updateGalleryRevisionComment,
+    getImageSignedUrl,
   };
 });

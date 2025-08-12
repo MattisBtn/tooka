@@ -36,7 +36,8 @@
             <div v-else>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <GalleryImageCard v-for="(image, index) in props.images" :key="image.id" :image="image"
-                        :gallery-id="props.gallery?.id || ''" :image-index="index" @open-preview="openImagePreview" />
+                        :gallery-id="props.gallery?.id || ''" :image-index="index"
+                        :signed-url="store.getImageSignedUrl(image.file_url)" @open-preview="openImagePreview" />
                 </div>
 
                 <!-- Loading More Indicator -->
@@ -60,21 +61,22 @@
         <!-- Image Preview Modal -->
         <GalleryImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
             :images="modalImages" :current-index="imagePreview.currentIndex.value" :gallery-id="props.gallery?.id || ''"
-            @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
-            @go-to="imagePreview.goToImage" @update:is-open="imagePreview.isOpen.value = $event" />
+            :image-signed-urls="store.imageSignedUrls" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+            @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { useInfiniteScroll } from '@vueuse/core';
 import { useImagePreview } from '~/composables/shared/useImagePreview';
-import type { ClientGalleryAccess, GalleryImage } from "~/types/gallery";
+import type { ClientGalleryAccess, GalleryImageWithSignedUrl } from "~/types/gallery";
 
 interface Props {
     galleryId: string;
     project: ClientGalleryAccess["project"];
     gallery: ClientGalleryAccess["gallery"];
-    images: readonly GalleryImage[];
+    images: readonly GalleryImageWithSignedUrl[];
     hasMore: boolean;
     loadingMore: boolean;
 }
@@ -92,6 +94,9 @@ const galleryContainer = ref<HTMLElement | null>(null);
 // Image preview composable
 const imagePreview = useImagePreview();
 
+// Image signed URLs from store
+const store = useClientGalleryStore();
+
 // Current preview image for modal
 const currentPreviewImage = computed(() => {
     if (!imagePreview.currentImage.value || !props.images.length) return null;
@@ -99,10 +104,10 @@ const currentPreviewImage = computed(() => {
 });
 
 // Non-readonly images for modal prop typing
-const modalImages = computed(() => props.images as unknown as GalleryImage[]);
+const modalImages = computed(() => props.images as unknown as GalleryImageWithSignedUrl[]);
 
 // Lightbox methods
-const openImagePreview = (image: GalleryImage) => {
+const openImagePreview = (image: GalleryImageWithSignedUrl) => {
     const previewImages = props.images.map(img => ({ id: img.id, file_url: img.file_url, created_at: img.created_at }));
     const previewImage = { id: image.id, file_url: image.file_url, created_at: image.created_at };
     imagePreview.openPreview(previewImage, previewImages);

@@ -3,26 +3,17 @@
         class="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-b border-neutral-200 dark:border-neutral-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <!-- Project Info -->
-                <div class="flex items-center gap-4">
-                    <div
-                        class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-file-check" class="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                            {{ project?.title }}
-                        </h1>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            Proposition commerciale
-                        </p>
-                    </div>
+                <!-- Logo and Project Info -->
+                <div class="flex items-center gap-4 min-w-0 flex-1">
+                    <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto" />
+                    <UBadge v-if="proposal" :color="statusColor" variant="soft" size="sm">
+                        <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
+                        {{ statusLabel }}
+                    </UBadge>
                 </div>
 
                 <!-- Actions -->
                 <div class="flex items-center gap-3">
-                    <!-- Status badge -->
-                    <UBadge v-if="proposal" :color="statusColor" variant="subtle" :label="statusLabel" />
 
                     <!-- Action buttons based on status -->
                     <template v-if="proposal && isAuthenticated">
@@ -30,7 +21,7 @@
                         <UButton
                             v-if="proposal.status === 'awaiting_client' && proposal.deposit_required && project?.paymentMethod"
                             :icon="project.paymentMethod === 'stripe' ? 'i-lucide-credit-card' : 'i-lucide-banknote'"
-                            :color="project.paymentMethod === 'stripe' ? 'primary' : 'success'" size="sm"
+                            :color="project.paymentMethod === 'stripe' ? 'primary' : 'primary'" size="sm"
                             :label="project.paymentMethod === 'stripe' ? 'Payer avec Stripe' : 'Payer l\'acompte'"
                             :loading="confirmingPayment" @click="$emit('pay-deposit')" />
 
@@ -55,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLogo } from '~/composables/shared/useLogo';
 import type { Proposal } from '~/types/proposal';
 
 interface Props {
@@ -82,38 +74,24 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<Emits>();
 
+const { logoSrc } = useLogo()
+
 // Status display
-const statusColor = computed(() => {
-    if (!props.proposal) return 'neutral';
+const statusConfig = {
+    draft: { label: "Brouillon", color: "neutral" as const, icon: "i-lucide-file-text" },
+    awaiting_client: { label: "En attente de votre réponse", color: "warning" as const, icon: "i-lucide-clock" },
+    revision_requested: { label: "Révisions demandées", color: "info" as const, icon: "i-lucide-edit" },
+    payment_pending: { label: "Paiement en attente de confirmation", color: "info" as const, icon: "i-lucide-credit-card" },
+    completed: { label: "Proposition acceptée", color: "success" as const, icon: "i-lucide-check-circle" },
+};
 
-    switch (props.proposal.status) {
-        case 'awaiting_client':
-            return 'warning';
-        case 'revision_requested':
-            return 'info';
-        case 'payment_pending':
-            return 'info';
-        case 'completed':
-            return 'success';
-        default:
-            return 'neutral';
-    }
-});
-
-const statusLabel = computed(() => {
-    if (!props.proposal) return '';
-
-    switch (props.proposal.status) {
-        case 'awaiting_client':
-            return 'En attente de votre réponse';
-        case 'revision_requested':
-            return 'Révisions demandées';
-        case 'payment_pending':
-            return 'Paiement en attente de confirmation';
-        case 'completed':
-            return 'Proposition acceptée';
-        default:
-            return '';
-    }
-});
+const statusLabel = computed(() =>
+    statusConfig[props.proposal?.status || "draft"].label
+);
+const statusColor = computed(() =>
+    statusConfig[props.proposal?.status || "draft"].color
+);
+const statusIcon = computed(() =>
+    statusConfig[props.proposal?.status || "draft"].icon
+);
 </script>

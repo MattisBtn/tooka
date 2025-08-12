@@ -87,6 +87,32 @@ export default defineEventHandler(
         );
       }
 
+      // Generate signed URLs for all images
+      const filepaths = (imagesResult.data || []).map((img) => img.file_url);
+      const { data: signedUrlsData, error: signedUrlsError } =
+        await supabase.storage
+          .from("gallery-images")
+          .createSignedUrls(filepaths, 3600);
+
+      if (signedUrlsError) {
+        throw new Error(
+          `Failed to generate signed URLs: ${signedUrlsError.message}`
+        );
+      }
+
+      // Add signed URLs to images
+      const imagesWithSignedUrls = (imagesResult.data || []).map((image) => {
+        // Find signed URL for this image
+        const signedUrlData = signedUrlsData.find(
+          (urlData) => urlData.path === image.file_url
+        );
+
+        return {
+          ...image,
+          signed_url: signedUrlData?.signedUrl || null,
+        };
+      });
+
       // Type assertion pour le projet
       const projectData = gallery.project as {
         id: string;
@@ -147,7 +173,7 @@ export default defineEventHandler(
         },
         gallery: {
           ...gallery,
-          images: imagesResult.data || [],
+          images: imagesWithSignedUrls,
           imageCount: totalImages,
           hasMore,
           currentPage: page,

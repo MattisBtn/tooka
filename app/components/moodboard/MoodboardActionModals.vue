@@ -3,8 +3,8 @@
     <UModal v-model:open="showValidateDialog">
         <template #header>
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-check" class="w-4 h-4 text-white" />
+                <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-check" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold">Valider le moodboard</h3>
@@ -35,7 +35,7 @@
         </template>
 
         <template #footer>
-            <div class="flex items-center justify-end gap-3">
+            <div class="flex items-center justify-between w-full gap-3">
                 <UButton variant="ghost" @click="showValidateDialog = false">Annuler</UButton>
                 <UButton color="primary" :loading="validatingMoodboard" icon="i-lucide-check"
                     @click="$emit('validate')">
@@ -49,8 +49,8 @@
     <UModal v-model:open="showRequestRevisionsDialog">
         <template #header>
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-edit" class="w-4 h-4 text-white" />
+                <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-edit" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold">Demander des révisions</h3>
@@ -85,9 +85,9 @@
         </template>
 
         <template #footer>
-            <div class="flex items-center justify-end gap-3">
+            <div class="flex items-center justify-between w-full gap-3">
                 <UButton variant="ghost" @click="cancelRequestRevisions">Annuler</UButton>
-                <UButton color="warning" :loading="requestingRevisions" icon="i-lucide-edit" @click="requestRevisions">
+                <UButton color="neutral" :loading="requestingRevisions" icon="i-lucide-edit" @click="requestRevisions">
                     Envoyer
                 </UButton>
             </div>
