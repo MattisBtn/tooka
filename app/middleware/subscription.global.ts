@@ -32,10 +32,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo("/login");
   }
 
-  // Chargement et vérification subscription (non bloquant)
+  // Utilise le cache TTL du store pour limiter les requêtes
   try {
     await store.fetchCurrentSubscription(user.value.id);
-
     if (!store.hasValidSubscription) {
       return navigateTo("/pricing");
     }
@@ -45,7 +44,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
       "Subscription check failed, letting navigation continue:",
       error
     );
-    // Option: laisser passer et laisser les pages gérer l’absence de droits/accès
     return;
   }
 });

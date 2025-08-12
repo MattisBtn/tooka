@@ -14,6 +14,11 @@ export const useSubscriptionStore = defineStore("subscription", () => {
   const error = ref<Error | null>(null);
   const selectedInterval = ref<BillingInterval>("monthly");
 
+  // Lightweight cache for subscription fetches
+  const lastFetchedAt = ref<number | null>(null);
+  const lastFetchedUserId = ref<string | null>(null);
+  const MIN_TTL_MS = 60_000; // 60s cache window
+
   // Getters
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
@@ -50,6 +55,8 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     plans.value = [];
     currentSubscription.value = null;
     error.value = null;
+    lastFetchedAt.value = null;
+    lastFetchedUserId.value = null;
   };
 
   const fetchPlans = async () => {
@@ -66,12 +73,31 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     }
   };
 
-  const fetchCurrentSubscription = async (userId: string) => {
+  const shouldRefetchSubscription = (userId: string, force?: boolean) => {
+    if (force) return true;
+    if (!currentSubscription.value) return true;
+    if (lastFetchedUserId.value !== userId) return true;
+    if (!lastFetchedAt.value) return true;
+    return Date.now() - lastFetchedAt.value > MIN_TTL_MS;
+  };
+
+  const fetchCurrentSubscription = async (
+    userId: string,
+    opts?: { force?: boolean }
+  ) => {
     try {
+      // Short-circuit if cache is fresh
+      if (!shouldRefetchSubscription(userId, opts?.force)) {
+        return currentSubscription.value;
+      }
+
       loading.value = true;
       error.value = null;
       currentSubscription.value =
         await subscriptionService.getCurrentSubscription(userId);
+      lastFetchedAt.value = Date.now();
+      lastFetchedUserId.value = userId;
+      return currentSubscription.value;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to fetch subscription");
@@ -133,10 +159,10 @@ export const useSubscriptionStore = defineStore("subscription", () => {
       error.value = null;
       await subscriptionService.cancelSubscription(subscriptionId);
       // Refresh current subscription
-      if (currentSubscription.value?.stripe_subscription_id) {
-        await fetchCurrentSubscription(
-          currentSubscription.value.stripe_subscription_id
-        );
+      if (lastFetchedUserId.value) {
+        await fetchCurrentSubscription(lastFetchedUserId.value, {
+          force: true,
+        });
       }
     } catch (err) {
       error.value =
@@ -164,6 +190,10 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     loading: loading,
     error: error,
     selectedInterval: selectedInterval,
+
+    // cache state
+    lastFetchedAt,
+    lastFetchedUserId,
 
     // Getters
     isLoading,
