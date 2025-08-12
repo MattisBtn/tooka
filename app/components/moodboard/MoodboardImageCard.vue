@@ -6,13 +6,17 @@
             <MoodboardImageClient :image="image" :signed-url="signedUrl"
                 class="w-full h-full transition-transform duration-300 cursor-pointer" @click.stop="openImagePreview" />
 
-            <!-- Gradient overlay for interactions -->
+            <!-- Desktop: Gradient overlay for interactions (hover only) -->
             <div v-if="canInteract || hasReactions || hasComments"
-                class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block" />
 
-            <!-- Interactions overlay -->
+            <!-- Mobile: Always visible interactions overlay -->
             <div v-if="canInteract || hasReactions || hasComments"
-                class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-between items-end p-4">
+                class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent md:hidden" />
+
+            <!-- Desktop: Interactions overlay (hover only) -->
+            <div v-if="canInteract || hasReactions || hasComments"
+                class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-between items-end p-4 hidden md:flex">
 
                 <!-- Comments (bottom left) -->
                 <div v-if="canInteract || hasComments">
@@ -83,9 +87,107 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Mobile: Always visible interaction buttons -->
+            <div v-if="canInteract || hasReactions || hasComments"
+                class="absolute inset-0 flex justify-between items-end p-3 md:hidden">
+
+                <!-- Comments button (bottom left) -->
+                <div v-if="canInteract || hasComments">
+                    <UButton v-if="hasComments" variant="solid" color="neutral" size="sm" icon="i-lucide-message-circle"
+                        class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 shadow-lg"
+                        :aria-label="`${image.comments?.length} commentaire${(image.comments?.length || 0) > 1 ? 's' : ''}, cliquer pour voir`"
+                        :title="`${image.comments?.length} commentaire${(image.comments?.length || 0) > 1 ? 's' : ''}`"
+                        @click.stop="showCommentModal = true">
+                        <span class="text-xs font-medium">{{ image.comments?.length }}</span>
+                    </UButton>
+                    <UButton v-else-if="canInteract" variant="solid" color="neutral" size="sm"
+                        icon="i-lucide-message-circle-plus"
+                        class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 shadow-lg"
+                        aria-label="Ajouter un commentaire" title="Ajouter un commentaire"
+                        @click.stop="showCommentModal = true">
+                        <span class="text-xs font-medium">+</span>
+                    </UButton>
+                </div>
+
+                <!-- Reactions (bottom right) -->
+                <div v-if="canInteract || hasReactions" class="flex items-center space-x-1">
+                    <!-- Love reaction -->
+                    <button v-if="canInteract" :class="[
+                        'flex items-center justify-center w-8 h-8 rounded-full text-sm transition-all backdrop-blur-sm shadow-lg relative',
+                        (image.reactions?.love || 0) > 0
+                            ? 'bg-red-500/90 text-white'
+                            : 'bg-white/90 text-neutral-700'
+                    ]" :aria-label="`${image.reactions?.love || 0} j'aime, cliquer pour réagir`" title="J'aime"
+                        @click.stop="$emit('react', 'love')">
+                        <UIcon name="i-lucide-heart" :class="(image.reactions?.love || 0) > 0 ? 'fill-current' : ''"
+                            class="w-4 h-4" />
+                        <span v-if="image.reactions?.love"
+                            class="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.love }}
+                        </span>
+                    </button>
+                    <div v-else-if="image.reactions?.love"
+                        class="flex items-center justify-center w-8 h-8 rounded-full text-sm bg-red-500/90 text-white backdrop-blur-sm shadow-lg relative">
+                        <UIcon name="i-lucide-heart" class="w-4 h-4 fill-current" />
+                        <span
+                            class="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.love }}
+                        </span>
+                    </div>
+
+                    <!-- Like reaction -->
+                    <button v-if="canInteract" :class="[
+                        'flex items-center justify-center w-8 h-8 rounded-full text-sm transition-all backdrop-blur-sm shadow-lg relative',
+                        (image.reactions?.like || 0) > 0
+                            ? 'bg-green-500/90 text-white'
+                            : 'bg-white/90 text-neutral-700'
+                    ]" :aria-label="`${image.reactions?.like || 0} pouce en haut, cliquer pour réagir`"
+                        title="Pouce en haut" @click.stop="$emit('react', 'like')">
+                        <UIcon name="i-lucide-thumbs-up" :class="(image.reactions?.like || 0) > 0 ? 'fill-current' : ''"
+                            class="w-4 h-4" />
+                        <span v-if="image.reactions?.like"
+                            class="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.like }}
+                        </span>
+                    </button>
+                    <div v-else-if="image.reactions?.like"
+                        class="flex items-center justify-center w-8 h-8 rounded-full text-sm bg-green-500/90 text-white backdrop-blur-sm shadow-lg relative">
+                        <UIcon name="i-lucide-thumbs-up" class="w-4 h-4 fill-current" />
+                        <span
+                            class="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.like }}
+                        </span>
+                    </div>
+
+                    <!-- Dislike reaction -->
+                    <button v-if="canInteract" :class="[
+                        'flex items-center justify-center w-8 h-8 rounded-full text-sm transition-all backdrop-blur-sm shadow-lg relative',
+                        (image.reactions?.dislike || 0) > 0
+                            ? 'bg-orange-500/90 text-white'
+                            : 'bg-white/90 text-neutral-700'
+                    ]" :aria-label="`${image.reactions?.dislike || 0} pouce en bas, cliquer pour réagir`"
+                        title="Pouce en bas" @click.stop="$emit('react', 'dislike')">
+                        <UIcon name="i-lucide-thumbs-down"
+                            :class="(image.reactions?.dislike || 0) > 0 ? 'fill-current' : ''" class="w-4 h-4" />
+                        <span v-if="image.reactions?.dislike"
+                            class="absolute -top-1 -right-1 bg-orange-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.dislike }}
+                        </span>
+                    </button>
+                    <div v-else-if="image.reactions?.dislike"
+                        class="flex items-center justify-center w-8 h-8 rounded-full text-sm bg-orange-500/90 text-white backdrop-blur-sm shadow-lg relative">
+                        <UIcon name="i-lucide-thumbs-down" class="w-4 h-4 fill-current" />
+                        <span
+                            class="absolute -top-1 -right-1 bg-orange-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {{ image.reactions.dislike }}
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Comment Modal -->
+        <!-- Comment Modal (Responsive: Modal on desktop, Drawer on mobile) -->
         <MoodboardCommentModal v-model:open="showCommentModal" :existing-comments="image.comments || []"
             :can-add-comment="canInteract" @comment-added="handleCommentAdded" />
     </div>

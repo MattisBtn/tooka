@@ -42,14 +42,6 @@
 
                             <template #content>
                                 <div class="p-4 space-y-4">
-                                    <div
-                                        class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-700">
-                                        <UIcon name="i-lucide-settings"
-                                            class="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-                                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Actions
-                                        </h3>
-                                    </div>
-
                                     <!-- Awaiting client actions -->
                                     <template v-if="moodboard?.status === 'awaiting_client'">
                                         <!-- Validate button -->
@@ -64,24 +56,6 @@
                                             Demander des révisions
                                         </UButton>
                                     </template>
-
-                                    <!-- Moodboard info -->
-                                    <div class="pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-3">
-                                        <div class="flex items-center justify-between text-sm">
-                                            <span class="text-neutral-600 dark:text-neutral-400">Statut</span>
-                                            <UBadge :color="statusColor" variant="soft" size="sm">
-                                                <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
-                                                {{ statusLabel }}
-                                            </UBadge>
-                                        </div>
-                                        <div v-if="project" class="pt-2">
-                                            <h4 class="font-medium text-neutral-900 dark:text-neutral-100 mb-1">{{
-                                                project.title }}</h4>
-                                            <p class="text-xs text-neutral-600 dark:text-neutral-400">
-                                                Moodboard d'inspiration
-                                            </p>
-                                        </div>
-                                    </div>
                                 </div>
                             </template>
                         </UDrawer>
