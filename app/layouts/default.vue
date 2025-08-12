@@ -126,6 +126,7 @@ const categories = [
 const logout = async () => {
     const { success } = await authLogout()
     if (success) {
+        resetAllStores()
         navigateTo('/login')
     }
 }
@@ -135,12 +136,6 @@ const supabase = useSupabaseClient()
 onMounted(() => {
     const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
         try {
-            // Reset all stores when auth state changes to prevent data leakage between users
-            if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                resetAllStores()
-            }
-
-            // Only fetch user data if we have a session
             if (session?.user) {
                 await userStore.fetchUser({ silent: true })
             }
@@ -230,7 +225,7 @@ const resetAllStores = () => {
                             <span class="text-sm font-medium truncate">{{ displayName }}</span>
                             <div class="flex items-center gap-1 min-w-0">
                                 <span class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ planLabel
-                                    }}</span>
+                                }}</span>
                                 <UDropdownMenu :items="accountMenuItems" :content="{ align: 'start' }">
                                     <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-down"
                                         size="sm" />
@@ -281,7 +276,7 @@ const resetAllStores = () => {
                                     :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                     <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                         link.name
-                                    }}</span>
+                                        }}</span>
                                 </UButton>
                             </div>
                             <USeparator v-if="index < categories.length - 1" class="mt-4" />
