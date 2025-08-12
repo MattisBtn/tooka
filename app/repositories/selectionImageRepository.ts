@@ -7,28 +7,11 @@ import type {
 export const selectionImageRepository: ISelectionImageRepository = {
   async findBySelectionId(selectionId: string): Promise<SelectionImage[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux images");
-    }
-
-    // Verify selection belongs to user through project relationship
     const { data, error } = await supabase
       .from("selection_images")
-      .select(
-        `
-        *,
-        selection:selections!inner(
-          id,
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("*")
       .eq("selection_id", selectionId)
-      .eq("selection.project.user_id", user.value.id)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -42,30 +25,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     imageData: Omit<SelectionImage, "id" | "created_at">
   ): Promise<SelectionImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour ajouter une image");
-    }
-
-    // Verify selection belongs to user
-    const selectionCheck = await supabase
-      .from("selections")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", imageData.selection_id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (selectionCheck.error) {
-      throw new Error("Sélection non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("selection_images")
@@ -85,32 +44,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     imageData: Partial<SelectionImage>
   ): Promise<SelectionImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier cette image");
-    }
-
-    // Verify image belongs to user through selection->project relationship
-    const existingImage = await supabase
-      .from("selection_images")
-      .select(
-        `
-        id,
-        selection:selections!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("selection.project.user_id", user.value.id)
-      .single();
-
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("selection_images")
@@ -128,33 +61,18 @@ export const selectionImageRepository: ISelectionImageRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer cette image");
-    }
-
-    // Verify image belongs to user through selection->project relationship
-    const existingImage = await supabase
+    // Get file URLs before deletion for storage cleanup
+    const { data: imageData, error: fetchError } = await supabase
       .from("selection_images")
-      .select(
-        `
-        id,
-        file_url,
-        source_file_url,
-        selection:selections!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("file_url, source_file_url")
       .eq("id", id)
-      .eq("selection.project.user_id", user.value.id)
       .single();
 
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
+    if (fetchError) {
+      throw new Error(
+        `Failed to fetch image for deletion: ${fetchError.message}`
+      );
     }
 
     // Delete from database first
@@ -169,19 +87,19 @@ export const selectionImageRepository: ISelectionImageRepository = {
 
     // Collect all file paths to delete from storage
     const filesToDelete = [];
-    const imageData = existingImage.data;
+    if (imageData) {
+      // Add main file URL
+      if (imageData.file_url) {
+        filesToDelete.push(imageData.file_url);
+      }
 
-    // Add main file URL
-    if (imageData.file_url) {
-      filesToDelete.push(imageData.file_url);
-    }
-
-    // Add source file URL if different from main file URL
-    if (
-      imageData.source_file_url &&
-      imageData.source_file_url !== imageData.file_url
-    ) {
-      filesToDelete.push(imageData.source_file_url);
+      // Add source file URL if different from main file URL
+      if (
+        imageData.source_file_url &&
+        imageData.source_file_url !== imageData.file_url
+      ) {
+        filesToDelete.push(imageData.source_file_url);
+      }
     }
 
     // Delete all files from storage
@@ -207,11 +125,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
 
   async deleteMany(selectionId: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer les images");
-    }
 
     // Get all images for the selection with their file URLs
     const images = await this.findBySelectionId(selectionId);
@@ -280,13 +193,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
       | "cancelled"
   ): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour modifier le statut de conversion"
-      );
-    }
 
     const { error } = await supabase
       .from("selection_images")
@@ -314,28 +220,13 @@ export const selectionImageRepository: ISelectionImageRepository = {
     )[] = ["pending", "failed"]
   ): Promise<SelectionImage[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux images");
-    }
 
     const { data, error } = await supabase
       .from("selection_images")
-      .select(
-        `
-        *,
-        selection:selections!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("*")
       .eq("selection_id", selectionId)
       .eq("requires_conversion", true)
-      .in("conversion_status", statuses)
-      .eq("selection.project.user_id", user.value.id);
+      .in("conversion_status", statuses);
 
     if (error) {
       throw new Error(
@@ -367,11 +258,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     expiresIn: number = 3600
   ): Promise<string> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à l'image");
-    }
 
     const { data, error } = await supabase.storage
       .from("selection-images")
@@ -389,11 +275,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
    */
   async downloadImageBlob(filePath: string): Promise<Blob> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour télécharger l'image");
-    }
 
     const { data, error } = await supabase.storage
       .from("selection-images")
@@ -414,13 +295,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     callback: (payload: SelectionImageRealtimePayload) => void
   ) {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour souscrire aux mises à jour"
-      );
-    }
 
     const subscription = supabase
       .channel(`selection_images_${selectionId}`)

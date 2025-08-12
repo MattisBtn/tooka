@@ -11,26 +11,19 @@ export const galleryRepository: IGalleryRepository = {
     pagination: IPagination
   ): Promise<Gallery[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux galeries");
-    }
 
     let query = supabase
       .from("galleries")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
-      .eq("project.user_id", user.value.id)
       .order("created_at", { ascending: false })
       .range(
         (pagination.page - 1) * pagination.pageSize,
@@ -56,27 +49,20 @@ export const galleryRepository: IGalleryRepository = {
 
   async findById(id: string): Promise<Gallery | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à cette galerie");
-    }
 
     const { data, error } = await supabase
       .from("galleries")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("id", id)
-      .eq("project.user_id", user.value.id)
       .single();
 
     if (error) {
@@ -89,27 +75,20 @@ export const galleryRepository: IGalleryRepository = {
 
   async findByProjectId(projectId: string): Promise<Gallery | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à cette galerie");
-    }
 
     const { data, error } = await supabase
       .from("galleries")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("project_id", projectId)
-      .eq("project.user_id", user.value.id)
       .maybeSingle();
 
     if (error) {
@@ -148,30 +127,6 @@ export const galleryRepository: IGalleryRepository = {
 
   async update(id: string, galleryData: Partial<Gallery>): Promise<Gallery> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier cette galerie");
-    }
-
-    // First verify the gallery belongs to the user
-    const existingGallery = await supabase
-      .from("galleries")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingGallery.error) {
-      throw new Error("Galerie non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("galleries")
@@ -198,30 +153,6 @@ export const galleryRepository: IGalleryRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer cette galerie");
-    }
-
-    // First verify the gallery belongs to the user
-    const existingGallery = await supabase
-      .from("galleries")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingGallery.error) {
-      throw new Error("Galerie non trouvée ou accès non autorisé");
-    }
 
     const { error } = await supabase.from("galleries").delete().eq("id", id);
 

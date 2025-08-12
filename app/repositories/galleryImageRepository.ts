@@ -3,28 +3,11 @@ import type { GalleryImage, IGalleryImageRepository } from "~/types/gallery";
 export const galleryImageRepository: IGalleryImageRepository = {
   async findByGalleryId(galleryId: string): Promise<GalleryImage[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux images");
-    }
-
-    // Verify gallery belongs to user through project relationship
     const { data, error } = await supabase
       .from("gallery_images")
-      .select(
-        `
-        *,
-        gallery:galleries!inner(
-          id,
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("*")
       .eq("gallery_id", galleryId)
-      .eq("gallery.project.user_id", user.value.id)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -38,30 +21,6 @@ export const galleryImageRepository: IGalleryImageRepository = {
     imageData: Omit<GalleryImage, "id" | "created_at">
   ): Promise<GalleryImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour ajouter une image");
-    }
-
-    // Verify gallery belongs to user
-    const galleryCheck = await supabase
-      .from("galleries")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", imageData.gallery_id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (galleryCheck.error) {
-      throw new Error("Galerie non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("gallery_images")
@@ -81,32 +40,6 @@ export const galleryImageRepository: IGalleryImageRepository = {
     imageData: Partial<GalleryImage>
   ): Promise<GalleryImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier cette image");
-    }
-
-    // Verify image belongs to user through gallery->project relationship
-    const existingImage = await supabase
-      .from("gallery_images")
-      .select(
-        `
-        id,
-        gallery:galleries!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("gallery.project.user_id", user.value.id)
-      .single();
-
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("gallery_images")
@@ -124,32 +57,18 @@ export const galleryImageRepository: IGalleryImageRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer cette image");
-    }
-
-    // Verify image belongs to user through gallery->project relationship
-    const existingImage = await supabase
+    // Get file URL before deletion for storage cleanup
+    const { data: imageData, error: fetchError } = await supabase
       .from("gallery_images")
-      .select(
-        `
-        id,
-        file_url,
-        gallery:galleries!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("file_url")
       .eq("id", id)
-      .eq("gallery.project.user_id", user.value.id)
       .single();
 
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
+    if (fetchError) {
+      throw new Error(
+        `Failed to fetch image for deletion: ${fetchError.message}`
+      );
     }
 
     // Delete from database
@@ -163,23 +82,20 @@ export const galleryImageRepository: IGalleryImageRepository = {
     }
 
     // Delete from storage
-    try {
-      await supabase.storage
-        .from("gallery-images")
-        .remove([existingImage.data.file_url]);
-    } catch (storageError) {
-      console.warn("Failed to delete image from storage:", storageError);
-      // Don't throw error for storage deletion failure
+    if (imageData?.file_url) {
+      try {
+        await supabase.storage
+          .from("gallery-images")
+          .remove([imageData.file_url]);
+      } catch (storageError) {
+        console.warn("Failed to delete image from storage:", storageError);
+        // Don't throw error for storage deletion failure
+      }
     }
   },
 
   async deleteMany(galleryId: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer les images");
-    }
 
     // Get all images for the gallery
     const images = await this.findByGalleryId(galleryId);

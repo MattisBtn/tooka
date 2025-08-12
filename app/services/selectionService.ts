@@ -268,10 +268,6 @@ export const selectionService = {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour uploader des images");
-    }
-
     const uploadedImages: SelectionImage[] = [];
     const errors: string[] = [];
 
@@ -305,7 +301,9 @@ export const selectionService = {
         const fileName = `${Date.now()}_${Math.random()
           .toString(36)
           .substring(7)}.${fileExt}`;
-        const filePath = `${user.value.id}/selections/${selectionId}/${fileName}`;
+        const filePath = `${
+          user.value!.id
+        }/selections/${selectionId}/${fileName}`;
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage

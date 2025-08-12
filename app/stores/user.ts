@@ -1,23 +1,20 @@
 import type { User } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
-import { subscriptionService } from "~/services/subscriptionService";
 import { userProfileService } from "~/services/userProfileService";
-import type { SubscriptionPlan } from "~/types/subscription";
 import type {
   UserProfileFormData,
-  UserProfileWithAuth,
+  UserProfileWithPlan,
 } from "~/types/userProfile";
 
 interface AppUserState {
   auth: User | null;
-  profile: UserProfileWithAuth | null;
+  profile: UserProfileWithPlan | null;
 }
 
 export const useUserStore = defineStore("user", () => {
   // State
   const user = ref<AppUserState>({ auth: null, profile: null });
   const isLoading = ref(false);
-  const planRef = ref<SubscriptionPlan | null>(null);
   // Internal fetching flag to avoid concurrent requests without affecting UI loading
   const isFetching = ref(false);
 
@@ -39,41 +36,29 @@ export const useUserStore = defineStore("user", () => {
     return hasStripeConnect.value || hasBankingInfo.value;
   });
 
+  // Get plan directly from profile (no separate API call needed)
+  const plan = computed(() => user.value.profile?.subscription_plans || null);
+
   // Actions
   const fetchUser = async (opts?: { silent?: boolean }) => {
-    const supabaseUser = useSupabaseUser();
     try {
       if (isFetching.value) return user.value;
       isFetching.value = true;
       if (!opts?.silent) isLoading.value = true;
 
-      if (!supabaseUser.value) {
+      const authUser = useSupabaseUser();
+      if (!authUser.value) {
         user.value = { auth: null, profile: null };
-        planRef.value = null;
         return null;
       }
 
-      const profileWithAuth = await userProfileService.getUserProfile(
-        supabaseUser.value.id
+      const profileWithPlan = await userProfileService.getUserProfile(
+        authUser.value.id
       );
-
       user.value = {
-        auth: supabaseUser.value,
-        profile: profileWithAuth ?? null,
+        auth: authUser.value,
+        profile: profileWithPlan ?? null,
       };
-
-      // Load plan if needed
-      if (user.value.profile?.plan_id) {
-        try {
-          planRef.value = await subscriptionService.getPlanById(
-            user.value.profile.plan_id
-          );
-        } catch {
-          planRef.value = null;
-        }
-      } else {
-        planRef.value = null;
-      }
 
       return user.value;
     } catch (err) {
@@ -96,34 +81,21 @@ export const useUserStore = defineStore("user", () => {
       data
     );
 
+    // Refresh the full profile with plan data
+    const updatedProfile = await userProfileService.getUserProfile(
+      supabaseUser.value.id
+    );
+
     user.value = {
       auth: supabaseUser.value,
-      profile: {
-        ...saved,
-        auth: {
-          email: supabaseUser.value.email || "",
-          name: supabaseUser.value.user_metadata?.name || "",
-        },
-      },
+      profile: updatedProfile,
     };
-
-    // Refresh plan if plan_id changed
-    if (saved.plan_id) {
-      try {
-        planRef.value = await subscriptionService.getPlanById(saved.plan_id);
-      } catch {
-        planRef.value = null;
-      }
-    } else {
-      planRef.value = null;
-    }
 
     return saved;
   };
 
   const clear = () => {
     user.value = { auth: null, profile: null };
-    planRef.value = null;
   };
 
   const getDefaultProfileData = (): Partial<UserProfileFormData> => {
@@ -139,9 +111,6 @@ export const useUserStore = defineStore("user", () => {
       avatar_url: (metadata.avatar_url as string) || null,
     };
   };
-
-  // Getter for plan to respect requested API
-  const plan = computed(() => planRef.value);
 
   return {
     // State

@@ -193,6 +193,19 @@ export interface UserProfileWithAuth extends UserProfile {
   };
 }
 
+// User profile with subscription plan included (from JOIN)
+export interface UserProfileWithPlan extends UserProfileWithAuth {
+  subscription_plans?: {
+    id: string;
+    name: string;
+    description: string | null;
+    price_monthly: number;
+    price_yearly: number;
+    features: Record<string, unknown> | null;
+    is_active: boolean | null;
+  } | null;
+}
+
 // Stripe Connect types - adaptés aux champs de la base de données
 export interface StripeConnectAccount {
   account_id: string;

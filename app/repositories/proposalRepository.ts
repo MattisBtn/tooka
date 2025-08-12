@@ -10,26 +10,19 @@ export const proposalRepository = {
     pagination: { page: number; pageSize: number }
   ): Promise<Proposal[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux propositions");
-    }
 
     let query = supabase
       .from("proposals")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
-      .eq("project.user_id", user.value.id)
       .order("created_at", { ascending: false })
       .range(
         (pagination.page - 1) * pagination.pageSize,
@@ -59,29 +52,20 @@ export const proposalRepository = {
 
   async findById(id: string): Promise<Proposal | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour accéder à cette proposition"
-      );
-    }
 
     const { data, error } = await supabase
       .from("proposals")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("id", id)
-      .eq("project.user_id", user.value.id)
       .single();
 
     if (error) {
@@ -94,29 +78,20 @@ export const proposalRepository = {
 
   async findByProjectId(projectId: string): Promise<Proposal | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour accéder à cette proposition"
-      );
-    }
 
     const { data, error } = await supabase
       .from("proposals")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("project_id", projectId)
-      .eq("project.user_id", user.value.id)
       .maybeSingle();
 
     if (error) {
@@ -155,32 +130,6 @@ export const proposalRepository = {
 
   async update(id: string, proposalData: Partial<Proposal>): Promise<Proposal> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour modifier cette proposition"
-      );
-    }
-
-    // First verify the proposal belongs to the user
-    const existingProposal = await supabase
-      .from("proposals")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingProposal.error) {
-      throw new Error("Proposition non trouvée ou accès non autorisé");
-    }
 
     // Ensure updated_at is set
     const updateData = {
@@ -213,32 +162,6 @@ export const proposalRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour supprimer cette proposition"
-      );
-    }
-
-    // First verify the proposal belongs to the user
-    const existingProposal = await supabase
-      .from("proposals")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingProposal.error) {
-      throw new Error("Proposition non trouvée ou accès non autorisé");
-    }
 
     const { error } = await supabase.from("proposals").delete().eq("id", id);
 

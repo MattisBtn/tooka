@@ -6,11 +6,6 @@ export const clientService = {
    */
   async getClients(filters: IClientFilters = {}, pagination: IPagination) {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux clients");
-    }
 
     // Build base query for counting
     let countQuery = supabase
@@ -132,11 +127,6 @@ export const clientService = {
     }
 
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à ce client");
-    }
 
     const { data, error } = await supabase
       .from("clients")
@@ -160,13 +150,6 @@ export const clientService = {
   async createClient(
     clientData: Omit<Client, "id" | "created_at" | "updated_at" | "user_id">
   ): Promise<Client> {
-    // Get current user from Supabase
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour créer un client");
-    }
-
     // Business validation
     if (
       clientData.type === "individual" &&
@@ -181,17 +164,11 @@ export const clientService = {
       throw new Error("Company name is required for company clients");
     }
 
-    // Add user_id from authenticated user
-    const dataWithUserId = {
-      ...clientData,
-      user_id: user.value.id,
-    };
-
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
       .from("clients")
-      .insert(dataWithUserId)
+      .insert(clientData)
       .select()
       .single();
 
@@ -214,11 +191,6 @@ export const clientService = {
     }
 
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier ce client");
-    }
 
     const { data, error } = await supabase
       .from("clients")
@@ -245,11 +217,6 @@ export const clientService = {
     // For now, just a placeholder
 
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer ce client");
-    }
 
     const { error } = await supabase.from("clients").delete().eq("id", id);
 
@@ -266,12 +233,6 @@ export const clientService = {
   ): Promise<{ success: string[]; failed: string[]; errors: string[] }> {
     if (!ids.length) {
       return { success: [], failed: [], errors: [] };
-    }
-
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer ces clients");
     }
 
     const results = {

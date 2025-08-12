@@ -6,28 +6,11 @@ import type {
 export const moodboardImageRepository: IMoodboardImageRepository = {
   async findByMoodboardId(moodboardId: string): Promise<MoodboardImage[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux images");
-    }
-
-    // Verify moodboard belongs to user through project relationship
     const { data, error } = await supabase
       .from("moodboard_images")
-      .select(
-        `
-        *,
-        moodboard:moodboards!inner(
-          id,
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("*")
       .eq("moodboard_id", moodboardId)
-      .eq("moodboard.project.user_id", user.value.id)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -41,30 +24,6 @@ export const moodboardImageRepository: IMoodboardImageRepository = {
     imageData: Omit<MoodboardImage, "id" | "created_at">
   ): Promise<MoodboardImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour ajouter une image");
-    }
-
-    // Verify moodboard belongs to user
-    const moodboardCheck = await supabase
-      .from("moodboards")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", imageData.moodboard_id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (moodboardCheck.error) {
-      throw new Error("Moodboard non trouvé ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("moodboard_images")
@@ -84,32 +43,6 @@ export const moodboardImageRepository: IMoodboardImageRepository = {
     imageData: Partial<MoodboardImage>
   ): Promise<MoodboardImage> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier cette image");
-    }
-
-    // Verify image belongs to user through moodboard->project relationship
-    const existingImage = await supabase
-      .from("moodboard_images")
-      .select(
-        `
-        id,
-        moodboard:moodboards!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("moodboard.project.user_id", user.value.id)
-      .single();
-
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("moodboard_images")
@@ -127,32 +60,18 @@ export const moodboardImageRepository: IMoodboardImageRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer cette image");
-    }
-
-    // Verify image belongs to user through moodboard->project relationship
-    const existingImage = await supabase
+    // Get file URL before deletion for storage cleanup
+    const { data: imageData, error: fetchError } = await supabase
       .from("moodboard_images")
-      .select(
-        `
-        id,
-        file_url,
-        moodboard:moodboards!inner(
-          project:projects!inner(
-            user_id
-          )
-        )
-      `
-      )
+      .select("file_url")
       .eq("id", id)
-      .eq("moodboard.project.user_id", user.value.id)
       .single();
 
-    if (existingImage.error) {
-      throw new Error("Image non trouvée ou accès non autorisé");
+    if (fetchError) {
+      throw new Error(
+        `Failed to fetch image for deletion: ${fetchError.message}`
+      );
     }
 
     // Delete from database
@@ -166,23 +85,20 @@ export const moodboardImageRepository: IMoodboardImageRepository = {
     }
 
     // Delete from storage
-    try {
-      await supabase.storage
-        .from("moodboard-images")
-        .remove([existingImage.data.file_url]);
-    } catch (storageError) {
-      console.warn("Failed to delete image from storage:", storageError);
-      // Don't throw error for storage deletion failure
+    if (imageData?.file_url) {
+      try {
+        await supabase.storage
+          .from("moodboard-images")
+          .remove([imageData.file_url]);
+      } catch (storageError) {
+        console.warn("Failed to delete image from storage:", storageError);
+        // Don't throw error for storage deletion failure
+      }
     }
   },
 
   async deleteMany(moodboardId: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer les images");
-    }
 
     // Get all images for the moodboard
     const images = await this.findByMoodboardId(moodboardId);

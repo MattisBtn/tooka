@@ -11,26 +11,19 @@ export const selectionRepository: ISelectionRepository = {
     pagination: IPagination
   ): Promise<Selection[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux sélections");
-    }
 
     let query = supabase
       .from("selections")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
-      .eq("project.user_id", user.value.id)
       .order("created_at", { ascending: false })
       .range(
         (pagination.page - 1) * pagination.pageSize,
@@ -61,29 +54,20 @@ export const selectionRepository: ISelectionRepository = {
 
   async findById(id: string): Promise<Selection | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour accéder à cette sélection"
-      );
-    }
 
     const { data, error } = await supabase
       .from("selections")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("id", id)
-      .eq("project.user_id", user.value.id)
       .single();
 
     if (error) {
@@ -96,29 +80,20 @@ export const selectionRepository: ISelectionRepository = {
 
   async findByProjectId(projectId: string): Promise<Selection | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour accéder à cette sélection"
-      );
-    }
 
     const { data, error } = await supabase
       .from("selections")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("project_id", projectId)
-      .eq("project.user_id", user.value.id)
       .maybeSingle();
 
     if (error) {
@@ -160,30 +135,6 @@ export const selectionRepository: ISelectionRepository = {
     selectionData: Partial<Selection>
   ): Promise<Selection> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier cette sélection");
-    }
-
-    // First verify the selection belongs to the user
-    const existingSelection = await supabase
-      .from("selections")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingSelection.error) {
-      throw new Error("Sélection non trouvée ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("selections")
@@ -210,32 +161,6 @@ export const selectionRepository: ISelectionRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error(
-        "Vous devez être connecté pour supprimer cette sélection"
-      );
-    }
-
-    // First verify the selection belongs to the user
-    const existingSelection = await supabase
-      .from("selections")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingSelection.error) {
-      throw new Error("Sélection non trouvée ou accès non autorisé");
-    }
 
     const { error } = await supabase.from("selections").delete().eq("id", id);
 

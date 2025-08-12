@@ -14,17 +14,11 @@ export const projectService = {
     pagination: IPagination
   ): Promise<{ data: ProjectWithClient[]; total: number }> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux projets");
-    }
 
     // Build base query for counting
     let countQuery = supabase
       .from("projects")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.value.id);
+      .select("*", { count: "exact", head: true });
 
     // Apply filters to count query
     if (filters.status) {
@@ -39,7 +33,6 @@ export const projectService = {
       const { data: matchingClients } = await supabase
         .from("clients")
         .select("id")
-        .eq("user_id", user.value.id)
         .or(
           `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,billing_email.ilike.%${filters.search}%`
         );
@@ -163,11 +156,6 @@ export const projectService = {
    */
   async getProjectById(id: string): Promise<ProjectWithClient> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à ce projet");
-    }
 
     const { data, error } = await supabase
       .from("projects")
@@ -220,7 +208,6 @@ export const projectService = {
       `
       )
       .eq("id", id)
-      .eq("user_id", user.value.id)
       .single();
 
     if (error) {
@@ -262,23 +249,20 @@ export const projectService = {
     > & { require_password?: boolean }
   ): Promise<ProjectWithClient> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour créer un projet");
-    }
+    const user = useUserStore();
 
     const { require_password, ...dbProjectData } = projectData;
     const passwordHash = require_password
       ? projectService.generatePassword()
       : "";
 
+    // RLS handles user_id automatically, so we can omit it from the insert
     const { data, error } = await supabase
       .from("projects")
       .insert({
         ...dbProjectData,
-        user_id: user.value.id,
         password_hash: passwordHash,
+        user_id: user.user.auth?.id || "",
       })
       .select(
         `
@@ -324,11 +308,6 @@ export const projectService = {
     updates: Partial<Project> & { require_password?: boolean }
   ): Promise<Project> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier ce projet");
-    }
 
     // Extract require_password from updates as it's not a database column
     const { require_password, ...dbUpdates } = updates;
@@ -348,7 +327,6 @@ export const projectService = {
       .from("projects")
       .update(dbUpdates)
       .eq("id", id)
-      .eq("user_id", user.value.id)
       .select()
       .single();
 
@@ -364,17 +342,8 @@ export const projectService = {
    */
   async deleteProject(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer ce projet");
-    }
-
-    const { error } = await supabase
-      .from("projects")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.value.id);
+    const { error } = await supabase.from("projects").delete().eq("id", id);
 
     if (error) {
       throw new Error(`Failed to delete project: ${error.message}`);
@@ -389,12 +358,6 @@ export const projectService = {
   ): Promise<{ success: string[]; failed: string[]; errors: string[] }> {
     if (!ids.length) {
       return { success: [], failed: [], errors: [] };
-    }
-
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer ces projets");
     }
 
     const results = {
@@ -479,11 +442,6 @@ export const projectService = {
    */
   async updateProjectStatusIfNeeded(projectId: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier ce projet");
-    }
 
     // Get current project data
     const project = await this.getProjectById(projectId);
@@ -493,8 +451,7 @@ export const projectService = {
       const { error } = await supabase
         .from("projects")
         .update({ status: "completed" })
-        .eq("id", projectId)
-        .eq("user_id", user.value.id);
+        .eq("id", projectId);
 
       if (error) {
         throw new Error(`Failed to update project status: ${error.message}`);
@@ -507,8 +464,7 @@ export const projectService = {
       const { error } = await supabase
         .from("projects")
         .update({ status: "in_progress" })
-        .eq("id", projectId)
-        .eq("user_id", user.value.id);
+        .eq("id", projectId);
 
       if (error) {
         throw new Error(`Failed to update project status: ${error.message}`);

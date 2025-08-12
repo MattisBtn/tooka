@@ -99,7 +99,7 @@ export const moodboardService = {
       throw new Error("Un moodboard existe déjà pour ce projet");
     }
 
-    // Set status based on validation
+    // Set status based on validation flag
     const finalMoodboardData = {
       ...moodboardData,
       status: shouldValidate
@@ -129,8 +129,6 @@ export const moodboardService = {
 
     // Handle validation status change
     const finalUpdates = { ...updates };
-
-    // If shouldValidate is explicitly provided, override the status
     if (shouldValidate !== undefined) {
       finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
     }
@@ -179,15 +177,14 @@ export const moodboardService = {
     // Update moodboard
     const moodboard = await moodboardRepository.update(id, finalUpdates);
 
-    // Get images for the updated moodboard
-    const images = await moodboardImageRepository.findByMoodboardId(id);
+    // Get updated moodboard with images
+    const moodboardWithDetails = await this.getMoodboardByProjectId(
+      moodboard.project_id
+    );
 
-    // Return moodboard with details
-    const moodboardWithDetails: MoodboardWithDetails = {
-      ...moodboard,
-      images,
-      imageCount: images.length,
-    };
+    if (!moodboardWithDetails) {
+      throw new Error("Failed to fetch updated moodboard details");
+    }
 
     // Project is considered updated when moodboard is sent to client
     const projectUpdated = finalUpdates.status === "awaiting_client";
@@ -201,10 +198,14 @@ export const moodboardService = {
   async deleteMoodboard(id: string): Promise<void> {
     const moodboard = await this.getMoodboardById(id);
 
-    // Business rule: can only delete moodboards that are not completed (validated by client)
-    if (moodboard.status === "completed") {
+    // Business rule: can't delete moodboards that are awaiting client or completed
+    if (
+      moodboard.status === "awaiting_client" ||
+      moodboard.status === "completed" ||
+      moodboard.status === "payment_pending"
+    ) {
       throw new Error(
-        "Cannot delete moodboards that have been validated by the client"
+        "Cannot delete moodboards that are awaiting client response, payment pending, or completed"
       );
     }
 
@@ -347,7 +348,7 @@ export const moodboardService = {
         value: "draft" as const,
         label: "Brouillon",
         description: "Moodboard en cours de préparation",
-        icon: "i-lucide-image",
+        icon: "i-lucide-palette",
         color: "neutral",
       },
       {
@@ -365,9 +366,16 @@ export const moodboardService = {
         color: "info",
       },
       {
+        value: "payment_pending" as const,
+        label: "Paiement en attente",
+        description: "En attente de confirmation de paiement",
+        icon: "i-lucide-credit-card",
+        color: "info",
+      },
+      {
         value: "completed" as const,
-        label: "Validé",
-        description: "Moodboard validé par le client",
+        label: "Accepté",
+        description: "Moodboard accepté par le client",
         icon: "i-lucide-check-circle",
         color: "success",
       },

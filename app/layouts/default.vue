@@ -29,6 +29,13 @@ useAsyncData('user:init', async () => {
     }
 }, { server: false })
 
+onMounted(() => {
+    const plan = userStore.plan;
+    if (plan && !plan.is_active) {
+        navigateTo('/pricing')
+    }
+})
+
 // Computed properties for user display
 const displayName = computed(() => {
     const p = userStore.user.profile
@@ -126,84 +133,8 @@ const categories = [
 const logout = async () => {
     const { success } = await authLogout()
     if (success) {
-        resetAllStores()
         navigateTo('/login')
     }
-}
-
-// Sync auth changes
-const supabase = useSupabaseClient()
-onMounted(() => {
-    const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
-        try {
-            if (session?.user) {
-                await userStore.fetchUser({ silent: true })
-            }
-        } catch (error) {
-            console.error('Auth state change error:', error)
-        }
-    })
-
-    // Realtime channel for user profile changes
-    const authUser = useSupabaseUser()
-    let ch: ReturnType<typeof supabase.channel> | null = null
-    if (authUser.value) {
-        ch = supabase
-            .channel('me-profile')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'user_profiles',
-                filter: `id=eq.${authUser.value.id}`,
-            }, () => {
-                userStore.fetchUser({ silent: true }).catch(error => {
-                    console.error('Profile change error:', error)
-                })
-            })
-            .subscribe()
-    }
-
-    onUnmounted(() => {
-        authSub?.subscription?.unsubscribe()
-        if (ch) {
-            supabase.removeChannel(ch)
-            ch = null
-        }
-    })
-})
-
-// Function to reset all stores to prevent data leakage between users
-const resetAllStores = () => {
-    // Admin stores
-    const projectsStore = useProjectsStore()
-    const clientsStore = useClientsStore()
-    const galleryStore = useGalleryStore()
-    const moodboardStore = useMoodboardStore()
-    const proposalStore = useProposalStore()
-    const selectionStore = useSelectionStore()
-    const projectSetupStore = useProjectSetupStore()
-
-    // Public stores
-    const clientGalleryStore = useClientGalleryStore()
-    const clientMoodboardStore = useClientMoodboardStore()
-    const clientSelectionStore = useClientSelectionStore()
-
-    // Other stores
-    const subscriptionStore = useSubscriptionStore()
-
-    // Reset all stores
-    projectsStore.reset()
-    clientsStore.reset()
-    galleryStore.reset()
-    moodboardStore.reset()
-    proposalStore.reset()
-    selectionStore.reset()
-    projectSetupStore.reset()
-    clientGalleryStore.reset()
-    clientMoodboardStore.reset()
-    clientSelectionStore.reset()
-    subscriptionStore.reset()
-    userStore.clear()
 }
 </script>
 
@@ -212,7 +143,7 @@ const resetAllStores = () => {
         class="h-screen overflow-hidden bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 flex flex-col">
         <!-- Header -->
         <header
-            class="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex-shrink-0">
+            class="h-16 border-b border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 flex-shrink-0">
             <div class="h-full flex items-center justify-between px-6">
                 <div class="flex items-center gap-4 min-w-0">
                     <ClientOnly>
@@ -246,7 +177,7 @@ const resetAllStores = () => {
         <!-- Body: Sidebar + Main Content -->
         <div class="flex flex-1 overflow-hidden">
             <aside :class="[
-                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col flex-shrink-0',
+                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 flex flex-col flex-shrink-0',
                 isSidebarCollapsed ? 'w-16' : 'w-64'
             ]">
                 <!-- <div class="p-4 flex items-center justify-end border-b border-neutral-200 dark:border-neutral-700">

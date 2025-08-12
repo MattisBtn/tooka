@@ -2,14 +2,14 @@ import { userProfileRepository } from "~/repositories/userProfileRepository";
 import type {
   UserProfile,
   UserProfileFormData,
-  UserProfileWithAuth,
+  UserProfileWithPlan,
 } from "~/types/userProfile";
 
 export const userProfileService = {
   /**
-   * Get user profile by ID with auth user information
+   * Get user profile with auth info and subscription plan
    */
-  async getUserProfile(userId: string): Promise<UserProfileWithAuth | null> {
+  async getUserProfile(userId: string): Promise<UserProfileWithPlan | null> {
     try {
       const profile = await userProfileRepository.findById(userId);
 

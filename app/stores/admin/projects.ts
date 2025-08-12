@@ -94,9 +94,7 @@ export const useProjectsStore = defineStore("projects", () => {
   };
 
   const initialize = async (filters?: IProjectFilters) => {
-    if (isInitialized.value && projects.value.length > 0) {
-      return projects.value;
-    }
+    if (isInitialized.value) return;
     return await refresh(filters);
   };
 

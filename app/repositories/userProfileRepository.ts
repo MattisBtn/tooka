@@ -7,7 +7,20 @@ export const userProfileRepository: IUserProfileRepository = {
 
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("*")
+      .select(
+        `
+        *,
+        subscription_plans (
+          id,
+          name,
+          description,
+          price_monthly,
+          price_yearly,
+          features,
+          is_active
+        )
+      `
+      )
       .eq("id", id)
       .single();
 

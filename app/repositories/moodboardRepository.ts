@@ -11,26 +11,19 @@ export const moodboardRepository: IMoodboardRepository = {
     pagination: IPagination
   ): Promise<Moodboard[]> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder aux moodboards");
-    }
 
     let query = supabase
       .from("moodboards")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
-      .eq("project.user_id", user.value.id)
       .order("created_at", { ascending: false })
       .range(
         (pagination.page - 1) * pagination.pageSize,
@@ -62,27 +55,20 @@ export const moodboardRepository: IMoodboardRepository = {
 
   async findById(id: string): Promise<Moodboard | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à ce moodboard");
-    }
 
     const { data, error } = await supabase
       .from("moodboards")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("id", id)
-      .eq("project.user_id", user.value.id)
       .single();
 
     if (error) {
@@ -95,27 +81,20 @@ export const moodboardRepository: IMoodboardRepository = {
 
   async findByProjectId(projectId: string): Promise<Moodboard | null> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à ce moodboard");
-    }
 
     const { data, error } = await supabase
       .from("moodboards")
       .select(
         `
         *,
-        project:projects!inner(
+        project:projects(
           id,
           title,
-          status,
-          user_id
+          status
         )
       `
       )
       .eq("project_id", projectId)
-      .eq("project.user_id", user.value.id)
       .maybeSingle();
 
     if (error) {
@@ -157,30 +136,6 @@ export const moodboardRepository: IMoodboardRepository = {
     moodboardData: Partial<Moodboard>
   ): Promise<Moodboard> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour modifier ce moodboard");
-    }
-
-    // First verify the moodboard belongs to the user
-    const existingMoodboard = await supabase
-      .from("moodboards")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingMoodboard.error) {
-      throw new Error("Moodboard non trouvé ou accès non autorisé");
-    }
 
     const { data, error } = await supabase
       .from("moodboards")
@@ -207,30 +162,6 @@ export const moodboardRepository: IMoodboardRepository = {
 
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer ce moodboard");
-    }
-
-    // First verify the moodboard belongs to the user
-    const existingMoodboard = await supabase
-      .from("moodboards")
-      .select(
-        `
-        id,
-        project:projects!inner(
-          user_id
-        )
-      `
-      )
-      .eq("id", id)
-      .eq("project.user_id", user.value.id)
-      .single();
-
-    if (existingMoodboard.error) {
-      throw new Error("Moodboard non trouvé ou accès non autorisé");
-    }
 
     const { error } = await supabase.from("moodboards").delete().eq("id", id);
 

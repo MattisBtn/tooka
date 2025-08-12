@@ -94,8 +94,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting"
-                    @click="store.closeModal" />
+                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting" />
                 <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
             </div>
         </div>
@@ -155,6 +154,7 @@ const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
         }
     } finally {
         isSubmitting.value = false
+        store.closeModal()
     }
 }
 </script>
