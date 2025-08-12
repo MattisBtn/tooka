@@ -207,6 +207,7 @@
 import { useClientSelect } from '~/composables/clients/useClientSelect'
 import type { ProjectStatusItem, ProjectWithClient } from '~/types/project'
 import { projectEditSchema } from '~/types/project'
+import { StatusUtils } from '~/types/status'
 
 interface Props {
     project: ProjectWithClient

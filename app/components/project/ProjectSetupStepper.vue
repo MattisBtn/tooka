@@ -37,6 +37,7 @@
 <script lang="ts" setup>
 import type { WorkflowStep } from '~/types/project';
 import { getStepStatus, normalizeModule, type StepInfo } from '~/utils/formatters';
+import { MODULE_STATUS } from '~/types/status';
 
 interface Props {
     currentStep: number
@@ -79,7 +80,7 @@ const getMostAdvancedStep = (): WorkflowStep => {
         const moduleKey = moduleMap[i as keyof typeof moduleMap];
         const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
 
-        if (exists && status === "awaiting_client") {
+        if (exists && status === MODULE_STATUS.AWAITING_CLIENT) {
             // If any step is in_progress, stay on that step
             return i as WorkflowStep;
         }
@@ -91,7 +92,7 @@ const getMostAdvancedStep = (): WorkflowStep => {
         const moduleKey = moduleMap[i as keyof typeof moduleMap];
         const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
 
-        if (exists && status === "completed") {
+        if (exists && status === MODULE_STATUS.COMPLETED) {
             lastCompletedStep = i;
         }
     }

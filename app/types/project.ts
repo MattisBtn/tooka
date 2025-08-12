@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { Json, Tables } from "~/types/database.types";
+import type { ProjectStatus, PROJECT_STATUS, ModuleStatus } from "~/types/status";
 
 export type Project = Tables<"projects">;
 
 export interface IProjectFilters {
   search?: string;
-  status?: "draft" | "in_progress" | "completed" | null;
+  status?: ProjectStatus | null;
   client_id?: string;
   sort?:
     | "title_asc"
@@ -23,7 +24,7 @@ export interface IPagination {
 
 // Project status options for UI
 export interface ProjectStatusItem {
-  value: "draft" | "in_progress" | "completed";
+  value: ProjectStatus;
   label: string;
   description: string;
   icon: string;
@@ -35,7 +36,7 @@ export const projectFormSchema = z.object({
   title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
   description: z.string().nullable().optional(),
   client_id: z.string().min(1, "Client requis"),
-  status: z.enum(["draft", "in_progress", "completed"]).default("draft"),
+  status: z.enum([PROJECT_STATUS.DRAFT, PROJECT_STATUS.IN_PROGRESS, PROJECT_STATUS.COMPLETED]).default(PROJECT_STATUS.DRAFT),
   initial_price: z
     .number()
     .min(0, "Le prix doit être positif")
@@ -74,12 +75,7 @@ export interface ProjectWithClient extends Project {
     id: string;
     content_json: Json;
     content_html: string;
-    status:
-      | "draft"
-      | "awaiting_client"
-      | "revision_requested"
-      | "completed"
-      | "payment_pending";
+    status: ModuleStatus;
     price: number;
     deposit_required: boolean;
     deposit_amount: number | null;
@@ -90,7 +86,7 @@ export interface ProjectWithClient extends Project {
     id: string;
     title: string;
     description: string | null;
-    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    status: ModuleStatus;
     created_at: string;
     updated_at: string;
   } | null;
@@ -98,13 +94,13 @@ export interface ProjectWithClient extends Project {
     id: string;
     max_media_selection: number;
     extra_media_price: number | null;
-    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    status: ModuleStatus;
     created_at: string;
     updated_at: string;
   } | null;
   gallery?: {
     id: string;
-    status: "draft" | "awaiting_client" | "revision_requested" | "completed";
+    status: ModuleStatus;
     payment_required: boolean;
     selection_id: string | null;
     created_at: string;

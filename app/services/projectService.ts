@@ -4,6 +4,7 @@ import type {
   Project,
   ProjectWithClient,
 } from "~/types/project";
+import { PROJECT_STATUS, MODULE_STATUS, StatusUtils } from "~/types/status";
 
 export const projectService = {
   /**
@@ -383,45 +384,23 @@ export const projectService = {
   },
 
   getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Projet en cours de préparation",
-        icon: "i-lucide-file-text",
-        color: "neutral",
-      },
-      {
-        value: "in_progress" as const,
-        label: "En cours",
-        description: "Projet en cours de réalisation",
-        icon: "i-lucide-play-circle",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Terminé",
-        description: "Projet terminé",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
+    return StatusUtils.getProjectStatusOptions();
   },
 
   /**
    * Check if project should be updated to in_progress status
    */
   shouldUpdateProjectStatus(project: ProjectWithClient): boolean {
-    if (project.status === "completed") {
+    if (StatusUtils.isCompleted(project.status)) {
       return false;
     }
 
     // Check if any module is not in draft status
     return !!(
-      (project.proposal && project.proposal.status !== "draft") ||
-      (project.moodboard && project.moodboard.status !== "draft") ||
-      (project.selection && project.selection.status !== "draft") ||
-      (project.gallery && project.gallery.status !== "draft")
+      (project.proposal && !StatusUtils.isDraft(project.proposal.status)) ||
+      (project.moodboard && !StatusUtils.isDraft(project.moodboard.status)) ||
+      (project.selection && !StatusUtils.isDraft(project.selection.status)) ||
+      (project.gallery && !StatusUtils.isDraft(project.gallery.status))
     );
   },
 
@@ -429,12 +408,12 @@ export const projectService = {
    * Check if project should be updated to completed status
    */
   shouldUpdateProjectToCompleted(project: ProjectWithClient): boolean {
-    if (project.status === "completed") {
+    if (StatusUtils.isCompleted(project.status)) {
       return false;
     }
 
     // Project is completed when gallery is completed
-    return !!(project.gallery && project.gallery.status === "completed");
+    return !!(project.gallery && StatusUtils.isCompleted(project.gallery.status));
   },
 
   /**
@@ -450,7 +429,7 @@ export const projectService = {
     if (this.shouldUpdateProjectToCompleted(project)) {
       const { error } = await supabase
         .from("projects")
-        .update({ status: "completed" })
+        .update({ status: PROJECT_STATUS.COMPLETED })
         .eq("id", projectId);
 
       if (error) {
@@ -463,7 +442,7 @@ export const projectService = {
     if (this.shouldUpdateProjectStatus(project)) {
       const { error } = await supabase
         .from("projects")
-        .update({ status: "in_progress" })
+        .update({ status: PROJECT_STATUS.IN_PROGRESS })
         .eq("id", projectId);
 
       if (error) {

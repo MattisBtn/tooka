@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
+import type { ModuleStatus, ProjectStatus } from "~/types/status";
 
 export type Gallery = Tables<"galleries">;
 export type GalleryImage = Tables<"gallery_images">;
@@ -12,13 +13,7 @@ export interface GalleryImageWithSignedUrl extends GalleryImage {
 
 export interface IGalleryFilters {
   search?: string;
-  status?:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | "payment_pending"
-    | null;
+  status?: ModuleStatus | null;
   project_id?: string;
 }
 
@@ -52,12 +47,7 @@ export interface IPagination {
 
 // Gallery status options for UI
 export interface GalleryStatusItem {
-  value:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | "payment_pending";
+  value: ModuleStatus;
   label: string;
   description: string;
   icon: string;
@@ -109,7 +99,7 @@ export interface GalleryWithDetails extends Gallery {
   project?: {
     readonly id: string;
     readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
+    readonly status: ProjectStatus;
   };
   images?: readonly GalleryImageWithSignedUrl[];
   imageCount?: number;
@@ -124,7 +114,7 @@ export interface GalleryWithProjectDetails extends Gallery {
     title: string;
     description: string | null;
     password_hash: string;
-    status: "draft" | "in_progress" | "completed";
+    status: ProjectStatus;
   };
   images: GalleryImageWithSignedUrl[];
   imageCount: number;

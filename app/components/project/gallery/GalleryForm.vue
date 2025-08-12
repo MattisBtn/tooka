@@ -212,6 +212,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { galleryFormSchema, type Gallery, type GalleryFormData, type GalleryImage, type GalleryPricing, type ProjectPaymentData } from "~/types/gallery";
+import { MODULE_STATUS } from "~/types/status";
 
 interface ProposalPaymentInfo {
     payment_method: 'stripe' | 'bank_transfer' | null;
@@ -257,7 +258,7 @@ const isFree = computed(() => projectSetupStore.isFree)
 const state = reactive<GalleryFormData>({
     payment_required: props.gallery?.payment_required ?? true,
     selection_id: props.gallery?.selection_id || null,
-    status: props.gallery?.status || "draft",
+    status: props.gallery?.status || MODULE_STATUS.DRAFT,
 });
 
 // Watch isFree to update payment_required when project changes

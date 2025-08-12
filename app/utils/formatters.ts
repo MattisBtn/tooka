@@ -1,3 +1,5 @@
+import { MODULE_STATUS, StatusUtils } from '~/types/status';
+
 // Formatage des prix
 export const formatPrice = (price: number | null | undefined): string => {
   if (!price) return "Non défini";
@@ -23,28 +25,24 @@ export const getStatusLabel = (
   status: string,
   _type?: "proposal" | "moodboard" | "selection" | "gallery"
 ): string => {
-  const statusMap = {
-    draft: "Brouillon",
-    awaiting_client: "En attente client",
-    revision_requested: "Révision demandée",
-    completed: "Acceptée",
-    payment_pending: "Paiement en attente",
-  };
-  return statusMap[status as keyof typeof statusMap] || status;
+  const statusItem = StatusUtils.getStatusItem(status as any);
+  return statusItem?.label || status;
 };
 
 // Couleurs des statuts
 export const getStatusColor = (
   status?: string
 ): "neutral" | "info" | "warning" | "success" => {
+  const statusItem = StatusUtils.getStatusItem(status as any);
   const colorMap: Record<string, "neutral" | "info" | "warning" | "success"> = {
-    draft: "neutral",
-    awaiting_client: "info",
-    revision_requested: "warning",
-    completed: "success",
-    payment_pending: "info",
+    gray: "neutral",
+    blue: "info",
+    orange: "warning",
+    green: "success",
+    yellow: "warning",
+    red: "warning",
   };
-  return colorMap[status || "draft"] || "neutral";
+  return colorMap[statusItem?.color || "gray"] || "neutral";
 };
 
 // Step status utilities
@@ -61,10 +59,10 @@ export interface StepInfo {
 // Helper function to determine if a status is advanced (non-draft)
 const isAdvancedStatus = (status: string): boolean => {
   return [
-    "awaiting_client",
-    "revision_requested",
-    "completed",
-    "payment_pending",
+    MODULE_STATUS.AWAITING_CLIENT,
+    MODULE_STATUS.REVISION_REQUESTED,
+    MODULE_STATUS.COMPLETED,
+    MODULE_STATUS.PAYMENT_PENDING,
   ].includes(status);
 };
 
@@ -119,7 +117,7 @@ const isNewProject = (project: {
   if (existing.length === 0) return true;
 
   // If all existing modules are in draft (or missing status treated as draft), it's a new project
-  return existing.every((m) => (m.status ?? "draft") === "draft");
+  return existing.every((m) => (m.status ?? MODULE_STATUS.DRAFT) === MODULE_STATUS.DRAFT);
 };
 
 // Helper function to check if a step is locked due to advanced modules
@@ -185,7 +183,7 @@ const isStepLockedByPreviousStep = (
       project[moduleKey as keyof typeof project]
     );
 
-    if (exists && status === "awaiting_client") {
+    if (exists && status === MODULE_STATUS.AWAITING_CLIENT) {
       // If any step is in_progress, only that step is accessible
       return stepNumber !== i;
     }
@@ -197,7 +195,7 @@ const isStepLockedByPreviousStep = (
     const { exists, status } = normalizeModule(
       project[moduleKey as keyof typeof project]
     );
-    return exists && status === "completed";
+    return exists && status === MODULE_STATUS.COMPLETED;
   });
 
   if (allStepsCompleted) {
@@ -214,7 +212,7 @@ const isStepLockedByPreviousStep = (
       project[moduleKey as keyof typeof project]
     );
 
-    if (exists && status === "completed") {
+    if (exists && status === MODULE_STATUS.COMPLETED) {
       lastCompletedStep = i;
     }
   }
@@ -275,7 +273,7 @@ export const getStepStatus = (
   const moduleStatus = normalized.status as string | undefined;
   const isAdvanced = moduleStatus ? isAdvancedStatus(moduleStatus) : false;
 
-  if (moduleStatus === "completed") {
+  if (moduleStatus === MODULE_STATUS.COMPLETED) {
     return {
       status: "completed",
       canView: true,

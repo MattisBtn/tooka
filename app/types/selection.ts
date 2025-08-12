@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
+import type { ModuleStatus, ProjectStatus } from "~/types/status";
 
 export type Selection = Tables<"selections">;
 export type SelectionImage = Tables<"selection_images">;
@@ -7,12 +8,7 @@ export type SelectionComment = Tables<"selection_comments">;
 
 export interface ISelectionFilters {
   search?: string;
-  status?:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | null;
+  status?: ModuleStatus | null;
   project_id?: string;
 }
 
@@ -80,7 +76,7 @@ export interface IPagination {
 
 // Selection status options for UI
 export interface SelectionStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
+  value: ModuleStatus;
   label: string;
   description: string;
   icon: string;
@@ -122,7 +118,7 @@ export interface SelectionWithDetails extends Selection {
   project?: {
     readonly id: string;
     readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
+    readonly status: ProjectStatus;
   };
   images?: readonly SelectionImage[];
   imageCount?: number;
@@ -138,7 +134,7 @@ export interface SelectionWithProjectDetails extends Selection {
     title: string;
     description: string | null;
     password_hash: string;
-    status: "draft" | "in_progress" | "completed";
+    status: ProjectStatus;
     remaining_amount: number | null;
   };
   images: SelectionImage[];

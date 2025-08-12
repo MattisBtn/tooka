@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Database } from "./database.types";
+import type { ModuleStatus } from "~/types/status";
 
 // Types de base depuis la base de données
 export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
@@ -9,12 +10,7 @@ export type ProposalUpdate =
   Database["public"]["Tables"]["proposals"]["Update"];
 
 // Union type pour tous les statuts possibles
-export type ProposalStatus =
-  | "draft"
-  | "awaiting_client"
-  | "revision_requested"
-  | "completed"
-  | "payment_pending";
+export type ProposalStatus = ModuleStatus;
 
 // Interface étendue avec relations
 export interface ProposalWithProject extends Proposal {

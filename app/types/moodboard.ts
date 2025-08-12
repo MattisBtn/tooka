@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
+import type { ModuleStatus, ProjectStatus } from "~/types/status";
 
 export type Moodboard = Tables<"moodboards">;
 export type MoodboardImage = Tables<"moodboard_images">;
@@ -8,12 +9,7 @@ export type MoodboardReaction = Tables<"moodboard_reactions">;
 
 export interface IMoodboardFilters {
   search?: string;
-  status?:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | null;
+  status?: ModuleStatus | null;
   project_id?: string;
 }
 
@@ -49,7 +45,7 @@ export interface IPagination {
 
 // Moodboard status options for UI
 export interface MoodboardStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
+  value: ModuleStatus;
   label: string;
   description: string;
   icon: string;
@@ -85,7 +81,7 @@ export interface MoodboardWithDetails extends Moodboard {
   project?: {
     readonly id: string;
     readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
+    readonly status: ProjectStatus;
   };
   images?: readonly MoodboardImage[];
   imageCount?: number;
@@ -100,7 +96,7 @@ export interface MoodboardWithProjectDetails extends Moodboard {
     title: string;
     description: string | null;
     password_hash: string;
-    status: "draft" | "in_progress" | "completed";
+    status: ProjectStatus;
   };
   images: MoodboardImage[];
   imageCount: number;
@@ -170,7 +166,7 @@ export type ClientRevisionRequestData = z.infer<
 
 // Moodboard status update
 export interface MoodboardStatusUpdate {
-  status: "completed" | "revision_requested";
+  status: ModuleStatus;
   client_comment?: string;
   updated_at: string;
 }
