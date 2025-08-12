@@ -266,7 +266,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
+
 import { getStatusColor } from "~/utils/formatters";
 
 // Use stores
@@ -311,28 +311,21 @@ watch(projectId, async (id) => {
 }, { immediate: true })
 
 // Handle proposal saved
-const handleProposalSaved = async (data: {
-    proposal: Record<string, unknown>;
-    project: Record<string, unknown>;
-    projectUpdated: boolean;
-    shouldValidate: boolean;
-}) => {
+const handleProposalSaved = async (data: any) => {
     try {
         if (proposalStore.exists && proposalStore.proposal) {
             // Update existing proposal
             await proposalStore.updateProposal(
                 proposalStore.proposal.id,
-                data.proposal as ProposalFormData,
-                data.project as ProjectPaymentData,
-                data.shouldValidate
+                data.proposal,
+                data.project
             );
         } else {
             // Create new proposal
             await proposalStore.createProposal(
                 projectSetupStore.project!.id,
-                data.proposal as ProposalFormData,
-                data.project as ProjectPaymentData,
-                data.shouldValidate
+                data.proposal,
+                data.project
             );
         }
 

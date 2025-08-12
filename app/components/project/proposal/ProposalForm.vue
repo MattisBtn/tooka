@@ -45,11 +45,7 @@
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
 
-            <UButton type="submit" label="Sauvegarder comme brouillon" color="neutral" variant="outline"
-                :loading="isSubmitting && submitAsDraft" @click="submitAsDraft = true" />
-
-            <UButton type="submit" label="Envoyer au client" color="primary" :loading="isSubmitting && !submitAsDraft"
-                @click="submitAsDraft = false" />
+            <UButton type="submit" label="Sauvegarder" color="primary" :loading="isSubmitting" />
         </div>
     </UForm>
 </template>
@@ -79,7 +75,6 @@ interface Emits {
         proposal: ProposalFormData;
         project: ProjectPaymentData;
         projectUpdated: boolean;
-        shouldValidate: boolean;
     }): void;
     (e: "cancel"): void;
 }
@@ -122,7 +117,6 @@ const {
 
 // Local loading state for better UX
 const isSubmitting = ref(false);
-const submitAsDraft = ref(false);
 
 // Handle form submission
 const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
@@ -133,14 +127,11 @@ const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
             await uploadFiles(props.projectId);
         }
 
-        const shouldValidate = !submitAsDraft.value;
-
         // Emit both proposal and project data to parent component
         emit("proposal-saved", {
             proposal: proposalState,
             project: projectState,
             projectUpdated: Boolean(depositRequired.value && projectState.payment_method),
-            shouldValidate,
         });
     } finally {
         isSubmitting.value = false;

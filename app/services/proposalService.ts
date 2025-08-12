@@ -62,15 +62,14 @@ export const proposalService = {
    * Create new proposal with validation and business rules
    */
   async createProposal(
-    proposalData: Omit<Proposal, "id" | "created_at" | "updated_at">,
-    shouldValidate: boolean = false
+    proposalData: Omit<Proposal, "id" | "created_at" | "updated_at">
   ): Promise<{ proposal: Proposal; projectUpdated: boolean }> {
     if (!proposalData.project_id?.trim()) {
       throw new Error("Project ID is required");
     }
 
     // Verify project exists and belongs to user
-    const project = await projectService.getProjectById(
+    const _project = await projectService.getProjectById(
       proposalData.project_id
     );
 
@@ -101,27 +100,18 @@ export const proposalService = {
       );
     }
 
-    // Set status based on validation
+    // Create proposal (always draft)
     const finalProposalData = {
       ...proposalData,
-      status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+      status: "draft" as const,
     };
 
-    // Create proposal
     const proposal = await proposalRepository.create(finalProposalData);
 
-    // Update project status if proposal is validated
-    let projectUpdated = false;
-    if (shouldValidate && project.status === "draft") {
-      await projectService.updateProject(proposalData.project_id, {
-        status: "in_progress",
-      });
-      projectUpdated = true;
-    }
+    // Update project status if needed (proposal is draft, so project stays draft)
+    await projectService.updateProjectStatusIfNeeded(proposalData.project_id);
 
-    return { proposal, projectUpdated };
+    return { proposal, projectUpdated: false };
   },
 
   /**
@@ -129,8 +119,7 @@ export const proposalService = {
    */
   async updateProposal(
     id: string,
-    updates: Partial<Proposal>,
-    shouldValidate?: boolean
+    updates: Partial<Proposal>
   ): Promise<{ proposal: Proposal; projectUpdated: boolean }> {
     const existingProposal = await this.getProposalById(id);
 
@@ -162,34 +151,15 @@ export const proposalService = {
       }
     }
 
-    // Handle validation status change
-    const finalUpdates = { ...updates };
-    if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
-    }
+    // Update proposal (keep current status)
+    const proposal = await proposalRepository.update(id, updates);
 
-    // Update proposal
-    const proposal = await proposalRepository.update(id, finalUpdates);
+    // Update project status if needed (based on new proposal status)
+    await projectService.updateProjectStatusIfNeeded(
+      existingProposal.project_id
+    );
 
-    // Update project status if proposal is being validated
-    let projectUpdated = false;
-    if (
-      shouldValidate &&
-      (existingProposal.status === "draft" ||
-        existingProposal.status === "revision_requested")
-    ) {
-      const project = await projectService.getProjectById(
-        existingProposal.project_id
-      );
-      if (project.status === "draft") {
-        await projectService.updateProject(existingProposal.project_id, {
-          status: "in_progress",
-        });
-        projectUpdated = true;
-      }
-    }
-
-    return { proposal, projectUpdated };
+    return { proposal, projectUpdated: false };
   },
 
   /**

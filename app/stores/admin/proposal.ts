@@ -64,8 +64,7 @@ export const useProposalStore = defineStore("proposal", () => {
   const createProposal = async (
     projectId: string,
     proposalData: ProposalFormData,
-    projectData: ProjectPaymentData,
-    shouldValidate: boolean
+    projectData: ProjectPaymentData
   ) => {
     formLoading.value = true;
     error.value = null;
@@ -93,17 +92,14 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: isFree ? null : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: shouldValidate
-          ? ("awaiting_client" as const)
-          : ("draft" as const),
+        status: "draft" as const,
         revision_last_comment: null,
       };
 
-      const result = await proposalService.createProposal(data, shouldValidate);
+      const result = await proposalService.createProposal(data);
       proposal.value = result.proposal;
 
-      // Conditionally update project payment method if deposit is required and a method is selected
-      // Only for non-free projects
+      // Update project payment method if deposit is required and method is selected
       if (
         !isFree &&
         proposalData.deposit_required &&
@@ -112,6 +108,13 @@ export const useProposalStore = defineStore("proposal", () => {
         await projectService.updateProject(projectId, {
           payment_method: projectData.payment_method,
         });
+
+        // Refresh project setup store
+        const { useProjectSetupStore } = await import(
+          "~/stores/admin/projectSetup"
+        );
+        const projectSetupStore = useProjectSetupStore();
+        await projectSetupStore.refreshProject();
       }
 
       showForm.value = false;
@@ -128,8 +131,7 @@ export const useProposalStore = defineStore("proposal", () => {
   const updateProposal = async (
     proposalId: string,
     proposalData: ProposalFormData,
-    projectData: ProjectPaymentData,
-    shouldValidate: boolean
+    projectData: ProjectPaymentData
   ) => {
     formLoading.value = true;
     error.value = null;
@@ -193,17 +195,10 @@ export const useProposalStore = defineStore("proposal", () => {
         deposit_amount: isFree ? null : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
-        status: shouldValidate
-          ? ("awaiting_client" as const)
-          : ("draft" as const),
         revision_last_comment: null,
       };
 
-      const result = await proposalService.updateProposal(
-        proposalId,
-        data,
-        shouldValidate
-      );
+      const result = await proposalService.updateProposal(proposalId, data);
       proposal.value = result.proposal;
 
       // Delete removed portfolio images after successful update to avoid orphan files
@@ -215,7 +210,7 @@ export const useProposalStore = defineStore("proposal", () => {
         }
       }
 
-      // Only for non-free projects
+      // Update project payment method if deposit is required and method is selected
       if (
         !isFree &&
         proposalData.deposit_required &&
@@ -224,6 +219,13 @@ export const useProposalStore = defineStore("proposal", () => {
         await projectService.updateProject(proposal.value!.project_id, {
           payment_method: projectData.payment_method,
         });
+
+        // Refresh project setup store
+        const { useProjectSetupStore } = await import(
+          "~/stores/admin/projectSetup"
+        );
+        const projectSetupStore = useProjectSetupStore();
+        await projectSetupStore.refreshProject();
       }
 
       showForm.value = false;
@@ -312,11 +314,9 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
-      const result = await proposalService.updateProposal(
-        proposal.value.id,
-        {},
-        true
-      );
+      const result = await proposalService.updateProposal(proposal.value.id, {
+        status: "awaiting_client",
+      });
       proposal.value = result.proposal;
       return result;
     } catch (err) {
