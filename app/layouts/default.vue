@@ -208,9 +208,11 @@ const resetAllStores = () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+    <div
+        class="h-screen overflow-hidden bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 flex flex-col">
         <!-- Header -->
-        <header class="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800">
+        <header
+            class="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex-shrink-0">
             <div class="h-full flex items-center justify-between px-6">
                 <div class="flex items-center gap-4 min-w-0">
                     <ClientOnly>
@@ -242,11 +244,11 @@ const resetAllStores = () => {
         </header>
 
         <!-- Body: Sidebar + Main Content -->
-        <div class="flex">
+        <div class="flex flex-1 overflow-hidden">
             <aside :class="[
-                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col',
+                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800 flex flex-col flex-shrink-0',
                 isSidebarCollapsed ? 'w-16' : 'w-64'
-            ]" class="min-h-[calc(100vh-4rem)]">
+            ]">
                 <!-- <div class="p-4 flex items-center justify-end border-b border-neutral-200 dark:border-neutral-700">
                     <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-left"
                         :class="[isSidebarCollapsed ? 'rotate-180' : '']" square @click="toggleSidebar" />
@@ -303,7 +305,7 @@ const resetAllStores = () => {
                 </div>
             </aside>
 
-            <main class="flex-1 min-h-[calc(100vh-4rem)]">
+            <main class="flex-1 overflow-auto">
                 <div class="p-6">
                     <slot />
                 </div>
