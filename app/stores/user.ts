@@ -76,6 +76,10 @@ export const useUserStore = defineStore("user", () => {
       }
 
       return user.value;
+    } catch (err) {
+      // keep UI responsive; do not mutate state on error beyond loading flags
+      console.error("Error fetching user:", err);
+      throw err;
     } finally {
       if (!opts?.silent) isLoading.value = false;
       isFetching.value = false;

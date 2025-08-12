@@ -21,7 +21,12 @@ const isDarkMode = computed({
 
 // Initial client-side fetch of user data
 useAsyncData('user:init', async () => {
-    await userStore.fetchUser({ silent: false })
+    try {
+        await userStore.fetchUser({ silent: false })
+    } catch (error) {
+        console.error('Failed to fetch user data:', error)
+        // Don't block the UI if user fetch fails
+    }
 }, { server: false })
 
 // Computed properties for user display
@@ -56,19 +61,46 @@ onMounted(async () => {
         if (!subscriptionStore.plans.length) {
             await subscriptionStore.fetchPlans()
         }
-    } catch {
-        // silent
+    } catch (error) {
+        console.error('Failed to fetch plans:', error)
+        // Don't block the UI if plans fetch fails
     }
 })
 
-const planPrices = computed<number[]>(() => subscriptionStore.plans.map(p => Number(p.price_monthly || 0)))
-const highestMonthlyPrice = computed<number>(() => planPrices.value.length ? Math.max(...planPrices.value) : 0)
+// Simplified computed to avoid deep type issues
+const planPrices = computed(() => {
+    try {
+        return subscriptionStore.plans.map(p => Number(p.price_monthly || 0))
+    } catch {
+        return []
+    }
+})
 
-const userMonthlyPrice = computed<number>(() => Number(unref(userStore.plan)?.price_monthly ?? 0))
+const highestMonthlyPrice = computed(() => {
+    try {
+        const prices = planPrices.value
+        return prices.length ? Math.max(...prices) : 0
+    } catch {
+        return 0
+    }
+})
+
+const userMonthlyPrice = computed(() => {
+    try {
+        return Number(userStore.plan?.price_monthly ?? 0)
+    } catch {
+        return 0
+    }
+})
+
 const canUpgrade = computed(() => {
-    // If we don't know plans yet, show the button (optimistic)
-    if (!subscriptionStore.plans.length) return true
-    return userMonthlyPrice.value < highestMonthlyPrice.value
+    try {
+        // If we don't know plans yet, show the button (optimistic)
+        if (!subscriptionStore.plans.length) return true
+        return userMonthlyPrice.value < highestMonthlyPrice.value
+    } catch {
+        return true
+    }
 })
 
 const goToUpgrade = async (_event?: MouseEvent): Promise<void> => {
@@ -102,7 +134,11 @@ const logout = async () => {
 const supabase = useSupabaseClient()
 onMounted(() => {
     const { data: authSub } = supabase.auth.onAuthStateChange(async () => {
-        await userStore.fetchUser({ silent: true })
+        try {
+            await userStore.fetchUser({ silent: true })
+        } catch (error) {
+            console.error('Auth state change error:', error)
+        }
     })
 
     // Realtime channel for user profile changes
@@ -117,7 +153,9 @@ onMounted(() => {
                 table: 'user_profiles',
                 filter: `id=eq.${authUser.value.id}`,
             }, () => {
-                userStore.fetchUser({ silent: true })
+                userStore.fetchUser({ silent: true }).catch(error => {
+                    console.error('Profile change error:', error)
+                })
             })
             .subscribe()
     }
