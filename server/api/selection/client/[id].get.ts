@@ -85,11 +85,30 @@ export default defineEventHandler(
       const totalImages = count || 0;
       const hasMore = offset + pageSize < totalImages;
 
-      // Map images to include userSelected field for client compatibility
-      const mappedImages = (imagesData || []).map((image) => ({
-        ...image,
-        userSelected: image.is_selected,
-      }));
+      // Generate signed URLs for all images
+      const filepaths = (imagesData || []).map((img) => img.file_url);
+      const { data: signedUrlsData, error: signedUrlsError } =
+        await supabase.storage
+          .from("selection-images")
+          .createSignedUrls(filepaths, 3600);
+
+      if (signedUrlsError) {
+        throw new Error(
+          `Failed to generate signed URLs: ${signedUrlsError.message}`
+        );
+      }
+
+      // Map images to include userSelected field and signed URLs for client compatibility
+      const mappedImages = (imagesData || []).map((image) => {
+        const signedUrlData = signedUrlsData.find(
+          (urlData) => urlData.path === image.file_url
+        );
+        return {
+          ...image,
+          userSelected: image.is_selected,
+          signed_url: signedUrlData?.signedUrl || null,
+        };
+      });
 
       const result: ClientSelectionAccess = {
         project: {

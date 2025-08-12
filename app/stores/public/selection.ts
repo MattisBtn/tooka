@@ -24,6 +24,9 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const maxAllowed = ref<number>(Infinity);
   const extraPricePerImage = ref<number>(0);
 
+  // Image signed URLs management
+  const imageSignedUrls = ref<Map<string, string>>(new Map());
+
   // Computed
   const needsPassword = computed(
     () => project.value?.hasPassword && !isAuthenticated.value
@@ -111,6 +114,16 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
       hasMore.value = response.selection.hasMore || false;
       currentPage.value = response.selection.currentPage || 1;
 
+      // Store signed URLs
+      imageSignedUrls.value.clear();
+      if (response.selection.images) {
+        response.selection.images.forEach((image) => {
+          if (image.signed_url) {
+            imageSignedUrls.value.set(image.file_url, image.signed_url);
+          }
+        });
+      }
+
       // Set selection limits from project
       maxAllowed.value = response.project.maxImages ?? Infinity;
       extraPricePerImage.value = response.project.extraImagePrice ?? 0;
@@ -171,6 +184,13 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
         images.value = [...images.value, ...response.selection.images];
         hasMore.value = response.selection.hasMore || false;
         currentPage.value = nextPage;
+
+        // Store signed URLs for new images
+        response.selection.images.forEach((image) => {
+          if (image.signed_url) {
+            imageSignedUrls.value.set(image.file_url, image.signed_url);
+          }
+        });
 
         // Synchronize new images selections
         response.selection.images.forEach((image) => {
@@ -248,24 +268,30 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     }
   };
 
+  // Get signed URL for an image
+  const getImageSignedUrl = (fileUrl: string) => {
+    return imageSignedUrls.value.get(fileUrl) || null;
+  };
+
   return {
     // State
-    selectionId: readonly(selectionId),
-    project: readonly(project),
-    selection: readonly(selection),
-    images: readonly(images),
-    loading: readonly(loading),
-    loadingMore: readonly(loadingMore),
-    error: readonly(error),
-    hasMore: readonly(hasMore),
-    currentPage: readonly(currentPage),
+    selectionId: selectionId,
+    project: project,
+    selection: selection,
+    images: images,
+    loading: loading,
+    loadingMore: loadingMore,
+    error: error,
+    hasMore: hasMore,
+    currentPage: currentPage,
     isAuthenticated,
     authError,
 
     // Selection state
-    selectedImages: readonly(selectedImages),
-    maxAllowed: readonly(maxAllowed),
-    extraPricePerImage: readonly(extraPricePerImage),
+    selectedImages: selectedImages,
+    maxAllowed: maxAllowed,
+    extraPricePerImage: extraPricePerImage,
+    imageSignedUrls: imageSignedUrls,
 
     // Computed
     needsPassword,
@@ -285,5 +311,6 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     clearSelections,
     updateSelectionStatus,
     updateSelectionRevisionComment,
+    getImageSignedUrl,
   };
 });

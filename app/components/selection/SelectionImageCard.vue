@@ -8,7 +8,7 @@
                 isSelected ? 'ring-4 ring-amber-500' : ''
             ]" @click="handleImageClick">
 
-            <SelectionImageClient :image="image" :selection-id="selectionId"
+            <SelectionImageClient :image="image" :selection-id="selectionId" :signed-url="signedUrl"
                 class="w-full h-full transition-all duration-300 cursor-pointer" :class="[
                     isSelected ? 'brightness-75' : ''
                 ]" />
@@ -57,6 +57,7 @@ interface Props {
     image: SelectionImageWithSelection
     selectionId: string
     canInteract: boolean
+    signedUrl?: string | null
 }
 
 interface Emits {
@@ -69,8 +70,6 @@ const emit = defineEmits<Emits>()
 
 // Use store for selection state
 const store = useClientSelectionStore()
-
-
 
 // Computed for selection state
 const isSelected = computed(() => store.isImageSelected(props.image.id))

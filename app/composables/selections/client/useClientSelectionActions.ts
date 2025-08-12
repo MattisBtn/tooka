@@ -10,27 +10,6 @@ export const useClientSelectionActions = () => {
   const showRequestRevisionsDialog = ref(false);
   const revisionComment = ref("");
 
-  // Image URL management
-  const getImageSignedUrl = async (
-    selectionId: string,
-    filePath: string
-  ): Promise<string | null> => {
-    if (!selectionId || !filePath) return null;
-
-    try {
-      const encodedFilePath = encodeURIComponent(filePath);
-
-      const response = await $fetch<{ signedUrl: string }>(
-        `/api/selection/client/${selectionId}/image/${encodedFilePath}`
-      );
-
-      return response.signedUrl;
-    } catch (error) {
-      console.error("Failed to get signed URL:", error);
-      return null;
-    }
-  };
-
   // Client actions
   const toggleImageSelection = async (imageId: string) => {
     if (!store.canInteract) return;
@@ -138,7 +117,6 @@ export const useClientSelectionActions = () => {
     revisionComment,
 
     // Actions
-    getImageSignedUrl,
     toggleImageSelection,
     validateSelection,
     requestRevisions,

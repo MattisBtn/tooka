@@ -174,6 +174,7 @@ export interface ClientSelectionAccess {
 
 export interface SelectionImageWithSelection extends SelectionImage {
   userSelected?: boolean; // Track user's selection state
+  signed_url?: string | null; // Signed URL for client access
 }
 
 export interface SelectionWithImages extends Selection {

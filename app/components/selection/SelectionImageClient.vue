@@ -17,37 +17,23 @@
 </template>
 
 <script setup lang="ts">
-import { useClientSelectionActions } from "~/composables/selections/client/useClientSelectionActions";
 import type { SelectionImage } from "~/types/selection";
 
 interface Props {
     image: SelectionImage;
     fullSize?: boolean;
     selectionId: string;
+    signedUrl?: string | null;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     fullSize: false,
 });
 
-// Get image URL directly from actions
-const actions = useClientSelectionActions();
-const imageUrl = ref<string | null>(null);
-const loading = ref(false);
+// Use signed URL from props or fallback to loading state
+const imageUrl = computed(() => props.signedUrl);
+const loading = computed(() => !props.signedUrl && !error.value);
 const error = ref(false);
-
-// Load image URL on mount
-onMounted(async () => {
-    loading.value = true;
-    try {
-        imageUrl.value = await actions.getImageSignedUrl(props.selectionId, props.image.file_url);
-    } catch (err) {
-        console.error("Error loading image:", err);
-        error.value = true;
-    } finally {
-        loading.value = false;
-    }
-});
 
 // Computed classes
 const imageClasses = computed(() => [

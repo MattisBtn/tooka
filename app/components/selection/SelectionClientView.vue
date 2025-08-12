@@ -127,8 +127,8 @@
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <SelectionImageCard v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
-                    :can-interact="canInteract" @toggle-selection="$emit('toggle-selection', image.id)"
-                    @open-preview="openImagePreview" />
+                    :can-interact="canInteract" :signed-url="store.getImageSignedUrl(image.file_url)"
+                    @toggle-selection="$emit('toggle-selection', image.id)" @open-preview="openImagePreview" />
             </div>
 
             <!-- Loading indicator -->
@@ -151,8 +151,9 @@
         <!-- Image Preview Modal -->
         <SelectionImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
             :images="images" :current-index="imagePreview.currentIndex.value" :selection-id="selectionId"
-            @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
-            @go-to="imagePreview.goToImage" @update:is-open="imagePreview.isOpen.value = $event" />
+            :image-signed-urls="store.imageSignedUrls" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+            @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
@@ -193,6 +194,9 @@ const selectionContainer = ref<HTMLElement | null>(null)
 // Image preview composable
 const imagePreview = useImagePreview()
 
+// Image signed URLs from store
+const store = useClientSelectionStore()
+
 // Computed for current preview image
 const currentPreviewImage = computed(() => {
     if (!imagePreview.currentImage.value || !props.images.length) return null
@@ -223,6 +227,8 @@ const openImagePreview = (image: SelectionImageWithSelection) => {
 
     imagePreview.openPreview(previewImage, previewImages)
 }
+
+// No need to load URLs anymore - they come from the store
 
 // Infinite scroll setup with better protection
 onMounted(() => {
