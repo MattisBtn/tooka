@@ -17,26 +17,6 @@ export const useClientMoodboardActions = () => {
   const showRequestRevisionsDialog = ref(false);
   const revisionComment = ref("");
 
-  // Image URL management
-  const getImageSignedUrl = async (
-    filePath: string
-  ): Promise<string | null> => {
-    if (!store.moodboardId || !filePath) return null;
-
-    try {
-      const encodedFilePath = encodeURIComponent(filePath);
-
-      const response = await $fetch<{ signedUrl: string }>(
-        `/api/moodboard/client/${store.moodboardId}/image/${encodedFilePath}`
-      );
-
-      return response.signedUrl;
-    } catch (error) {
-      console.error("Failed to get signed URL:", error);
-      return null;
-    }
-  };
-
   // Client actions
   const uploadImages = async (files: File[]) => {
     if (!store.moodboard || !store.canInteract || !store.moodboardId) {
@@ -255,7 +235,6 @@ export const useClientMoodboardActions = () => {
     revisionComment,
 
     // Actions
-    getImageSignedUrl,
     uploadImages,
     addComment,
     reactToImage,

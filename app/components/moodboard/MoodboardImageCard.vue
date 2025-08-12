@@ -3,8 +3,8 @@
         class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 overflow-hidden">
         <!-- Image with hover interactions -->
         <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group" @click="openImagePreview">
-            <MoodboardImageClient :image="image" class="w-full h-full transition-transform duration-300 cursor-pointer"
-                @click.stop="openImagePreview" />
+            <MoodboardImageClient :image="image" :signed-url="signedUrl"
+                class="w-full h-full transition-transform duration-300 cursor-pointer" @click.stop="openImagePreview" />
 
             <!-- Gradient overlay for interactions -->
             <div v-if="canInteract || hasReactions || hasComments"
@@ -98,6 +98,7 @@ interface Props {
     image: MoodboardImageWithInteractions
     moodboardId: string
     canInteract: boolean
+    signedUrl?: string | null
 }
 
 interface Emits {

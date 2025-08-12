@@ -49,8 +49,9 @@
 
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <MoodboardImageCard v-for="image in images" :key="image.id" :image="image" :moodboard-id="moodboardId"
-                    :can-interact="canInteract" @react="$emit('react-to-image', image.id, $event)"
-                    @comment="$emit('add-comment', image.id, $event)" @open-preview="openImagePreview" />
+                    :can-interact="canInteract" :signed-url="store.getImageSignedUrl(image.file_url)"
+                    @react="$emit('react-to-image', image.id, $event)" @comment="$emit('add-comment', image.id, $event)"
+                    @open-preview="openImagePreview" />
             </div>
 
             <!-- Loading indicator -->
@@ -73,8 +74,9 @@
         <!-- Image Preview Modal -->
         <MoodboardImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
             :images="images" :current-index="imagePreview.currentIndex.value" :moodboard-id="moodboardId"
-            @close="imagePreview.closePreview" @next="imagePreview.nextImage" @previous="imagePreview.previousImage"
-            @go-to="imagePreview.goToImage" @update:is-open="imagePreview.isOpen.value = $event" />
+            :image-signed-urls="store.imageSignedUrls" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+            @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
@@ -113,6 +115,9 @@ const moodboardContainer = ref<HTMLElement | null>(null)
 
 // Image preview composable
 const imagePreview = useImagePreview()
+
+// Image signed URLs from store
+const store = useClientMoodboardStore()
 
 // Computed for current preview image
 const currentPreviewImage = computed(() => {

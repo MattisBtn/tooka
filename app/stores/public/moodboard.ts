@@ -16,6 +16,9 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   const currentPage = ref(1);
   const loadingMore = ref(false); // Separate loading state for pagination
 
+  // Image signed URLs management
+  const imageSignedUrls = ref<Map<string, string>>(new Map());
+
   // Auth state - use composable for persistence
   const auth = ref<ReturnType<typeof useClientAuth> | null>(null);
 
@@ -64,6 +67,7 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     error.value = null;
     hasMore.value = true;
     currentPage.value = 1;
+    imageSignedUrls.value.clear();
     auth.value = null;
   };
 
@@ -90,6 +94,17 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
       images.value = Array.from(response.moodboard.images || []);
       hasMore.value = response.moodboard.hasMore || false;
       currentPage.value = response.moodboard.currentPage || 1;
+
+      // Store signed URLs
+      imageSignedUrls.value.clear();
+      if (response.moodboard.images) {
+        response.moodboard.images.forEach((image) => {
+          const imageWithUrl = image as MoodboardImageWithInteractions;
+          if (imageWithUrl.signed_url) {
+            imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
+          }
+        });
+      }
 
       // Initialize auth for password-protected projects
       if (response.project.hasPassword && auth.value) {
@@ -137,6 +152,15 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
         images.value = [...images.value, ...response.moodboard.images];
         hasMore.value = response.moodboard.hasMore || false;
         currentPage.value = nextPage;
+
+        // Store signed URLs for new images
+        response.moodboard.images.forEach((image) => {
+          const imageWithUrl = image as MoodboardImageWithInteractions;
+          if (imageWithUrl.signed_url) {
+            imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
+          }
+        });
+
         return true;
       } else {
         hasMore.value = false;
@@ -192,9 +216,21 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     }
   };
 
+  // Get signed URL for an image
+  const getImageSignedUrl = (fileUrl: string) => {
+    return imageSignedUrls.value.get(fileUrl) || null;
+  };
+
   // Optimized update methods to avoid full reloads
   const addImages = (newImages: MoodboardImageWithInteractions[]) => {
     images.value = [...images.value, ...newImages];
+
+    // Store signed URLs for new images
+    newImages.forEach((image) => {
+      if (image.signed_url) {
+        imageSignedUrls.value.set(image.file_url, image.signed_url);
+      }
+    });
   };
 
   const updateImageComments = async (imageId: string, newComment?: string) => {
@@ -257,6 +293,7 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     error: readonly(error),
     hasMore: readonly(hasMore),
     currentPage: readonly(currentPage),
+    imageSignedUrls: readonly(imageSignedUrls),
     isAuthenticated,
     authError,
 
@@ -272,6 +309,7 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     logout,
     updateMoodboardStatus,
     updateMoodboardRevisionComment,
+    getImageSignedUrl,
     addImages,
     updateImageComments,
     updateImageReactions,

@@ -135,6 +135,7 @@ export interface MoodboardImageWithInteractions extends MoodboardImage {
   };
   userReaction?: "love" | "like" | "dislike" | null;
   comments?: MoodboardComment[];
+  signed_url?: string | null; // Signed URL for client access
 }
 
 export interface ClientPasswordVerification {

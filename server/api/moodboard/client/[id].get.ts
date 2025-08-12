@@ -85,7 +85,20 @@ export default defineEventHandler(
         .select("id", { count: "exact" })
         .eq("moodboard_id", moodboard.id);
 
-      // Process reactions - group by image and count by type
+      // Generate signed URLs for all images
+      const filepaths = (imagesData || []).map((img) => img.file_url);
+      const { data: signedUrlsData, error: signedUrlsError } =
+        await supabase.storage
+          .from("moodboard-images")
+          .createSignedUrls(filepaths, 3600);
+
+      if (signedUrlsError) {
+        throw new Error(
+          `Failed to generate signed URLs: ${signedUrlsError.message}`
+        );
+      }
+
+      // Process reactions and add signed URLs
       const imagesWithReactions = (imagesData || []).map((image) => {
         const reactionCounts = { love: 0, like: 0, dislike: 0 };
 
@@ -97,12 +110,18 @@ export default defineEventHandler(
           );
         }
 
-        // Return image without raw reactions array, only processed counts
+        // Find signed URL for this image
+        const signedUrlData = signedUrlsData.find(
+          (urlData) => urlData.path === image.file_url
+        );
+
+        // Return image without raw reactions array, only processed counts and signed URL
         const { reactions: _, ...imageWithoutReactions } = image;
 
         return {
           ...imageWithoutReactions,
           reactions: reactionCounts,
+          signed_url: signedUrlData?.signedUrl || null,
         };
       });
 
