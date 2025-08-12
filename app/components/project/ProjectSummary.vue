@@ -83,13 +83,12 @@
                         </div>
                         <div>
                             <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
-                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix initial et conditions
+                            <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions
                                 financières</p>
                         </div>
                     </div>
 
-                    <UFormField label="Prix initial" name="initial_price"
-                        help="Montant de base avant options et suppléments">
+                    <UFormField label="Prix" name="initial_price" help="Montant de base avant options et suppléments">
                         <UInput v-model="editState.initial_price" type="number" placeholder="1500.00" step="0.01"
                             min="0" icon="i-heroicons-currency-euro">
                             <template #trailing>
@@ -157,7 +156,7 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <UIcon name="i-lucide-euro" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Prix initial</span>
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Prix</span>
                 </div>
                 <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ formattedPrice }}</p>
             </div>

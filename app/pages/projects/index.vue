@@ -191,7 +191,7 @@ const columns: TableColumn<ProjectWithClient>[] = [
   },
   {
     accessorKey: 'initial_price',
-    header: 'Prix initial',
+    header: 'Prix',
     cell: ({ row }) => {
       const price = row.original.initial_price
       return price

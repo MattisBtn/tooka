@@ -44,11 +44,11 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix initial et conditions financières</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions financières</p>
                 </div>
             </div>
 
-            <UFormField label="Prix initial" name="initial_price" help="Montant de base avant options et suppléments">
+            <UFormField label="Prix" name="initial_price" help="Montant de base avant options et suppléments">
                 <UInput v-model="state.initial_price" type="number" placeholder="1500.00" step="0.01" min="0"
                     icon="i-heroicons-currency-euro">
                     <template #trailing>
