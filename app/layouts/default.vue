@@ -133,9 +133,17 @@ const logout = async () => {
 // Sync auth changes
 const supabase = useSupabaseClient()
 onMounted(() => {
-    const { data: authSub } = supabase.auth.onAuthStateChange(async () => {
+    const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
         try {
-            await userStore.fetchUser({ silent: true })
+            // Reset all stores when auth state changes to prevent data leakage between users
+            if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                resetAllStores()
+            }
+
+            // Only fetch user data if we have a session
+            if (session?.user) {
+                await userStore.fetchUser({ silent: true })
+            }
         } catch (error) {
             console.error('Auth state change error:', error)
         }
@@ -168,6 +176,40 @@ onMounted(() => {
         }
     })
 })
+
+// Function to reset all stores to prevent data leakage between users
+const resetAllStores = () => {
+    // Admin stores
+    const projectsStore = useProjectsStore()
+    const clientsStore = useClientsStore()
+    const galleryStore = useGalleryStore()
+    const moodboardStore = useMoodboardStore()
+    const proposalStore = useProposalStore()
+    const selectionStore = useSelectionStore()
+    const projectSetupStore = useProjectSetupStore()
+
+    // Public stores
+    const clientGalleryStore = useClientGalleryStore()
+    const clientMoodboardStore = useClientMoodboardStore()
+    const clientSelectionStore = useClientSelectionStore()
+
+    // Other stores
+    const subscriptionStore = useSubscriptionStore()
+
+    // Reset all stores
+    projectsStore.reset()
+    clientsStore.reset()
+    galleryStore.reset()
+    moodboardStore.reset()
+    proposalStore.reset()
+    selectionStore.reset()
+    projectSetupStore.reset()
+    clientGalleryStore.reset()
+    clientMoodboardStore.reset()
+    clientSelectionStore.reset()
+    subscriptionStore.reset()
+    userStore.clear()
+}
 </script>
 
 <template>
@@ -176,7 +218,12 @@ onMounted(() => {
         <header class="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-800">
             <div class="h-full flex items-center justify-between px-6">
                 <div class="flex items-center gap-4 min-w-0">
-                    <NuxtImg :src="logoSrc" alt="Tooka" class="w-24 h-auto" />
+                    <ClientOnly>
+                        <NuxtImg :src="logoSrc" alt="Tooka" class="w-24 h-auto" />
+                        <template #fallback>
+                            <div class="w-24 h-8 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse" />
+                        </template>
+                    </ClientOnly>
                     <USeparator orientation="vertical" class="h-8" />
                     <div class="min-w-0">
                         <div class="flex flex-col leading-tight min-w-0">

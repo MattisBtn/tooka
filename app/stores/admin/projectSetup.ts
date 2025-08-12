@@ -43,6 +43,12 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
   });
 
   // Actions
+  const reset = () => {
+    project.value = null;
+    loading.value = false;
+    error.value = null;
+  };
+
   const fetchProject = async (projectId: string) => {
     if (loading.value) return;
 
@@ -155,6 +161,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     formattedPrice,
     formattedCreatedAt,
     canEditProject,
+    reset,
     fetchProject,
     updateProjectInline,
     refreshProject,
