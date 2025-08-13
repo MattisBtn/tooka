@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Json, Tables } from "~/types/database.types";
-import type { ProjectStatus, PROJECT_STATUS, ModuleStatus } from "~/types/status";
+import {
+  PROJECT_STATUS,
+  type ModuleStatus,
+  type ProjectStatus,
+} from "~/types/status";
 
 export type Project = Tables<"projects">;
 
@@ -36,7 +40,13 @@ export const projectFormSchema = z.object({
   title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
   description: z.string().nullable().optional(),
   client_id: z.string().min(1, "Client requis"),
-  status: z.enum([PROJECT_STATUS.DRAFT, PROJECT_STATUS.IN_PROGRESS, PROJECT_STATUS.COMPLETED]).default(PROJECT_STATUS.DRAFT),
+  status: z
+    .enum([
+      PROJECT_STATUS.DRAFT,
+      PROJECT_STATUS.IN_PROGRESS,
+      PROJECT_STATUS.COMPLETED,
+    ])
+    .default(PROJECT_STATUS.DRAFT),
   initial_price: z
     .number()
     .min(0, "Le prix doit être positif")
