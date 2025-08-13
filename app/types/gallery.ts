@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
-import type { ModuleStatus, ProjectStatus } from "~/types/status";
+import {
+  MODULE_STATUS,
+  type ModuleStatus,
+  type ProjectStatus,
+} from "~/types/status";
 
 export type Gallery = Tables<"galleries">;
 export type GalleryImage = Tables<"gallery_images">;
@@ -60,13 +64,13 @@ export const galleryFormSchema = z.object({
   selection_id: z.string().optional().nullable(),
   status: z
     .enum([
-      "draft",
-      "awaiting_client",
-      "revision_requested",
-      "completed",
-      "payment_pending",
+      MODULE_STATUS.DRAFT,
+      MODULE_STATUS.AWAITING_CLIENT,
+      MODULE_STATUS.REVISION_REQUESTED,
+      MODULE_STATUS.COMPLETED,
+      MODULE_STATUS.PAYMENT_PENDING,
     ])
-    .default("draft"),
+    .default(MODULE_STATUS.DRAFT),
 });
 
 // Schema de validation pour le projet avec paiement (utilisé dans le formulaire)

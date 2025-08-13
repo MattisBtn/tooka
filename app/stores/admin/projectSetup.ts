@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
+import { PROJECT_STATUS, MODULE_STATUS } from "~/types/status";
 import type { ProjectWithClient } from "~/types/project";
 import { formatDate, formatPrice, normalizeModule } from "~/utils/formatters";
 
@@ -34,7 +35,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
 
   // Project completion state
   const isProjectCompleted = computed<boolean>(() => {
-    return project.value?.status === "completed";
+    return project.value?.status === PROJECT_STATUS.COMPLETED;
   });
 
   // Check if project is free (no initial price or price is 0)
@@ -81,7 +82,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     ];
 
     const hasNonDraftModule = modules.some(
-      (m) => m.exists && (m.status ?? "draft") !== "draft"
+      (m) => m.exists && (m.status ?? MODULE_STATUS.DRAFT) !== MODULE_STATUS.DRAFT
     );
 
     return !hasNonDraftModule;

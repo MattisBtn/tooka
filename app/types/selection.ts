@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
-import type { ModuleStatus, ProjectStatus } from "~/types/status";
+import {
+  MODULE_STATUS,
+  type ModuleStatus,
+  type ProjectStatus,
+} from "~/types/status";
 
 export type Selection = Tables<"selections">;
 export type SelectionImage = Tables<"selection_images">;
@@ -103,11 +107,11 @@ export const selectionFormSchema = z.object({
     .optional()
     .nullable(),
   status: z.enum([
-    "draft",
-    "awaiting_client",
-    "revision_requested",
-    "completed",
-    "payment_pending",
+    MODULE_STATUS.DRAFT,
+    MODULE_STATUS.AWAITING_CLIENT,
+    MODULE_STATUS.REVISION_REQUESTED,
+    MODULE_STATUS.COMPLETED,
+    MODULE_STATUS.PAYMENT_PENDING,
   ]),
 });
 

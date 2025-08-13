@@ -1,6 +1,7 @@
 import type { ProposalComponent } from "~/composables/proposals/useProposalComponentTypes";
 import { proposalRepository } from "~/repositories/proposalRepository";
 import { projectService } from "~/services/projectService";
+import { MODULE_STATUS, StatusUtils } from "~/types/status";
 import type { Proposal, ProposalStatus } from "~/types/proposal";
 
 export const proposalService = {
@@ -20,11 +21,11 @@ export const proposalService = {
     // Business logic: sort by status priority
     return proposals.sort((a: Proposal, b: Proposal) => {
       const statusOrder: Record<ProposalStatus, number> = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
+        [MODULE_STATUS.DRAFT]: 0,
+        [MODULE_STATUS.AWAITING_CLIENT]: 1,
+        [MODULE_STATUS.REVISION_REQUESTED]: 2,
+        [MODULE_STATUS.PAYMENT_PENDING]: 3,
+        [MODULE_STATUS.COMPLETED]: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -103,7 +104,7 @@ export const proposalService = {
     // Create proposal (always draft)
     const finalProposalData = {
       ...proposalData,
-      status: "draft" as const,
+      status: MODULE_STATUS.DRAFT,
     };
 
     const proposal = await proposalRepository.create(finalProposalData);
@@ -169,7 +170,7 @@ export const proposalService = {
     const proposal = await this.getProposalById(proposalId);
 
     // Verify proposal is in payment_pending status
-    if (proposal.status !== "payment_pending") {
+    if (proposal.status !== MODULE_STATUS.PAYMENT_PENDING) {
       throw new Error(
         "Cette proposition n'est pas en attente de confirmation de paiement"
       );
@@ -177,7 +178,7 @@ export const proposalService = {
 
     // Update proposal to completed status
     const updatedProposal = await proposalRepository.update(proposalId, {
-      status: "completed",
+      status: MODULE_STATUS.COMPLETED,
     });
 
     return updatedProposal;
@@ -190,7 +191,7 @@ export const proposalService = {
     const proposal = await this.getProposalById(id);
 
     // Business rule: can't delete proposals that are not draft
-    if (proposal.status !== "draft") {
+    if (proposal.status !== MODULE_STATUS.DRAFT) {
       throw new Error(
         "Seules les propositions en brouillon peuvent être supprimées"
       );
@@ -408,42 +409,6 @@ export const proposalService = {
    * Get proposal status options for UI
    */
   getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Proposition en cours de préparation",
-        icon: "i-lucide-file-text",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Proposition envoyée au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "payment_pending" as const,
-        label: "Paiement en attente",
-        description: "En attente de confirmation de paiement",
-        icon: "i-lucide-credit-card",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Acceptée",
-        description: "Proposition acceptée par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
+    return StatusUtils.getModuleStatusOptions();
   },
 };

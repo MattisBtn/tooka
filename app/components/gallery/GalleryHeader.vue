@@ -7,7 +7,7 @@
                 <div class="flex items-center gap-4 min-w-0 flex-1">
                     <NuxtImg :src="logoSrc" alt="Tooka" class="h-6 w-auto" />
                     <UBadge :color="statusColor" variant="soft" size="sm">
-                        <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
+                        <UIcon :name="statusIcon || ''" class="w-3 h-3 mr-1" />
                         {{ statusLabel }}
                     </UBadge>
                 </div>
@@ -126,7 +126,9 @@
 
 <script setup lang="ts">
 import { useLogo } from "~/composables/shared/useLogo";
+import { useStatus } from "~/composables/shared/useStatus";
 import type { ClientGalleryAccess } from "~/types/gallery";
+import { MODULE_STATUS } from "~/types/status";
 
 interface Props {
     project: ClientGalleryAccess["project"] | null;
@@ -163,23 +165,15 @@ const toggleColorMode = () => {
 };
 
 // Gallery status display
-const statusConfig = {
-    draft: { label: "Brouillon", color: "neutral" as const, icon: "i-heroicons-document" },
-    awaiting_client: { label: "En attente de validation", color: "info" as const, icon: "i-heroicons-clock" },
-    revision_requested: { label: "Révision demandée", color: "warning" as const, icon: "i-heroicons-arrow-path" },
-    payment_pending: { label: "Paiement en attente", color: "info" as const, icon: "i-heroicons-credit-card" },
-    completed: { label: "Terminée", color: "success" as const, icon: "i-heroicons-check-circle" },
-};
+const { getStatusBadge } = useStatus();
 
-const statusLabel = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].label
+const statusBadge = computed(() =>
+    getStatusBadge(props.gallery?.status || MODULE_STATUS.DRAFT)
 );
-const statusColor = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].color
-);
-const statusIcon = computed(() =>
-    statusConfig[props.gallery?.status || "draft"].icon
-);
+
+const statusLabel = computed(() => statusBadge.value.label);
+const statusColor = computed(() => statusBadge.value.color);
+const statusIcon = computed(() => statusBadge.value.icon);
 
 // Client actions state
 const canShowClientActions = computed(() =>

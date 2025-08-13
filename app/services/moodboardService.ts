@@ -1,5 +1,6 @@
 import { moodboardImageRepository } from "~/repositories/moodboardImageRepository";
 import { moodboardRepository } from "~/repositories/moodboardRepository";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   IMoodboardFilters,
   IPagination,
@@ -103,8 +104,8 @@ export const moodboardService = {
     const finalMoodboardData = {
       ...moodboardData,
       status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+        ? MODULE_STATUS.AWAITING_CLIENT
+        : MODULE_STATUS.DRAFT,
     };
 
     // Create moodboard
@@ -130,7 +131,7 @@ export const moodboardService = {
     // Handle validation status change
     const finalUpdates = { ...updates };
     if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
+      finalUpdates.status = shouldValidate ? MODULE_STATUS.AWAITING_CLIENT : MODULE_STATUS.DRAFT;
     }
 
     // If status is provided in updates, use it (allows direct status control)
@@ -150,14 +151,14 @@ export const moodboardService = {
       // - revision_requested -> awaiting_client (send updated version to client)
 
       const allowedTransitions: Record<string, string[]> = {
-        draft: ["awaiting_client"],
-        awaiting_client: ["draft", "revision_requested"],
-        revision_requested: ["draft", "awaiting_client"],
-        payment_pending: ["draft", "awaiting_client"],
-        completed: [], // completed moodboards cannot be modified
+        [MODULE_STATUS.DRAFT]: [MODULE_STATUS.AWAITING_CLIENT],
+        [MODULE_STATUS.AWAITING_CLIENT]: [MODULE_STATUS.DRAFT, MODULE_STATUS.REVISION_REQUESTED],
+        [MODULE_STATUS.REVISION_REQUESTED]: [MODULE_STATUS.DRAFT, MODULE_STATUS.AWAITING_CLIENT],
+        [MODULE_STATUS.PAYMENT_PENDING]: [MODULE_STATUS.DRAFT, MODULE_STATUS.AWAITING_CLIENT],
+        [MODULE_STATUS.COMPLETED]: [], // completed moodboards cannot be modified
       };
 
-      if (currentStatus === "completed" && newStatus !== "completed") {
+      if (currentStatus === MODULE_STATUS.COMPLETED && newStatus !== MODULE_STATUS.COMPLETED) {
         throw new Error(
           "Les moodboards validés par le client ne peuvent plus être modifiés"
         );
@@ -187,7 +188,7 @@ export const moodboardService = {
     }
 
     // Project is considered updated when moodboard is sent to client
-    const projectUpdated = finalUpdates.status === "awaiting_client";
+    const projectUpdated = finalUpdates.status === MODULE_STATUS.AWAITING_CLIENT;
 
     return { moodboard: moodboardWithDetails, projectUpdated };
   },

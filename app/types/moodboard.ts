@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
-import type { ModuleStatus, ProjectStatus } from "~/types/status";
+import {
+  MODULE_STATUS,
+  type ModuleStatus,
+  type ProjectStatus,
+} from "~/types/status";
 
 export type Moodboard = Tables<"moodboards">;
 export type MoodboardImage = Tables<"moodboard_images">;
@@ -65,13 +69,13 @@ export const moodboardFormSchema = z.object({
     .nullable(),
   status: z
     .enum([
-      "draft",
-      "awaiting_client",
-      "revision_requested",
-      "payment_pending",
-      "completed",
+      MODULE_STATUS.DRAFT,
+      MODULE_STATUS.AWAITING_CLIENT,
+      MODULE_STATUS.REVISION_REQUESTED,
+      MODULE_STATUS.PAYMENT_PENDING,
+      MODULE_STATUS.COMPLETED,
     ])
-    .default("draft"),
+    .default(MODULE_STATUS.DRAFT),
 });
 
 export type MoodboardFormData = z.infer<typeof moodboardFormSchema>;

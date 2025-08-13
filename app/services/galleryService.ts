@@ -2,6 +2,7 @@ import { galleryImageRepository } from "~/repositories/galleryImageRepository";
 import { galleryRepository } from "~/repositories/galleryRepository";
 import { projectService } from "~/services/projectService";
 import { proposalService } from "~/services/proposalService";
+import { MODULE_STATUS, StatusUtils } from "~/types/status";
 import type {
   Gallery,
   GalleryImage,
@@ -24,11 +25,11 @@ export const galleryService = {
     // Business logic: sort by status priority
     return galleries.sort((a, b) => {
       const statusOrder = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
+        [MODULE_STATUS.DRAFT]: 0,
+        [MODULE_STATUS.AWAITING_CLIENT]: 1,
+        [MODULE_STATUS.REVISION_REQUESTED]: 2,
+        [MODULE_STATUS.PAYMENT_PENDING]: 3,
+        [MODULE_STATUS.COMPLETED]: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -152,8 +153,8 @@ export const galleryService = {
       ...galleryData,
       payment_required: galleryData.payment_required ?? pricing.paymentRequired,
       status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+        ? MODULE_STATUS.AWAITING_CLIENT
+        : MODULE_STATUS.DRAFT,
     };
 
     // Create gallery
@@ -179,7 +180,7 @@ export const galleryService = {
     // Handle validation status change
     const finalUpdates = { ...updates };
     if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
+      finalUpdates.status = shouldValidate ? MODULE_STATUS.AWAITING_CLIENT : MODULE_STATUS.DRAFT;
     }
 
     // Update gallery
@@ -198,7 +199,7 @@ export const galleryService = {
     const gallery = await this.getGalleryById(galleryId);
 
     // Verify gallery is in payment_pending status
-    if (gallery.status !== "payment_pending") {
+    if (gallery.status !== MODULE_STATUS.PAYMENT_PENDING) {
       throw new Error(
         "Cette galerie n'est pas en attente de confirmation de paiement"
       );
@@ -206,7 +207,7 @@ export const galleryService = {
 
     // Update gallery to completed status
     const updatedGallery = await galleryRepository.update(galleryId, {
-      status: "completed",
+      status: MODULE_STATUS.COMPLETED,
     });
 
     return updatedGallery;
@@ -220,9 +221,9 @@ export const galleryService = {
 
     // Business rule: can't delete galleries that are awaiting client or completed
     if (
-      gallery.status === "awaiting_client" ||
-      gallery.status === "completed" ||
-      gallery.status === "payment_pending"
+      gallery.status === MODULE_STATUS.AWAITING_CLIENT ||
+      gallery.status === MODULE_STATUS.COMPLETED ||
+      gallery.status === MODULE_STATUS.PAYMENT_PENDING
     ) {
       throw new Error(
         "Cannot delete galleries that are awaiting client response, payment pending, or completed"
@@ -356,42 +357,6 @@ export const galleryService = {
    * Get gallery status options for UI
    */
   getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Galerie en cours de préparation",
-        icon: "i-lucide-images",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Galerie envoyée au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "payment_pending" as const,
-        label: "Paiement en attente",
-        description: "En attente de confirmation de paiement",
-        icon: "i-lucide-credit-card",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Acceptée",
-        description: "Galerie acceptée par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
+    return StatusUtils.getModuleStatusOptions();
   },
 };
