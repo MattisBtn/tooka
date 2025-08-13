@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 import type { ClientPasswordVerification } from "~/types/moodboard";
 
 export default defineEventHandler(async (event) => {
@@ -46,9 +47,9 @@ export default defineEventHandler(async (event) => {
 
     // Check if moodboard is accessible to clients
     if (
-      moodboard.status !== "awaiting_client" &&
-      moodboard.status !== "completed" &&
-      moodboard.status !== "revision_requested"
+      moodboard.status !== MODULE_STATUS.AWAITING_CLIENT &&
+      moodboard.status !== MODULE_STATUS.COMPLETED &&
+      moodboard.status !== MODULE_STATUS.REVISION_REQUESTED
     ) {
       console.error(
         "[DEBUG] Verify API - Moodboard not accessible, status:",

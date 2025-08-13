@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { moodboardService } from "~/services/moodboardService";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   MoodboardFormData,
   MoodboardWithDetails,
@@ -19,8 +20,8 @@ export const useMoodboardStore = defineStore("moodboard", () => {
   const canEdit = computed(
     () =>
       !moodboard.value ||
-      moodboard.value.status === "draft" ||
-      moodboard.value.status === "revision_requested"
+      moodboard.value.status === MODULE_STATUS.DRAFT ||
+      moodboard.value.status === MODULE_STATUS.REVISION_REQUESTED
   );
   const imageCount = computed(() => moodboard.value?.imageCount || 0);
   const hasImages = computed(() => imageCount.value > 0);
@@ -76,7 +77,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
 
       const result = await moodboardService.createMoodboard(
         data,
-        moodboardData.status === "awaiting_client"
+        moodboardData.status === MODULE_STATUS.AWAITING_CLIENT
       );
       moodboard.value = result.moodboard;
 
@@ -131,7 +132,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
       const result = await moodboardService.updateMoodboard(
         moodboardId,
         data,
-        moodboardData.status === "awaiting_client"
+        moodboardData.status === MODULE_STATUS.AWAITING_CLIENT
       );
       moodboard.value = result.moodboard;
 

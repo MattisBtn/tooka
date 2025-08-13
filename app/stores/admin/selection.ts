@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { selectionService } from "~/services/selectionService";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   SelectionFormData,
   SelectionImage,
@@ -77,8 +78,8 @@ export const useSelectionStore = defineStore("selection", () => {
   const canEdit = computed(
     () =>
       !selection.value ||
-      selection.value.status === "draft" ||
-      selection.value.status === "revision_requested"
+      selection.value.status === MODULE_STATUS.DRAFT ||
+      selection.value.status === MODULE_STATUS.REVISION_REQUESTED
   );
   const imageCount = computed(() => selection.value?.imageCount || 0);
   const selectedCount = computed(() => selection.value?.selectedCount || 0);
@@ -294,7 +295,7 @@ export const useSelectionStore = defineStore("selection", () => {
 
       const result = await selectionService.createSelection(
         data,
-        selectionData.status === "awaiting_client"
+        selectionData.status === MODULE_STATUS.AWAITING_CLIENT
       );
       selection.value = result.selection;
 
@@ -342,7 +343,7 @@ export const useSelectionStore = defineStore("selection", () => {
       const result = await selectionService.updateSelection(
         selectionId,
         data,
-        selectionData.status === "awaiting_client"
+        selectionData.status === MODULE_STATUS.AWAITING_CLIENT
       );
       selection.value = result.selection;
 

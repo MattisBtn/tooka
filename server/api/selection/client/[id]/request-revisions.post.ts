@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 import type { ClientRevisionRequest } from "~/types/selection";
 
 export default defineEventHandler(async (event) => {
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if selection can have revisions requested
-    if (selection.status !== "awaiting_client") {
+    if (selection.status !== MODULE_STATUS.AWAITING_CLIENT) {
       throw createError({
         statusCode: 403,
         statusMessage:

@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   Gallery,
   GalleryFormData,
@@ -39,8 +40,8 @@ export const useGalleryStore = defineStore("gallery", () => {
   const canEdit = computed(() => {
     if (!gallery.value) return true;
     return (
-      gallery.value.status === "draft" ||
-      gallery.value.status === "revision_requested"
+      gallery.value.status === MODULE_STATUS.DRAFT ||
+      gallery.value.status === MODULE_STATUS.REVISION_REQUESTED
     );
   });
 
@@ -157,7 +158,7 @@ export const useGalleryStore = defineStore("gallery", () => {
 
       const result = await galleryService.createGallery(
         data,
-        galleryData.status === "awaiting_client"
+        galleryData.status === MODULE_STATUS.AWAITING_CLIENT
       );
 
       // Update project if needed (only for non-free projects)
@@ -222,7 +223,7 @@ export const useGalleryStore = defineStore("gallery", () => {
       const result = await galleryService.updateGallery(
         galleryId,
         data,
-        galleryData.status === "awaiting_client"
+        galleryData.status === MODULE_STATUS.AWAITING_CLIENT
       );
 
       // Update project if needed (only for non-free projects)

@@ -1,5 +1,6 @@
 import { selectionImageRepository } from "~/repositories/selectionImageRepository";
 import { selectionRepository } from "~/repositories/selectionRepository";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   IPagination,
   ISelectionFilters,
@@ -28,11 +29,11 @@ export const selectionService = {
     // Business logic: sort by status priority
     return selections.sort((a, b) => {
       const statusOrder = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
+        [MODULE_STATUS.DRAFT]: 0,
+        [MODULE_STATUS.AWAITING_CLIENT]: 1,
+        [MODULE_STATUS.REVISION_REQUESTED]: 2,
+        [MODULE_STATUS.PAYMENT_PENDING]: 3,
+        [MODULE_STATUS.COMPLETED]: 4,
       };
       return statusOrder[a.status] - statusOrder[b.status];
     });
@@ -166,7 +167,7 @@ export const selectionService = {
 
     // If shouldValidate is explicitly provided, override the status
     if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
+      finalUpdates.status = shouldValidate ? MODULE_STATUS.AWAITING_CLIENT : MODULE_STATUS.DRAFT;
     }
 
     // If status is provided in updates, use it (allows direct status control)
@@ -230,7 +231,7 @@ export const selectionService = {
     selectionCache.delete(existingSelection.project_id);
 
     // Project is considered updated when selection is sent to client
-    const projectUpdated = finalUpdates.status === "awaiting_client";
+    const projectUpdated = finalUpdates.status === MODULE_STATUS.AWAITING_CLIENT;
 
     return { selection: selectionWithDetails, projectUpdated };
   },
@@ -242,7 +243,7 @@ export const selectionService = {
     const selection = await this.getSelectionById(id);
 
     // Business rule: can only delete selections that are not completed (validated by client)
-    if (selection.status === "completed") {
+    if (selection.status === MODULE_STATUS.COMPLETED) {
       throw new Error(
         "Cannot delete selections that have been validated by the client"
       );

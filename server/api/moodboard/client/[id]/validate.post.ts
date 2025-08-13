@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 
 export default defineEventHandler(async (event) => {
   const moodboardId = getRouterParam(event, "id");
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if moodboard can be validated
-    if (moodboard.status !== "awaiting_client") {
+    if (moodboard.status !== MODULE_STATUS.AWAITING_CLIENT) {
       throw createError({
         statusCode: 403,
         statusMessage:

@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 import type { ClientRevisionRequest } from "~/types/moodboard";
 
 export default defineEventHandler(async (event) => {
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if moodboard can have revisions requested
-    if (moodboard.status !== "awaiting_client") {
+    if (moodboard.status !== MODULE_STATUS.AWAITING_CLIENT) {
       throw createError({
         statusCode: 403,
         statusMessage:

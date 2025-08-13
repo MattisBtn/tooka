@@ -1,5 +1,6 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
 import { z } from "zod";
+import { MODULE_STATUS } from "~/types/status";
 
 const validateSchema = z.object({
   selectedImages: z.array(z.string().uuid()),
@@ -59,7 +60,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if selection can be validated
-    if (selection.status !== "awaiting_client") {
+    if (selection.status !== MODULE_STATUS.AWAITING_CLIENT) {
       throw createError({
         statusCode: 403,
         statusMessage:

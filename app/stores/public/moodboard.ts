@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   ClientMoodboardAccess,
   MoodboardImageWithInteractions,
@@ -43,8 +44,8 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   const canInteract = computed(() => {
     if (!moodboard.value) return false;
     return (
-      moodboard.value.status !== "completed" &&
-      moodboard.value.status !== "revision_requested"
+      moodboard.value.status !== MODULE_STATUS.COMPLETED &&
+      moodboard.value.status !== MODULE_STATUS.REVISION_REQUESTED
     );
   });
 

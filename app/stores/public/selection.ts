@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   ClientSelectionAccess,
   SelectionImageWithSelection,
@@ -48,8 +49,8 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const canInteract = computed(() => {
     if (!selection.value) return false;
     return (
-      selection.value.status !== "completed" &&
-      selection.value.status !== "revision_requested"
+      selection.value.status !== MODULE_STATUS.COMPLETED &&
+      selection.value.status !== MODULE_STATUS.REVISION_REQUESTED
     );
   });
 

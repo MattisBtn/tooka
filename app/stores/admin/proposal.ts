@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { proposalService } from "~/services/proposalService";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   ProjectPaymentData,
   Proposal,
@@ -21,8 +22,8 @@ export const useProposalStore = defineStore("proposal", () => {
   const exists = computed(() => proposal.value !== null);
   const canEdit = computed(
     () =>
-      proposal.value?.status === "draft" ||
-      proposal.value?.status === "revision_requested"
+      proposal.value?.status === MODULE_STATUS.DRAFT ||
+      proposal.value?.status === MODULE_STATUS.REVISION_REQUESTED
   );
   const formattedPrice = computed(() => formatPrice(proposal.value?.price));
   const formattedDepositAmount = computed(() =>

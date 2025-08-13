@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { MODULE_STATUS } from "~/types/status";
 import type {
   ClientGalleryAccess,
   GalleryImageWithSignedUrl,
@@ -209,14 +210,7 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
     }
   };
 
-  const updateGalleryStatus = (
-    status:
-      | "draft"
-      | "awaiting_client"
-      | "revision_requested"
-      | "completed"
-      | "payment_pending"
-  ) => {
+  const updateGalleryStatus = (status: typeof MODULE_STATUS[keyof typeof MODULE_STATUS]) => {
     if (gallery.value) {
       gallery.value.status = status;
     }

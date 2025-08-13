@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
+import type { ProjectStatus } from "~/types/status";
 import type {
   IProjectFilters,
   ProjectFormData,
@@ -20,7 +21,7 @@ export const useProjectsStore = defineStore("projects", () => {
 
   // Filter State
   const searchQuery = ref("");
-  const statusFilter = ref<"draft" | "in_progress" | "completed" | null>(null);
+  const statusFilter = ref<ProjectStatus | null>(null);
   const sortOrder = ref<
     | "title_asc"
     | "title_desc"

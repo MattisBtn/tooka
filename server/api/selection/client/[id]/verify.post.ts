@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 import type { ClientPasswordVerification } from "~/types/selection";
 
 export default defineEventHandler(async (event) => {
@@ -45,9 +46,9 @@ export default defineEventHandler(async (event) => {
 
     // Check if selection is accessible to clients
     if (
-      selection.status !== "awaiting_client" &&
-      selection.status !== "completed" &&
-      selection.status !== "revision_requested"
+      selection.status !== MODULE_STATUS.AWAITING_CLIENT &&
+      selection.status !== MODULE_STATUS.COMPLETED &&
+      selection.status !== MODULE_STATUS.REVISION_REQUESTED
     ) {
       throw createError({
         statusCode: 403,

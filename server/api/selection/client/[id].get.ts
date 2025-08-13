@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { MODULE_STATUS } from "~/types/status";
 import type { ClientSelectionAccess } from "~/types/selection";
 
 export default defineEventHandler(
@@ -50,7 +51,7 @@ export default defineEventHandler(
       }
 
       // Check accessibility
-      if (selection.status === "draft") {
+      if (selection.status === MODULE_STATUS.DRAFT) {
         throw createError({
           statusCode: 403,
           message: "Sélection non accessible",

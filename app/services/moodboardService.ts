@@ -201,9 +201,9 @@ export const moodboardService = {
 
     // Business rule: can't delete moodboards that are awaiting client or completed
     if (
-      moodboard.status === "awaiting_client" ||
-      moodboard.status === "completed" ||
-      moodboard.status === "payment_pending"
+      moodboard.status === MODULE_STATUS.AWAITING_CLIENT ||
+      moodboard.status === MODULE_STATUS.COMPLETED ||
+      moodboard.status === MODULE_STATUS.PAYMENT_PENDING
     ) {
       throw new Error(
         "Cannot delete moodboards that are awaiting client response, payment pending, or completed"
