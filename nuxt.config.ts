@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "@nuxtjs/supabase",
     "@pinia/nuxt",
+    "@nuxtjs/device",
   ],
 
   css: ["~/assets/css/main.css"],

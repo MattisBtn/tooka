@@ -115,30 +115,12 @@ const thumbnailUrls = computed(() => {
     return urls
 })
 
-// Reactive mobile detection
-const isMobile = ref(false)
+// Device detection using nuxt-device
+const { isMobile } = useDevice()
 
 // Computed properties
 const showDownloadButton = computed(() => store.gallery?.status === 'completed')
 const downloadingImage = computed(() => actions.downloadingImage.value)
-
-// Update mobile detection on mount and resize
-const updateMobileDetection = () => {
-    if (import.meta.client) {
-        isMobile.value = window.innerWidth < 640 // sm breakpoint
-    }
-}
-
-onMounted(() => {
-    updateMobileDetection()
-    window.addEventListener('resize', updateMobileDetection)
-})
-
-onUnmounted(() => {
-    if (import.meta.client) {
-        window.removeEventListener('resize', updateMobileDetection)
-    }
-})
 
 const closePreview = () => emit('close')
 const nextImage = () => emit('next')
@@ -156,5 +138,4 @@ const handleDownloadCurrentImage = () => {
     }
 }
 
-// No need for async URL loading since we have all URLs from props
 </script>
