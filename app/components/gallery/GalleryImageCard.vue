@@ -10,20 +10,11 @@
             <div
                 class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <!-- Action buttons overlay -->
-            <div class="absolute top-2 right-2 flex gap-2">
-                <!-- View button - desktop only, appears on hover -->
-                <UButton icon="i-lucide-eye" color="neutral" variant="solid" size="xs"
-                    class="hidden sm:block backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    @click.stop="openImagePreview" />
-
-                <!-- Download button - desktop: appears on hover, mobile: always visible -->
-                <UButton v-if="showDownloadButton" icon="i-lucide-download" color="primary" variant="solid"
-                    :size="isMobile ? 'sm' : 'xs'"
-                    class="backdrop-blur-sm bg-primary-500/90 hover:bg-primary-500 text-white transition-opacity duration-300"
-                    :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'" :loading="downloadingImage"
-                    @click.stop="handleDownloadImage" />
-            </div>
+            <!-- Download button - desktop: appears on hover, mobile: always visible -->
+            <UButton v-if="showDownloadButton" icon="i-lucide-download" color="primary" variant="solid"
+                :size="isMobile ? 'sm' : 'xs'" class="absolute top-2 right-2 transition-opacity duration-300"
+                :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'" :loading="downloadingImage"
+                @click.stop="handleDownloadImage" />
         </div>
     </div>
 </template>
