@@ -120,6 +120,18 @@
                                 disabled />
                         </UTooltip>
 
+                        <!-- Send to Client Action - Only for draft -->
+                        <UTooltip v-if="moodboardStore.moodboard?.status === 'draft' && !isProjectCompleted"
+                            text="Envoyer le moodboard au client">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" :loading="moodboardStore.loading" @click="sendToClient()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="moodboardStore.moodboard?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" disabled />
+                        </UTooltip>
+
                         <!-- Preview Action - Available for all non-draft statuses -->
                         <UTooltip v-if="moodboardStore.moodboard?.status !== 'draft' && !isProjectCompleted"
                             text="Voir l'aperçu client">
@@ -215,7 +227,8 @@
     </div>
 
     <!-- Moodboard Form Modal -->
-    <UModal v-model:open="moodboardStore.showForm" :fullscreen="true" :transition="true">
+    <UModal v-model:open="moodboardStore.showForm" :fullscreen="true" :transition="true"
+        :prevent-close="moodboardStore.uploadProgress.isUploading">
         <template #content>
             <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
                 <!-- Form Content -->
@@ -234,8 +247,8 @@
                                     </p>
                                 </div>
                             </div>
-                            <UButton icon="i-lucide-x" size="sm" variant="ghost" color="neutral"
-                                @click="moodboardStore.closeForm()" />
+                            <UButton v-if="!moodboardStore.uploadProgress.isUploading" icon="i-lucide-x" size="sm"
+                                variant="ghost" color="neutral" @click="moodboardStore.closeForm()" />
                         </div>
                     </div>
 
@@ -245,7 +258,8 @@
                             <ProjectMoodboardForm :moodboard="moodboardStore.moodboard || undefined"
                                 :project-id="projectSetupStore.project?.id || ''"
                                 :existing-images="moodboardStore.moodboard?.images ? Array.from(moodboardStore.moodboard.images) : undefined"
-                                @moodboard-saved="handleMoodboardSaved" @cancel="moodboardStore.closeForm()" />
+                                @moodboard-saved="handleMoodboardSaved" @cancel="moodboardStore.closeForm()"
+                                @upload-completed="handleUploadCompleted" />
                         </div>
                     </div>
                 </div>
@@ -279,7 +293,6 @@ watch(() => projectSetupStore.project, async (project) => {
 // Handle moodboard saved
 const handleMoodboardSaved = async (data: {
     moodboard: Record<string, unknown>;
-    projectUpdated: boolean;
     selectedFiles?: File[]
 }) => {
     try {
@@ -299,15 +312,18 @@ const handleMoodboardSaved = async (data: {
             );
         }
 
-        // Refresh project if status changed (affects editability)
-        if (data.projectUpdated) {
-            await projectSetupStore.refreshProject()
-        }
-
         const toast = useToast();
+
+        // Show different messages based on whether files were uploaded
+        const hasFiles = data.selectedFiles && data.selectedFiles.length > 0;
+        const title = moodboardStore.exists ? 'Moodboard mis à jour' : 'Moodboard créé';
+        const description = hasFiles
+            ? `Le moodboard a été sauvegardé et ${data.selectedFiles!.length} image${data.selectedFiles!.length > 1 ? 's ont' : ' a'} été uploadée${data.selectedFiles!.length > 1 ? 's' : ''} avec succès.`
+            : 'Le moodboard a été sauvegardé avec succès.';
+
         toast.add({
-            title: moodboardStore.exists ? 'Moodboard mis à jour' : 'Moodboard créé',
-            description: 'Le moodboard a été sauvegardé avec succès.',
+            title,
+            description,
             icon: 'i-lucide-check-circle',
             color: 'success'
         });
@@ -372,6 +388,43 @@ const handleDelete = async () => {
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })
+    }
+}
+
+const sendToClient = async () => {
+    if (!moodboardStore.moodboard) return;
+
+    try {
+        await moodboardStore.sendToClient(moodboardStore.moodboard.id)
+        await projectSetupStore.refreshProject()
+
+        const toast = useToast();
+        toast.add({
+            title: 'Moodboard envoyé',
+            description: 'Le moodboard a été envoyé au client.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        });
+    } catch (err) {
+        console.error('Error sending moodboard:', err);
+        const toast = useToast();
+        toast.add({
+            title: 'Erreur',
+            description: 'Une erreur est survenue lors de l\'envoi.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        });
+    }
+}
+
+const handleUploadCompleted = async () => {
+    // Reset upload state and close form
+    moodboardStore.resetUploadState()
+    moodboardStore.closeForm()
+
+    // Reload moodboard data to get the updated images
+    if (projectSetupStore.project?.id) {
+        await moodboardStore.loadMoodboard(projectSetupStore.project.id)
     }
 }
 </script>

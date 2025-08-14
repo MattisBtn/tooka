@@ -1,5 +1,11 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
+import type {
+  UploadFileStatus,
+  UploadOptions,
+  UploadProgress,
+  UploadResult,
+} from "~/types/upload";
 
 export type Gallery = Tables<"galleries">;
 export type GalleryImage = Tables<"gallery_images">;
@@ -201,6 +207,12 @@ export interface GalleryStatusUpdate {
   client_comment?: string;
   updated_at: string;
 }
+
+// Re-export upload types for backward compatibility
+export type { UploadFileStatus, UploadOptions, UploadProgress };
+
+// Gallery-specific upload result type
+export type GalleryUploadResult = UploadResult<GalleryImage>;
 
 // Gallery payment types (similar to proposal payment types)
 export interface GalleryPaymentData {

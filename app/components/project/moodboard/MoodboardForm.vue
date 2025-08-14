@@ -1,5 +1,10 @@
 <template>
-    <UForm id="moodboard-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
+    <!-- Upload Progress View - Elegant -->
+    <SharedUploadProgressView v-if="isUploading" :progress="moodboardStore.uploadProgress" title="Upload en cours"
+        item-name="images" />
+
+    <!-- Regular Form View -->
+    <UForm v-else id="moodboard-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
         <!-- Moodboard Information -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
@@ -115,13 +120,11 @@
 
         <!-- Form Actions -->
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
-            <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
+            <UButton label="Annuler" color="neutral" variant="ghost" :disabled="isFormDisabled"
+                @click="emit('cancel')" />
 
-            <UButton type="submit" label="Sauvegarder comme brouillon" color="neutral" variant="outline"
-                :loading="isSubmitting && submitAsDraft" @click="submitAsDraft = true" />
-
-            <UButton type="submit" label="Envoyer au client" color="primary" :loading="isSubmitting && !submitAsDraft"
-                @click="submitAsDraft = false" />
+            <UButton type="submit" label="Sauvegarder" color="primary" :loading="isSubmitting"
+                :disabled="isFormDisabled" />
         </div>
     </UForm>
 </template>
@@ -139,14 +142,16 @@ interface Props {
 interface Emits {
     (e: "moodboard-saved", data: {
         moodboard: MoodboardFormData;
-        projectUpdated: boolean;
         selectedFiles?: File[]
     }): void;
-    (e: "cancel"): void;
+    (e: "cancel" | "upload-completed"): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// Use stores
+const moodboardStore = useMoodboardStore();
 
 // Form state
 const state = reactive<MoodboardFormData>({
@@ -167,7 +172,10 @@ const schema = moodboardFormSchema;
 
 // Local loading state for form submission
 const isSubmitting = ref(false);
-const submitAsDraft = ref(false);
+
+// Upload state
+const isUploading = computed(() => moodboardStore.uploadProgress.isUploading);
+const isFormDisabled = computed(() => isSubmitting.value || isUploading.value);
 
 // Computed
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
@@ -246,22 +254,16 @@ const handleDeleteAllImages = async () => {
 const handleSubmit = async (_event: FormSubmitEvent<MoodboardFormData>) => {
     isSubmitting.value = true;
     try {
-        // Determine the new status based on user action
-        let newStatus: "draft" | "awaiting_client";
-
-        if (submitAsDraft.value) {
-            newStatus = "draft";
-        } else {
-            newStatus = "awaiting_client";
-        }
+        // For creation, always save as draft
+        // For update, keep current status
+        const finalStatus = props.moodboard ? props.moodboard.status : "draft";
 
         // Emit the moodboard data to parent component for handling
         emit("moodboard-saved", {
             moodboard: {
                 ...state,
-                status: newStatus,
+                status: finalStatus,
             },
-            projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
     } finally {

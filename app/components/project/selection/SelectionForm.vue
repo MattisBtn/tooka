@@ -251,28 +251,10 @@
                 <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting || uploading"
                     @click="$emit('cancel')" />
 
-                <!-- Boutons pour sélection déjà envoyée au client -->
-                <template
-                    v-if="canEditSelection && isEditMode && (props.selection?.status === 'awaiting_client' || props.selection?.status === 'revision_requested')">
-                    <UButton type="submit" variant="outline" color="neutral"
-                        :loading="(isSubmitting && submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-file-edit"
-                        label="Repasser en brouillon" @click="submitAsDraft = true" />
-                    <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
-                        :label="props.selection?.status === 'revision_requested' ? 'Renvoyer au client' : 'Enregistrer les modifications'"
-                        @click="submitAsDraft = false" />
-                </template>
-
-                <!-- Boutons pour nouvelle sélection ou brouillon -->
-                <template v-else-if="canEditSelection">
-                    <UButton type="submit" variant="outline" color="neutral"
-                        :loading="(isSubmitting && submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && !submitAsDraft) || uploading" icon="i-lucide-save"
-                        label="Sauvegarder en brouillon" @click="submitAsDraft = true" />
-                    <UButton type="submit" color="primary" :loading="(isSubmitting && !submitAsDraft) || uploading"
-                        :disabled="(isSubmitting && submitAsDraft) || uploading" icon="i-lucide-send"
-                        label="Valider et envoyer" @click="submitAsDraft = false" />
+                <!-- Bouton de sauvegarde simplifié -->
+                <template v-if="canEditSelection">
+                    <UButton type="submit" color="primary" :loading="isSubmitting || uploading"
+                        :disabled="isSubmitting || uploading" label="Sauvegarder" />
                 </template>
             </div>
         </div>
@@ -296,7 +278,7 @@ interface Props {
 }
 
 interface Emits {
-    (e: "selection-saved", data: { selection: SelectionFormData; projectUpdated: boolean; selectedFiles?: File[] }): void;
+    (e: "selection-saved", data: { selection: SelectionFormData; selectedFiles?: File[] }): void;
     (e: "cancel"): void;
 }
 
@@ -353,7 +335,6 @@ const schema = selectionFormSchema;
 
 // Local loading state for form submission
 const isSubmitting = ref(false);
-const submitAsDraft = ref(false);
 
 // Computed
 const isEditMode = computed(() => !!props.selection);
@@ -445,25 +426,19 @@ const handleSubmit = async (event: FormSubmitEvent<typeof state>) => {
     isSubmitting.value = true;
 
     try {
-        // Determine the new status based on user action
-        let newStatus: "draft" | "awaiting_client";
-
-        if (submitAsDraft.value) {
-            newStatus = "draft";
-        } else {
-            newStatus = "awaiting_client";
-        }
+        // For creation, always save as draft
+        // For update, keep current status
+        const finalStatus = props.selection ? props.selection.status : "draft";
 
         // Create selection data - don't include timestamps for new selections
         const selectionFormData = {
             ...event.data,
-            status: newStatus, // Explicitly set the status
+            status: finalStatus, // Explicitly set the status
         };
 
         // Emit the selection data to parent component for handling
         emit("selection-saved", {
             selection: selectionFormData,
-            projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
 

@@ -6,10 +6,14 @@ import type {
   Gallery,
   GalleryImage,
   GalleryPricing,
+  GalleryUploadResult,
   GalleryWithDetails,
   IGalleryFilters,
   IPagination,
 } from "~/types/gallery";
+import type { UploadOptions } from "~/types/upload";
+import { GALLERY_UPLOAD_CONFIG } from "~/types/upload";
+import { uploadImagesWithProgress } from "~/utils/uploadService";
 
 export const galleryService = {
   /**
@@ -271,87 +275,39 @@ export const galleryService = {
   },
 
   /**
-   * Upload multiple images to gallery
+   * Upload multiple images to gallery with progress tracking
    */
   async uploadImages(
     galleryId: string,
     files: File[]
   ): Promise<GalleryImage[]> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
+    // Legacy method for backward compatibility
+    const result = await this.uploadImagesWithProgress(galleryId, files);
+    return result.uploadedImages;
+  },
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour uploader des images");
-    }
-
-    if (!files.length) {
-      throw new Error("Aucun fichier sélectionné");
-    }
-
-    // Verify gallery exists and belongs to user
+  /**
+   * Upload multiple images with detailed progress tracking and parallel processing
+   */
+  async uploadImagesWithProgress(
+    galleryId: string,
+    files: File[],
+    options: UploadOptions = {}
+  ): Promise<GalleryUploadResult> {
+    // Verify gallery exists
     const _gallery = await this.getGalleryById(galleryId);
 
-    const uploadedImages: GalleryImage[] = [];
-    const errors: string[] = [];
-
-    for (const file of files) {
-      try {
-        // Validate file type
-        if (!file.type.startsWith("image/")) {
-          errors.push(`${file.name}: Type de fichier non supporté`);
-          continue;
-        }
-
-        // Validate file size (max 10MB)
-        if (file.size > 100 * 1024 * 1024) {
-          errors.push(`${file.name}: Fichier trop volumineux (max 10MB)`);
-          continue;
-        }
-
-        // Generate unique filename
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}_${Math.random()
-          .toString(36)
-          .substring(7)}.${fileExt}`;
-        const filePath = `${user.value.id}/galleries/${galleryId}/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from("gallery-images")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          errors.push(`${file.name}: ${uploadError.message}`);
-          continue;
-        }
-
-        // Create database record
-        const imageData = {
-          gallery_id: galleryId,
-          file_url: filePath,
-        };
-
-        const image = await galleryImageRepository.create(imageData);
-        uploadedImages.push(image);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Erreur inconnue";
-        errors.push(`${file.name}: ${errorMessage}`);
-      }
-    }
-
-    if (errors.length > 0 && uploadedImages.length === 0) {
-      throw new Error(`Échec de l'upload: ${errors.join(", ")}`);
-    }
-
-    if (errors.length > 0) {
-      console.warn("Some uploads failed:", errors);
-    }
-
-    return uploadedImages;
+    return uploadImagesWithProgress<GalleryImage>(
+      galleryId,
+      files,
+      GALLERY_UPLOAD_CONFIG,
+      galleryImageRepository,
+      (galleryId: string, filePath: string) => ({
+        gallery_id: galleryId,
+        file_url: filePath,
+      }),
+      options
+    );
   },
 
   /**

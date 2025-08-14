@@ -32,5 +32,14 @@ export default defineAppConfig({
         size: "xl",
       },
     },
+    fileUpload: {
+      variants: {
+        layout: {
+          list: {
+            files: "max-h-48 overflow-auto",
+          },
+        },
+      },
+    },
   },
 });

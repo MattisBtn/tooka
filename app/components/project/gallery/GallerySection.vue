@@ -251,7 +251,8 @@
     </div>
 
     <!-- Gallery Form Modal -->
-    <UModal v-model:open="galleryStore.showForm" :fullscreen="true" :transition="true">
+    <UModal v-model:open="galleryStore.showForm" :fullscreen="true" :transition="true"
+        :prevent-close="galleryStore.uploadProgress.isUploading">
         <template #content>
             <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
                 <!-- Form Content -->
@@ -270,8 +271,8 @@
                                     </p>
                                 </div>
                             </div>
-                            <UButton icon="i-lucide-x" size="sm" variant="ghost" color="neutral"
-                                @click="galleryStore.closeForm()" />
+                            <UButton v-if="!galleryStore.uploadProgress.isUploading" icon="i-lucide-x" size="sm"
+                                variant="ghost" color="neutral" @click="galleryStore.closeForm()" />
                         </div>
                     </div>
 
@@ -284,13 +285,15 @@
                                 :pricing="galleryStore.pricing || undefined"
                                 :proposal-payment-info="proposalPaymentInfo"
                                 :project="galleryStore.project || undefined" @gallery-saved="handleGallerySaved"
-                                @cancel="galleryStore.closeForm()" />
+                                @cancel="galleryStore.closeForm()" @upload-completed="handleUploadCompleted" />
                         </div>
                     </div>
                 </div>
             </div>
         </template>
     </UModal>
+
+
 </template>
 
 <script lang="ts" setup>
@@ -308,14 +311,19 @@ const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
 // Check if project is free
 const isFree = computed(() => projectSetupStore.isFree)
 
+
+
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
     if (!proposalStore.proposal || !projectSetupStore.project) return undefined;
 
+    const project = projectSetupStore.project;
+    const proposal = proposalStore.proposal;
+
     return {
-        payment_method: projectSetupStore.project.payment_method,
-        deposit_required: proposalStore.proposal.deposit_required,
-        deposit_amount: proposalStore.proposal.deposit_amount
+        payment_method: project.payment_method,
+        deposit_required: proposal.deposit_required,
+        deposit_amount: proposal.deposit_amount
     };
 });
 
@@ -359,9 +367,17 @@ const handleGallerySaved = async (data: {
         }
 
         const toast = useToast();
+
+        // Show different messages based on whether files were uploaded
+        const hasFiles = data.selectedFiles && data.selectedFiles.length > 0;
+        const title = galleryStore.exists ? 'Galerie mise à jour' : 'Galerie créée';
+        const description = hasFiles
+            ? `La galerie a été sauvegardée et ${data.selectedFiles!.length} image${data.selectedFiles!.length > 1 ? 's ont' : ' a'} été uploadée${data.selectedFiles!.length > 1 ? 's' : ''} avec succès.`
+            : 'La galerie a été sauvegardée avec succès.';
+
         toast.add({
-            title: galleryStore.exists ? 'Galerie mise à jour' : 'Galerie créée',
-            description: 'La galerie a été sauvegardée avec succès.',
+            title,
+            description,
             icon: 'i-lucide-check-circle',
             color: 'success'
         });
@@ -477,6 +493,17 @@ const handleConfirmPayment = async () => {
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })
+    }
+}
+
+const handleUploadCompleted = async () => {
+    // Reset upload state and close form
+    galleryStore.resetUploadState()
+    galleryStore.closeForm()
+
+    // Reload gallery data to get the updated images
+    if (projectSetupStore.project?.id) {
+        await galleryStore.loadGallery(projectSetupStore.project.id)
     }
 }
 </script>

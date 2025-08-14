@@ -1,5 +1,11 @@
 import { z } from "zod";
 import type { Tables } from "~/types/database.types";
+import type {
+  UploadFileStatus,
+  UploadOptions,
+  UploadProgress,
+  UploadResult,
+} from "~/types/upload";
 
 export type Moodboard = Tables<"moodboards">;
 export type MoodboardImage = Tables<"moodboard_images">;
@@ -221,3 +227,9 @@ export const clientReactionSchema = z.object({
 });
 
 export type ClientReactionFormData = z.infer<typeof clientReactionSchema>;
+
+// Re-export upload types for backward compatibility
+export type { UploadFileStatus, UploadOptions, UploadProgress };
+
+// Moodboard-specific upload result type
+export type MoodboardUploadResult = UploadResult<MoodboardImage>;

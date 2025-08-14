@@ -8,20 +8,6 @@
             icon="i-lucide-images" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
             @error="handleUploadError" />
 
-        <!-- Selected Files Preview -->
-        <div v-if="selectedFiles.length > 0" class="space-y-3">
-            <!-- Tips for selection images -->
-            <UAlert color="info" variant="soft" icon="i-lucide-lightbulb" title="Conseils pour vos images de sélection">
-                <template #description>
-                    <div class="text-sm space-y-1">
-                        <p>• Proposez plus d'images que le nombre maximum sélectionnable</p>
-                        <p>• Variez les cadrages et les moments pour donner le choix au client</p>
-                        <p>• Les images seront disponibles pour sélection par le client</p>
-                    </div>
-                </template>
-            </UAlert>
-        </div>
-
         <!-- Error Messages -->
         <div v-if="errors.length > 0" class="space-y-2">
             <UAlert v-for="(error, index) in errors" :key="index" color="error" variant="soft" :title="error"

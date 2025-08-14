@@ -3,9 +3,8 @@
         <template #header>
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-info" class="w-5 h-5 text-white" />
+                    <div class="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-lucide-info" class="w-5 h-5 text-white dark:text-black" />
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Résumé du projet</h2>

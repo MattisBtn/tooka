@@ -2,15 +2,32 @@ import { defineStore } from "pinia";
 import { moodboardService } from "~/services/moodboardService";
 import type {
   MoodboardFormData,
+  MoodboardUploadResult,
   MoodboardWithDetails,
 } from "~/types/moodboard";
+import type { UploadOptions, UploadProgress } from "~/types/upload";
 
 export const useMoodboardStore = defineStore("moodboard", () => {
+  // Core State
   const moodboard = ref<MoodboardWithDetails | null>(null);
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const showForm = ref(false);
   const formLoading = ref(false);
+
+  // Upload State
+  const uploadProgress = ref<UploadProgress>({
+    isUploading: false,
+    totalFiles: 0,
+    completedFiles: 0,
+    failedFiles: 0,
+    cancelledFiles: 0,
+    currentFiles: [],
+    overallProgress: 0,
+    canCancel: false,
+  });
+  const uploadController = ref<AbortController | null>(null);
+  const showUploadProgress = ref(false);
 
   // Getters
   const isLoading = computed(() => loading.value);
@@ -25,6 +42,72 @@ export const useMoodboardStore = defineStore("moodboard", () => {
   const imageCount = computed(() => moodboard.value?.imageCount || 0);
   const hasImages = computed(() => imageCount.value > 0);
 
+  // Upload Actions
+  const resetUploadState = () => {
+    uploadProgress.value = {
+      isUploading: false,
+      totalFiles: 0,
+      completedFiles: 0,
+      failedFiles: 0,
+      cancelledFiles: 0,
+      currentFiles: [],
+      overallProgress: 0,
+      canCancel: false,
+    };
+    uploadController.value = null;
+    showUploadProgress.value = false;
+  };
+
+  const updateUploadProgress = (progress: UploadProgress) => {
+    uploadProgress.value = {
+      ...progress,
+      currentFiles: [...progress.currentFiles], // Create a mutable copy
+    };
+  };
+
+  const startUpload = () => {
+    uploadController.value = new AbortController();
+    showUploadProgress.value = true;
+  };
+
+  const finishUpload = () => {
+    uploadController.value = null;
+    showUploadProgress.value = false;
+  };
+
+  const uploadImagesWithProgress = async (
+    moodboardId: string,
+    files: File[]
+  ): Promise<MoodboardUploadResult> => {
+    if (!files.length) {
+      throw new Error("Aucun fichier à uploader");
+    }
+
+    try {
+      startUpload();
+      resetUploadState();
+
+      const { moodboardService } = await import("~/services/moodboardService");
+
+      const options: UploadOptions = {
+        maxConcurrent: 4,
+        maxRetries: 2,
+        onProgress: updateUploadProgress,
+        signal: uploadController.value?.signal,
+      };
+
+      const result = await moodboardService.uploadImagesWithProgress(
+        moodboardId,
+        files,
+        options
+      );
+
+      return result;
+    } finally {
+      finishUpload();
+    }
+  };
+
   // Actions
   const reset = () => {
     moodboard.value = null;
@@ -32,6 +115,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     error.value = null;
     showForm.value = false;
     formLoading.value = false;
+    resetUploadState();
   };
 
   const loadMoodboard = async (projectId: string) => {
@@ -74,23 +158,12 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         revision_last_comment: null,
       };
 
-      const result = await moodboardService.createMoodboard(
-        data,
-        moodboardData.status === "awaiting_client"
-      );
+      const result = await moodboardService.createMoodboard(data);
       moodboard.value = result.moodboard;
 
-      // Upload images if provided
+      // Upload images if provided with progress tracking
       if (selectedFiles && selectedFiles.length > 0) {
-        const uploadedImages = await moodboardService.uploadImages(
-          result.moodboard.id,
-          selectedFiles
-        );
-        moodboard.value = {
-          ...moodboard.value!,
-          images: uploadedImages,
-          imageCount: uploadedImages.length,
-        };
+        await uploadImagesWithProgress(result.moodboard.id, selectedFiles);
       }
 
       // Check and update project status automatically
@@ -128,26 +201,12 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         revision_last_comment: null,
       };
 
-      const result = await moodboardService.updateMoodboard(
-        moodboardId,
-        data,
-        moodboardData.status === "awaiting_client"
-      );
+      const result = await moodboardService.updateMoodboard(moodboardId, data);
       moodboard.value = result.moodboard;
 
-      // Upload images if provided
+      // Upload images if provided with progress tracking
       if (selectedFiles && selectedFiles.length > 0) {
-        const uploadedImages = await moodboardService.uploadImages(
-          result.moodboard.id,
-          selectedFiles
-        );
-        // Update moodboard directly with new images instead of reloading
-        const existingImages = moodboard.value?.images || [];
-        moodboard.value = {
-          ...moodboard.value!,
-          images: [...existingImages, ...uploadedImages],
-          imageCount: existingImages.length + uploadedImages.length,
-        };
+        await uploadImagesWithProgress(result.moodboard.id, selectedFiles);
       }
 
       // Check and update project status automatically
@@ -238,18 +297,51 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     }
   };
 
+  const sendToClient = async (moodboardId: string) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const { moodboardService } = await import("~/services/moodboardService");
+      const result = await moodboardService.updateMoodboard(moodboardId, {
+        status: "awaiting_client",
+      });
+      moodboard.value = result.moodboard;
+
+      return {
+        moodboard: result.moodboard,
+        projectUpdated: result.projectUpdated,
+      };
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to send to client");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
+    // State (readonly for external access)
     moodboard: readonly(moodboard),
     loading: readonly(loading),
     error: readonly(error),
     showForm,
     formLoading: readonly(formLoading),
+
+    // Upload State
+    uploadProgress: readonly(uploadProgress),
+    showUploadProgress: readonly(showUploadProgress),
+
+    // Computed
     isLoading,
     hasError,
     exists,
     canEdit,
     imageCount,
     hasImages,
+
+    // Actions
     reset,
     loadMoodboard,
     createMoodboard,
@@ -257,7 +349,14 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     deleteMoodboard,
     deleteImage,
     deleteAllImages,
+    sendToClient,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
+
+    // Upload Actions
+    resetUploadState,
+    startUpload,
+    finishUpload,
+    uploadImagesWithProgress,
   };
 });

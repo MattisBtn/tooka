@@ -3,9 +3,11 @@ import type {
   Gallery,
   GalleryFormData,
   GalleryPricing,
+  GalleryUploadResult,
   GalleryWithDetails,
   ProjectPaymentData,
 } from "~/types/gallery";
+import type { UploadOptions, UploadProgress } from "~/types/upload";
 
 export const useGalleryStore = defineStore("gallery", () => {
   // Core State
@@ -25,6 +27,20 @@ export const useGalleryStore = defineStore("gallery", () => {
     bank_bic: string | null;
     bank_beneficiary: string | null;
   } | null>(null);
+
+  // Upload State
+  const uploadProgress = ref<UploadProgress>({
+    isUploading: false,
+    totalFiles: 0,
+    completedFiles: 0,
+    failedFiles: 0,
+    cancelledFiles: 0,
+    currentFiles: [],
+    overallProgress: 0,
+    canCancel: false,
+  });
+  const uploadController = ref<AbortController | null>(null);
+  const showUploadProgress = ref(false);
 
   // Modal State
   const showForm = ref(false);
@@ -73,6 +89,72 @@ export const useGalleryStore = defineStore("gallery", () => {
     }).format(pricing.value.remainingAmount);
   });
 
+  // Upload Actions
+  const resetUploadState = () => {
+    uploadProgress.value = {
+      isUploading: false,
+      totalFiles: 0,
+      completedFiles: 0,
+      failedFiles: 0,
+      cancelledFiles: 0,
+      currentFiles: [],
+      overallProgress: 0,
+      canCancel: false,
+    };
+    uploadController.value = null;
+    showUploadProgress.value = false;
+  };
+
+  const updateUploadProgress = (progress: UploadProgress) => {
+    uploadProgress.value = {
+      ...progress,
+      currentFiles: [...progress.currentFiles], // Create a mutable copy
+    };
+  };
+
+  const startUpload = () => {
+    uploadController.value = new AbortController();
+    showUploadProgress.value = true;
+  };
+
+  const finishUpload = () => {
+    uploadController.value = null;
+    showUploadProgress.value = false;
+  };
+
+  const uploadImagesWithProgress = async (
+    galleryId: string,
+    files: File[]
+  ): Promise<GalleryUploadResult> => {
+    if (!files.length) {
+      throw new Error("Aucun fichier à uploader");
+    }
+
+    try {
+      startUpload();
+      resetUploadState();
+
+      const { galleryService } = await import("~/services/galleryService");
+
+      const options: UploadOptions = {
+        maxConcurrent: 4,
+        maxRetries: 2,
+        onProgress: updateUploadProgress,
+        signal: uploadController.value?.signal,
+      };
+
+      const result = await galleryService.uploadImagesWithProgress(
+        galleryId,
+        files,
+        options
+      );
+
+      return result;
+    } finally {
+      finishUpload();
+    }
+  };
+
   // Actions
   const reset = () => {
     gallery.value = null;
@@ -80,6 +162,7 @@ export const useGalleryStore = defineStore("gallery", () => {
     project.value = null;
     error.value = null;
     isInitialized.value = false;
+    resetUploadState();
   };
 
   const loadGallery = async (projectId: string) => {
@@ -164,9 +247,9 @@ export const useGalleryStore = defineStore("gallery", () => {
         await projectService.updateProject(projectId, projectData);
       }
 
-      // Upload images if provided
+      // Upload images if provided with progress tracking
       if (files && files.length > 0) {
-        await galleryService.uploadImages(result.gallery.id, files);
+        await uploadImagesWithProgress(result.gallery.id, files);
       }
 
       // Reload data
@@ -231,9 +314,9 @@ export const useGalleryStore = defineStore("gallery", () => {
         );
       }
 
-      // Upload images if provided
+      // Upload images if provided with progress tracking
       if (files && files.length > 0) {
-        await galleryService.uploadImages(galleryId, files);
+        await uploadImagesWithProgress(galleryId, files);
       }
 
       // Reload data
@@ -397,20 +480,24 @@ export const useGalleryStore = defineStore("gallery", () => {
 
   return {
     // State (readonly for external access)
-    gallery: readonly(gallery),
-    pricing: readonly(pricing),
-    project: readonly(project),
-    loading: readonly(loading),
-    error: readonly(error),
-    isInitialized: readonly(isInitialized),
+    gallery: gallery,
+    pricing: pricing,
+    project: project,
+    loading: loading,
+    error: error,
+    isInitialized: isInitialized,
+
+    // Upload State
+    uploadProgress: uploadProgress,
+    showUploadProgress: showUploadProgress,
 
     // Modal State
     showForm,
-    selectedGallery: readonly(selectedGallery),
+    selectedGallery: selectedGallery,
     showDeleteModal,
-    galleryToDelete: readonly(galleryToDelete),
-    deletionLoading: readonly(deletionLoading),
-    formLoading: readonly(formLoading),
+    galleryToDelete: galleryToDelete,
+    deletionLoading: deletionLoading,
+    formLoading: formLoading,
 
     // Computed
     exists,
@@ -436,5 +523,11 @@ export const useGalleryStore = defineStore("gallery", () => {
     closeForm,
     openDeleteModal,
     closeDeleteModal,
+
+    // Upload Actions
+    resetUploadState,
+    startUpload,
+    finishUpload,
+    uploadImagesWithProgress,
   };
 });

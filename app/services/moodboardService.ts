@@ -5,8 +5,12 @@ import type {
   IPagination,
   Moodboard,
   MoodboardImage,
+  MoodboardUploadResult,
   MoodboardWithDetails,
 } from "~/types/moodboard";
+import type { UploadOptions } from "~/types/upload";
+import { MOODBOARD_UPLOAD_CONFIG } from "~/types/upload";
+import { uploadImagesWithProgress } from "~/utils/uploadService";
 
 export const moodboardService = {
   /**
@@ -80,8 +84,7 @@ export const moodboardService = {
    * Create new moodboard with validation and business rules
    */
   async createMoodboard(
-    moodboardData: Omit<Moodboard, "id" | "created_at" | "updated_at">,
-    shouldValidate: boolean = false
+    moodboardData: Omit<Moodboard, "id" | "created_at" | "updated_at">
   ): Promise<{ moodboard: Moodboard; projectUpdated: boolean }> {
     if (!moodboardData.project_id?.trim()) {
       throw new Error("Project ID is required");
@@ -99,19 +102,16 @@ export const moodboardService = {
       throw new Error("Un moodboard existe déjà pour ce projet");
     }
 
-    // Set status based on validation flag
+    // For creation, always save as draft
     const finalMoodboardData = {
       ...moodboardData,
-      status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+      status: "draft" as const,
     };
 
     // Create moodboard
     const moodboard = await moodboardRepository.create(finalMoodboardData);
 
-    // For now, we don't update project status automatically
-    // This could be added later if needed
+    // For creation, project is never updated automatically
     const projectUpdated = false;
 
     return { moodboard, projectUpdated };
@@ -122,21 +122,12 @@ export const moodboardService = {
    */
   async updateMoodboard(
     id: string,
-    updates: Partial<Moodboard>,
-    shouldValidate?: boolean
+    updates: Partial<Moodboard>
   ): Promise<{ moodboard: MoodboardWithDetails; projectUpdated: boolean }> {
     const existingMoodboard = await this.getMoodboardById(id);
 
-    // Handle validation status change
+    // Apply updates as-is
     const finalUpdates = { ...updates };
-    if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
-    }
-
-    // If status is provided in updates, use it (allows direct status control)
-    if (updates.status) {
-      finalUpdates.status = updates.status;
-    }
 
     // Business rules for status transitions
     if (finalUpdates.status) {
@@ -217,87 +208,38 @@ export const moodboardService = {
   },
 
   /**
-   * Upload multiple images to moodboard
+   * Upload multiple images to moodboard (legacy method for backward compatibility)
    */
   async uploadImages(
     moodboardId: string,
     files: File[]
   ): Promise<MoodboardImage[]> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
+    const result = await this.uploadImagesWithProgress(moodboardId, files);
+    return result.uploadedImages;
+  },
 
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour uploader des images");
-    }
-
-    if (!files.length) {
-      throw new Error("Aucun fichier sélectionné");
-    }
-
-    // Verify moodboard exists and belongs to user
+  /**
+   * Upload multiple images with detailed progress tracking and parallel processing
+   */
+  async uploadImagesWithProgress(
+    moodboardId: string,
+    files: File[],
+    options: UploadOptions = {}
+  ): Promise<MoodboardUploadResult> {
+    // Verify moodboard exists
     const _moodboard = await this.getMoodboardById(moodboardId);
 
-    const uploadedImages: MoodboardImage[] = [];
-    const errors: string[] = [];
-
-    for (const file of files) {
-      try {
-        // Validate file type
-        if (!file.type.startsWith("image/")) {
-          errors.push(`${file.name}: Type de fichier non supporté`);
-          continue;
-        }
-
-        // Validate file size (max 10MB)
-        if (file.size > 100 * 1024 * 1024) {
-          errors.push(`${file.name}: Fichier trop volumineux (max 10MB)`);
-          continue;
-        }
-
-        // Generate unique filename
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}_${Math.random()
-          .toString(36)
-          .substring(7)}.${fileExt}`;
-        const filePath = `${user.value.id}/moodboards/${moodboardId}/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from("moodboard-images")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          errors.push(`${file.name}: ${uploadError.message}`);
-          continue;
-        }
-
-        // Create database record
-        const imageData = {
-          moodboard_id: moodboardId,
-          file_url: filePath,
-        };
-
-        const image = await moodboardImageRepository.create(imageData);
-        uploadedImages.push(image);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Erreur inconnue";
-        errors.push(`${file.name}: ${errorMessage}`);
-      }
-    }
-
-    if (errors.length > 0 && uploadedImages.length === 0) {
-      throw new Error(`Échec de l'upload: ${errors.join(", ")}`);
-    }
-
-    if (errors.length > 0) {
-      console.warn("Some uploads failed:", errors);
-    }
-
-    return uploadedImages;
+    return uploadImagesWithProgress<MoodboardImage>(
+      moodboardId,
+      files,
+      MOODBOARD_UPLOAD_CONFIG,
+      moodboardImageRepository,
+      (moodboardId: string, filePath: string) => ({
+        moodboard_id: moodboardId,
+        file_url: filePath,
+      }),
+      options
+    );
   },
 
   /**

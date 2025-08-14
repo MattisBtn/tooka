@@ -1,5 +1,10 @@
 <template>
-    <UForm id="gallery-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
+    <!-- Upload Progress View - Elegant -->
+    <SharedUploadProgressView v-if="isUploading" :progress="galleryStore.uploadProgress" title="Upload en cours"
+        item-name="images" />
+
+    <!-- Regular Form View -->
+    <UForm v-else id="gallery-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
         <!-- Gallery Configuration -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
@@ -192,7 +197,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images</template>
                 </h3>
-                <ProjectGalleryImageUploadField v-model="selectedFiles" :max-files="200" />
+                <ProjectGalleryImageUploadField v-model="selectedFiles" :max-files="200" :disabled="isFormDisabled" />
             </div>
 
             <!-- Summary -->
@@ -213,9 +218,11 @@
 
         <!-- Form Actions -->
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
-            <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
+            <UButton label="Annuler" color="neutral" variant="ghost" :disabled="isFormDisabled"
+                @click="emit('cancel')" />
 
-            <UButton type="submit" label="Sauvegarder" color="primary" :loading="isSubmitting" />
+            <UButton type="submit" :label="isUploading ? 'Upload en cours...' : 'Sauvegarder'" color="primary"
+                :loading="isSubmitting" :disabled="isFormDisabled" />
         </div>
     </UForm>
 </template>
@@ -251,7 +258,7 @@ interface Emits {
         project: ProjectPaymentData;
         selectedFiles?: File[]
     }): void;
-    (e: "cancel"): void;
+    (e: "cancel" | "upload-completed"): void;
 }
 
 const props = defineProps<Props>();
@@ -259,6 +266,7 @@ const emit = defineEmits<Emits>();
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
+const galleryStore = useGalleryStore()
 
 // Check if project is free
 const isFree = computed(() => projectSetupStore.isFree)
@@ -289,6 +297,12 @@ const schema = galleryFormSchema;
 
 // Local loading state for form submission
 const isSubmitting = ref(false);
+
+// Upload state
+const isUploading = computed(() => galleryStore.uploadProgress.isUploading);
+const isFormDisabled = computed(() => isSubmitting.value || isUploading.value);
+
+
 
 // Computed
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
@@ -423,8 +437,8 @@ const handleSubmit = async (_event: FormSubmitEvent<GalleryFormData>) => {
         isSubmitting.value = false;
     }
 };
-</script>
 
-<style scoped>
-/* Add any custom styles here */
-</style>
+
+
+
+</script>

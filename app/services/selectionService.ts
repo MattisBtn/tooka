@@ -104,8 +104,7 @@ export const selectionService = {
    * Create new selection with validation and business rules
    */
   async createSelection(
-    selectionData: Omit<Selection, "id" | "created_at" | "updated_at">,
-    shouldValidate: boolean = false
+    selectionData: Omit<Selection, "id" | "created_at" | "updated_at">
   ): Promise<{ selection: Selection; projectUpdated: boolean }> {
     if (!selectionData.project_id?.trim()) {
       throw new Error("Project ID is required");
@@ -130,12 +129,10 @@ export const selectionService = {
       throw new Error("Une sélection existe déjà pour ce projet");
     }
 
-    // Set status based on validation
+    // For creation, always save as draft
     const finalSelectionData = {
       ...selectionData,
-      status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+      status: "draft" as const,
     };
 
     // Create selection
@@ -144,8 +141,7 @@ export const selectionService = {
     // Clear cache for this project
     selectionCache.delete(selectionData.project_id);
 
-    // For now, we don't update project status automatically
-    // This could be added later if needed
+    // For creation, project is never updated automatically
     const projectUpdated = false;
 
     return { selection, projectUpdated };
@@ -156,23 +152,12 @@ export const selectionService = {
    */
   async updateSelection(
     id: string,
-    updates: Partial<Selection>,
-    shouldValidate?: boolean
+    updates: Partial<Selection>
   ): Promise<{ selection: SelectionWithDetails; projectUpdated: boolean }> {
     const existingSelection = await this.getSelectionById(id);
 
-    // Handle validation status change
+    // Apply updates as-is
     const finalUpdates = { ...updates };
-
-    // If shouldValidate is explicitly provided, override the status
-    if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
-    }
-
-    // If status is provided in updates, use it (allows direct status control)
-    if (updates.status) {
-      finalUpdates.status = updates.status;
-    }
 
     // Business rules for status transitions
     if (finalUpdates.status) {

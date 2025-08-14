@@ -122,6 +122,18 @@
                                 disabled />
                         </UTooltip>
 
+                        <!-- Send to Client Action - Only for draft -->
+                        <UTooltip v-if="selectionStore.selection?.status === 'draft' && !isProjectCompleted"
+                            text="Envoyer la sélection au client">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" :loading="selectionStore.loading" @click="sendToClient()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="selectionStore.selection?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" disabled />
+                        </UTooltip>
+
                         <!-- Preview Action - Available for all non-draft statuses -->
                         <UTooltip v-if="selectionStore.selection?.status !== 'draft' && !isProjectCompleted"
                             text="Voir l'aperçu client">
@@ -279,7 +291,6 @@ watch(() => projectSetupStore.project, async (project) => {
 // Handle selection saved
 const handleSelectionSaved = async (data: {
     selection: Record<string, unknown>;
-    projectUpdated: boolean;
     selectedFiles?: File[]
 }) => {
     try {
@@ -302,10 +313,6 @@ const handleSelectionSaved = async (data: {
             );
         }
 
-        if (data.projectUpdated) {
-            await projectSetupStore.refreshProject()
-        }
-
         const toast = useToast();
         toast.add({
             title: selectionStore.exists ? 'Sélection mise à jour' : 'Sélection créée',
@@ -325,7 +332,31 @@ const handleSelectionSaved = async (data: {
     }
 };
 
+const sendToClient = async () => {
+    if (!selectionStore.selection) return;
 
+    try {
+        await selectionStore.sendToClient(selectionStore.selection.id)
+        await projectSetupStore.refreshProject()
+
+        const toast = useToast();
+        toast.add({
+            title: 'Sélection envoyée',
+            description: 'La sélection a été envoyée au client.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        });
+    } catch (err) {
+        console.error('Error sending selection:', err);
+        const toast = useToast();
+        toast.add({
+            title: 'Erreur',
+            description: 'Une erreur est survenue lors de l\'envoi.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        });
+    }
+}
 
 const handleDeleteImage = async (imageId: string) => {
     const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')

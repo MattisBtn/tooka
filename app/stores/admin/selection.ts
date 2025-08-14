@@ -292,10 +292,7 @@ export const useSelectionStore = defineStore("selection", () => {
         revision_last_comment: null,
       };
 
-      const result = await selectionService.createSelection(
-        data,
-        selectionData.status === "awaiting_client"
-      );
+      const result = await selectionService.createSelection(data);
       selection.value = result.selection;
 
       // Upload images if provided
@@ -339,11 +336,7 @@ export const useSelectionStore = defineStore("selection", () => {
         revision_last_comment: null,
       };
 
-      const result = await selectionService.updateSelection(
-        selectionId,
-        data,
-        selectionData.status === "awaiting_client"
-      );
+      const result = await selectionService.updateSelection(selectionId, data);
       selection.value = result.selection;
 
       // Upload images if provided
@@ -491,6 +484,29 @@ export const useSelectionStore = defineStore("selection", () => {
     }
   };
 
+  const sendToClient = async (selectionId: string) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const result = await selectionService.updateSelection(selectionId, {
+        status: "awaiting_client",
+      });
+      selection.value = result.selection;
+
+      return {
+        selection: result.selection,
+        projectUpdated: result.projectUpdated,
+      };
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to send to client");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     selection: readonly(selection),
     loading: readonly(loading),
@@ -518,6 +534,7 @@ export const useSelectionStore = defineStore("selection", () => {
     deleteImage,
     downloadImage,
     deleteAllImages,
+    sendToClient,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
     backgroundUploading: readonly(backgroundUploading),
