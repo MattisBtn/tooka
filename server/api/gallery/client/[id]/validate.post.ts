@@ -45,14 +45,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Check if payment is required (should not be for this endpoint)
-    if (gallery.payment_required) {
-      throw createError({
-        statusCode: 400,
-        message: "Cette galerie nécessite un paiement pour être validée",
-      });
-    }
-
     // Update gallery status to completed
     const { data: updatedGallery, error: updateError } = await supabase
       .from("galleries")

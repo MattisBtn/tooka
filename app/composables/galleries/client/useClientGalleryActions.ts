@@ -7,6 +7,7 @@ export const useClientGalleryActions = () => {
   const validatingGallery = ref(false);
   const requestingRevisions = ref(false);
   const downloadingGallery = ref(false);
+  const downloadingImage = ref(false);
   const confirmingPayment = ref(false);
 
   // Modal states
@@ -204,6 +205,51 @@ export const useClientGalleryActions = () => {
     }
   };
 
+  const downloadImage = async (imageId: string) => {
+    if (!store.gallery || store.gallery.status !== "completed") return;
+
+    try {
+      downloadingImage.value = true;
+      const response = await fetch(
+        `/api/gallery/client/${store.gallery.id}/image/${imageId}/download`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `image_${imageId}.jpg`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      const toast = useToast();
+      toast.add({
+        title: "Erreur",
+        description: "Impossible de télécharger l'image",
+        icon: "i-lucide-alert-circle",
+        color: "error",
+      });
+    } finally {
+      downloadingImage.value = false;
+    }
+  };
+
   // Load more action
   const loadMore = async () => {
     if (!store.hasMore || !store.isAuthenticated || store.loadingMore) {
@@ -217,6 +263,7 @@ export const useClientGalleryActions = () => {
     validatingGallery: readonly(validatingGallery),
     requestingRevisions: readonly(requestingRevisions),
     downloadingGallery: readonly(downloadingGallery),
+    downloadingImage: readonly(downloadingImage),
     confirmingPayment: readonly(confirmingPayment),
 
     // Modal states
@@ -230,6 +277,7 @@ export const useClientGalleryActions = () => {
     requestRevisions,
     confirmPayment,
     downloadGallery,
+    downloadImage,
     loadMore,
   };
 };

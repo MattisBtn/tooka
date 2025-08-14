@@ -200,7 +200,6 @@ export const projectService = {
         gallery:galleries!project_id(
           id,
           status,
-          payment_required,
           selection_id,
           created_at,
           updated_at

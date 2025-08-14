@@ -66,8 +66,8 @@ export interface GalleryStatusItem {
 
 // Validation schema for gallery form
 export const galleryFormSchema = z.object({
-  payment_required: z.boolean().default(true),
   selection_id: z.string().optional().nullable(),
+  requires_client_validation: z.boolean().default(true),
   status: z
     .enum([
       "draft",
@@ -144,7 +144,6 @@ export interface GalleryPricing {
   basePrice: number;
   depositPaid: number;
   remainingAmount: number;
-  paymentRequired: boolean;
 }
 
 // Client gallery access types

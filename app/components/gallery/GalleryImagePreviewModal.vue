@@ -2,9 +2,27 @@
     <UModal :open="isOpen" :fullscreen="true" :transition="true" @update:is-open="$emit('update:isOpen', $event)">
         <template #content>
             <div class="flex h-full bg-black/95">
-                <!-- Close button -->
-                <UButton icon="i-lucide-x" size="lg" color="neutral" variant="ghost" class="absolute top-4 right-4 z-50"
-                    @click="closePreview" />
+                <!-- Header controls -->
+                <div class="absolute top-4 left-4 right-4 flex items-center justify-between z-50">
+                    <!-- Left side - Download button on mobile -->
+                    <div class="flex items-center gap-2">
+                        <UButton v-if="showDownloadButton && isMobile" icon="i-lucide-download" size="md"
+                            color="primary" variant="solid" :loading="downloadingImage"
+                            @click="handleDownloadCurrentImage" />
+                    </div>
+
+                    <!-- Right side - Controls -->
+                    <div class="flex items-center gap-2">
+                        <!-- Download button on desktop -->
+                        <UButton v-if="showDownloadButton && !isMobile" icon="i-lucide-download" size="lg"
+                            color="primary" variant="solid" :loading="downloadingImage"
+                            @click="handleDownloadCurrentImage" />
+
+                        <!-- Close button -->
+                        <UButton icon="i-lucide-x" :size="isMobile ? 'md' : 'lg'" color="neutral" variant="ghost"
+                            @click="closePreview" />
+                    </div>
+                </div>
 
                 <!-- Navigation arrows -->
                 <UButton v-if="images.length > 1" icon="i-lucide-chevron-left" size="lg" color="neutral" variant="ghost"
@@ -54,6 +72,8 @@
 </template>
 
 <script lang="ts" setup>
+import { useClientGalleryActions } from '~/composables/galleries/client/useClientGalleryActions';
+import { useClientGalleryStore } from '~/stores/public/gallery';
 import type { GalleryImageWithSignedUrl } from '~/types/gallery';
 
 interface Props {
@@ -74,6 +94,10 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Store and actions
+const store = useClientGalleryStore()
+const actions = useClientGalleryActions()
+
 // Use signed URLs from props
 const currentImageUrl = computed(() => {
     if (!props.currentImage) return null
@@ -91,6 +115,31 @@ const thumbnailUrls = computed(() => {
     return urls
 })
 
+// Reactive mobile detection
+const isMobile = ref(false)
+
+// Computed properties
+const showDownloadButton = computed(() => store.gallery?.status === 'completed')
+const downloadingImage = computed(() => actions.downloadingImage.value)
+
+// Update mobile detection on mount and resize
+const updateMobileDetection = () => {
+    if (import.meta.client) {
+        isMobile.value = window.innerWidth < 640 // sm breakpoint
+    }
+}
+
+onMounted(() => {
+    updateMobileDetection()
+    window.addEventListener('resize', updateMobileDetection)
+})
+
+onUnmounted(() => {
+    if (import.meta.client) {
+        window.removeEventListener('resize', updateMobileDetection)
+    }
+})
+
 const closePreview = () => emit('close')
 const nextImage = () => emit('next')
 const previousImage = () => emit('previous')
@@ -98,6 +147,13 @@ const goToImage = (index: number) => emit('go-to', index)
 
 const handleImageError = () => {
     console.error('Failed to load image in preview modal')
+}
+
+// Download methods
+const handleDownloadCurrentImage = () => {
+    if (props.currentImage) {
+        actions.downloadImage(props.currentImage.id)
+    }
 }
 
 // No need for async URL loading since we have all URLs from props

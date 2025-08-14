@@ -51,16 +51,6 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Paiement</span>
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-neutral-500" />
-                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    {{ galleryStore.gallery?.payment_required ? 'Requis' : 'Gratuit' }}
-                                </span>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Pricing Information -->
@@ -141,6 +131,18 @@
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
                                 disabled />
+                        </UTooltip>
+
+                        <!-- Send to Client Action - Only for draft -->
+                        <UTooltip v-if="galleryStore.gallery?.status === 'draft' && !isProjectCompleted"
+                            text="Envoyer la galerie au client">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" :loading="galleryStore.loading" @click="sendToClient()" />
+                        </UTooltip>
+                        <UTooltip v-else-if="galleryStore.gallery?.status === 'draft' && isProjectCompleted"
+                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
+                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
+                                label="Envoyer au client" disabled />
                         </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
@@ -335,7 +337,6 @@ watch(() => projectSetupStore.project, async (project) => {
 const handleGallerySaved = async (data: {
     gallery: Record<string, unknown>;
     project: Record<string, unknown>;
-    projectUpdated: boolean;
     selectedFiles?: File[]
 }) => {
     try {
@@ -355,10 +356,6 @@ const handleGallerySaved = async (data: {
                 data.project as ProjectPaymentData,
                 data.selectedFiles
             );
-        }
-
-        if (data.projectUpdated) {
-            await projectSetupStore.refreshProject()
         }
 
         const toast = useToast();
@@ -429,6 +426,32 @@ const handleDelete = async () => {
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })
+    }
+}
+
+const sendToClient = async () => {
+    if (!galleryStore.gallery) return;
+
+    try {
+        await galleryStore.sendToClient(galleryStore.gallery.id)
+        await projectSetupStore.refreshProject()
+
+        const toast = useToast();
+        toast.add({
+            title: 'Galerie envoyée',
+            description: 'La galerie a été envoyée au client.',
+            icon: 'i-lucide-check-circle',
+            color: 'success'
+        });
+    } catch (err) {
+        console.error('Error sending gallery:', err);
+        const toast = useToast();
+        toast.add({
+            title: 'Erreur',
+            description: 'Une erreur est survenue lors de l\'envoi.',
+            icon: 'i-lucide-alert-circle',
+            color: 'error'
+        });
     }
 }
 

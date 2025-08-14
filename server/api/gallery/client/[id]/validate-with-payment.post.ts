@@ -45,17 +45,6 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Check if payment is required
-    if (!gallery.payment_required) {
-      throw createError({
-        statusCode: 400,
-        message: "Cette galerie ne nécessite pas de paiement",
-      });
-    }
-
-    // TODO: Implement payment processing here
-    // For now, we'll just update the status assuming payment is successful
-
     // Update gallery status to completed
     const { data: updatedGallery, error: updateError } = await supabase
       .from("galleries")

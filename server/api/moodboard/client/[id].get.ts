@@ -85,17 +85,21 @@ export default defineEventHandler(
         .select("id", { count: "exact" })
         .eq("moodboard_id", moodboard.id);
 
-      // Generate signed URLs for all images
+      // Generate signed URLs for all images (only if there are images)
       const filepaths = (imagesData || []).map((img) => img.file_url);
-      const { data: signedUrlsData, error: signedUrlsError } =
-        await supabase.storage
+      let signedUrlsData: { path: string | null; signedUrl: string }[] = [];
+
+      if (filepaths.length > 0) {
+        const { data: urls, error: signedUrlsError } = await supabase.storage
           .from("moodboard-images")
           .createSignedUrls(filepaths, 3600);
 
-      if (signedUrlsError) {
-        throw new Error(
-          `Failed to generate signed URLs: ${signedUrlsError.message}`
-        );
+        if (signedUrlsError) {
+          throw new Error(
+            `Failed to generate signed URLs: ${signedUrlsError.message}`
+          );
+        }
+        signedUrlsData = urls || [];
       }
 
       // Process reactions and add signed URLs

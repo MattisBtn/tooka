@@ -96,7 +96,6 @@ export const galleryService = {
         basePrice,
         depositPaid,
         remainingAmount,
-        paymentRequired: remainingAmount > 0,
       };
     } else {
       // Use project data when no proposal exists
@@ -107,7 +106,6 @@ export const galleryService = {
           basePrice: 0,
           depositPaid: 0,
           remainingAmount: 0,
-          paymentRequired: false,
         };
       }
 
@@ -120,7 +118,6 @@ export const galleryService = {
         basePrice,
         depositPaid,
         remainingAmount,
-        paymentRequired: remainingAmount > 0,
       };
     }
   },
@@ -130,7 +127,7 @@ export const galleryService = {
    */
   async createGallery(
     galleryData: Omit<Gallery, "id" | "created_at" | "updated_at">,
-    shouldValidate: boolean = false
+    _shouldValidate: boolean = false
   ): Promise<{ gallery: Gallery; projectUpdated: boolean }> {
     if (!galleryData.project_id?.trim()) {
       throw new Error("Project ID is required");
@@ -144,24 +141,18 @@ export const galleryService = {
       throw new Error("Une galerie existe déjà pour ce projet");
     }
 
-    // Calculate pricing if payment is required
-    const pricing = await this.calculateGalleryPricing(galleryData.project_id);
+    // For creation, always start as draft
+    // The sendToClient action will handle the final delivery logic
+    const finalStatus: Gallery["status"] = "draft";
+    const projectUpdated = false;
 
-    // Set payment_required based on pricing calculation if not explicitly set
     const finalGalleryData = {
       ...galleryData,
-      payment_required: galleryData.payment_required ?? pricing.paymentRequired,
-      status: shouldValidate
-        ? ("awaiting_client" as const)
-        : ("draft" as const),
+      status: finalStatus,
     };
 
     // Create gallery
     const gallery = await galleryRepository.create(finalGalleryData);
-
-    // For now, we don't update project status automatically
-    // This could be added later if needed
-    const projectUpdated = false;
 
     return { gallery, projectUpdated };
   },
@@ -174,19 +165,62 @@ export const galleryService = {
     updates: Partial<Gallery>,
     shouldValidate?: boolean
   ): Promise<{ gallery: Gallery; projectUpdated: boolean }> {
-    const _existingGallery = await this.getGalleryById(id);
+    const existingGallery = await this.getGalleryById(id);
+    let projectUpdated = false;
 
     // Handle validation status change
     const finalUpdates = { ...updates };
+
+    // Only handle status changes when explicitly requested via shouldValidate
     if (shouldValidate !== undefined) {
-      finalUpdates.status = shouldValidate ? "awaiting_client" : "draft";
+      if (shouldValidate) {
+        // Check if direct delivery mode is enabled
+        if (
+          existingGallery.requires_client_validation === false ||
+          finalUpdates.requires_client_validation === false
+        ) {
+          // Direct delivery mode: set to completed immediately
+          finalUpdates.status = "completed";
+
+          // For direct delivery with remaining amount, set remaining_amount to 0
+          const pricing = await this.calculateGalleryPricing(
+            existingGallery.project_id
+          );
+          const { projectService } = await import("~/services/projectService");
+
+          if (pricing.remainingAmount > 0) {
+            await projectService.updateProject(existingGallery.project_id, {
+              remaining_amount: 0,
+            });
+            projectUpdated = true;
+          }
+        } else {
+          // Standard validation flow: send to client
+          finalUpdates.status = "awaiting_client";
+        }
+      } else {
+        // Save as draft
+        finalUpdates.status = "draft";
+      }
     }
+    // If shouldValidate is not provided, keep current status (normal form save)
 
     // Update gallery
     const gallery = await galleryRepository.update(id, finalUpdates);
 
-    // For now, we don't update project status automatically
-    const projectUpdated = false;
+    // Check if project should be updated to completed status after gallery update
+    if (gallery.status === "completed") {
+      const { projectService } = await import("~/services/projectService");
+      const project = await projectService.getProjectById(
+        existingGallery.project_id
+      );
+      if (project && projectService.shouldUpdateProjectToCompleted(project)) {
+        await projectService.updateProject(existingGallery.project_id, {
+          status: "completed",
+        });
+        projectUpdated = true;
+      }
+    }
 
     return { gallery, projectUpdated };
   },

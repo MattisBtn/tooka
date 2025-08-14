@@ -4,7 +4,6 @@ import Stripe from "stripe";
 // Type pour les galeries avec info de projet et paiement
 type GalleryWithProject = {
   id: string;
-  payment_required: boolean;
   status: string;
   project: {
     id: string;
@@ -83,14 +82,6 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         message: "Cette galerie n'est pas en attente de validation client",
-      });
-    }
-
-    // Check if payment is required for this gallery
-    if (!gallery.payment_required) {
-      throw createError({
-        statusCode: 400,
-        message: "Aucun paiement requis pour cette galerie",
       });
     }
 

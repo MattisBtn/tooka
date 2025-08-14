@@ -143,14 +143,13 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
-      // For free projects, force payment_required to false
       const project = await projectService.getProjectById(projectId);
       const isFree = !project?.initial_price || project.initial_price === 0;
 
       const data = {
         project_id: projectId,
-        payment_required: isFree ? false : galleryData.payment_required,
         selection_id: galleryData.selection_id || null,
+        requires_client_validation: galleryData.requires_client_validation,
         status: galleryData.status,
         revision_last_comment: null,
       };
@@ -206,15 +205,14 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
-      // For free projects, force payment_required to false
       const project = await projectService.getProjectById(
         gallery.value!.project_id
       );
       const isFree = !project?.initial_price || project.initial_price === 0;
 
       const data = {
-        payment_required: isFree ? false : galleryData.payment_required,
         selection_id: galleryData.selection_id || null,
+        requires_client_validation: galleryData.requires_client_validation,
         status: galleryData.status,
         revision_last_comment: null,
       };
@@ -348,6 +346,33 @@ export const useGalleryStore = defineStore("gallery", () => {
     }
   };
 
+  const sendToClient = async (galleryId: string) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      const { galleryService } = await import("~/services/galleryService");
+      // The service will determine the final status based on requires_client_validation
+      const updatedGallery = await galleryService.updateGallery(
+        galleryId,
+        {},
+        true // shouldValidate = true to trigger "send to client" logic
+      );
+      gallery.value = updatedGallery.gallery;
+
+      return {
+        gallery: updatedGallery.gallery,
+        projectUpdated: updatedGallery.projectUpdated,
+      };
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err : new Error("Failed to send to client");
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // Modal Actions
   const openForm = () => {
     selectedGallery.value = gallery.value || undefined;
@@ -406,6 +431,7 @@ export const useGalleryStore = defineStore("gallery", () => {
     deleteGallery,
     deleteImage,
     confirmPayment,
+    sendToClient,
     openForm,
     closeForm,
     openDeleteModal,

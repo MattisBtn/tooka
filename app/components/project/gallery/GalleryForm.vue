@@ -10,61 +10,134 @@
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration de la galerie
                     </h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Paramètres de livraison et de paiement</p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Paramètres de livraison et de validation
+                    </p>
+                </div>
+            </div>
+
+            <!-- Delivery Mode Configuration -->
+            <div
+                class="space-y-4 p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                <div class="flex items-center gap-2 mb-3">
+                    <UIcon name="i-lucide-truck" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                    <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        Mode de livraison
+                    </span>
+                </div>
+
+                <UFormField name="requires_client_validation">
+                    <div
+                        class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                        <div class="flex items-center gap-3">
+                            <UIcon :name="state.requires_client_validation ? 'i-lucide-user-check' : 'i-lucide-zap'"
+                                class="w-4 h-4 text-neutral-500" />
+                            <div>
+                                <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                    {{ state.requires_client_validation ? 'Validation requise' : 'Livraison directe' }}
+                                </p>
+                                <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                                    {{ state.requires_client_validation
+                                        ? 'Le client doit valider ou payer avant de télécharger'
+                                        : 'Images disponibles immédiatement' }}
+                                </p>
+                            </div>
+                        </div>
+                        <USwitch v-model="state.requires_client_validation" color="primary" size="md" />
+                    </div>
+                </UFormField>
+
+                <!-- Direct Delivery Info -->
+                <div v-if="!state.requires_client_validation && (pricing?.remainingAmount ?? 0) > 0"
+                    class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div class="flex items-center gap-2 mb-2">
+                        <UIcon name="i-lucide-info" class="w-4 h-4 text-blue-600" />
+                        <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            Livraison directe activée
+                        </span>
+                    </div>
+                    <p class="text-xs text-blue-700 dark:text-blue-300">
+                        Le montant restant ({{ formattedRemainingAmount }}) sera automatiquement annulé et les images
+                        seront disponibles immédiatement.
+                    </p>
                 </div>
             </div>
 
             <!-- Payment Configuration -->
-            <div class="space-y-4">
-                <UFormField v-if="!isFree" label="Paiement requis pour téléchargement" name="payment_required">
-                    <USwitch v-model="state.payment_required" color="primary" size="md" :disabled="isFree" />
-                </UFormField>
-
+            <div v-if="isPaymentInfoRequired" class="space-y-4">
                 <!-- Payment Information Section -->
-                <div v-if="isPaymentInfoRequired"
-                    class="space-y-4 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
+                <div
+                    class="space-y-4 p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-800">
                     <div class="flex items-center gap-2 mb-3">
-                        <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-primary-600" />
-                        <span class="text-sm font-medium text-primary-900 dark:text-primary-100">
-                            Informations de paiement requises
+                        <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                        <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            Configuration du paiement
                         </span>
                     </div>
 
-                    <!-- Payment Method -->
-                    <UFormField label="Méthode de paiement" name="payment_method" required>
+                    <!-- Payment Method - Locked (when deposit already paid) -->
+                    <div v-if="isPaymentMethodLocked" class="space-y-3">
+                        <div
+                            class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                            <div class="flex items-center gap-3">
+                                <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-neutral-500" />
+                                <div>
+                                    <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                        {{ paymentMethodInfo?.label || 'Méthode non définie' }}
+                                    </p>
+                                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                                        Définie lors du paiement de l'acompte
+                                    </p>
+                                </div>
+                            </div>
+                            <UIcon name="i-lucide-lock" class="w-4 h-4 text-neutral-400" />
+                        </div>
+                    </div>
+
+                    <!-- Payment Method - Selectable (when no deposit paid yet) -->
+                    <UFormField v-else-if="showPaymentMethodSelector" label="Méthode de paiement" name="payment_method"
+                        required>
                         <USelectMenu v-model="paymentMethod" value-key="value" :items="paymentMethodOptions"
                             placeholder="Choisir la méthode de paiement" icon="i-lucide-credit-card" />
                     </UFormField>
 
                     <!-- Bank Transfer Details -->
-                    <div v-if="projectState.payment_method === 'bank_transfer'"
-                        class="space-y-4 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                    <div v-if="(projectState.payment_method === 'bank_transfer') || (isPaymentMethodLocked && (props.project?.payment_method === 'bank_transfer' || props.proposalPaymentInfo?.payment_method === 'bank_transfer'))"
+                        class="space-y-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
                         <div class="flex items-center gap-2 mb-3">
-                            <UIcon name="i-lucide-building-2" class="w-4 h-4 text-blue-600" />
-                            <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                Coordonnées bancaires pour le virement
+                            <UIcon name="i-lucide-building-2" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                            <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                Coordonnées bancaires
                             </span>
                         </div>
 
-                        <UFormField label="IBAN" name="bank_iban" required>
-                            <UInput v-model="projectState.bank_iban" placeholder="FR76 1234 5678 9012 3456 7890 123"
-                                icon="i-lucide-credit-card" />
-                        </UFormField>
+                        <div class="grid grid-cols-1 gap-4">
+                            <UFormField label="IBAN" name="bank_iban" required>
+                                <UInput v-model="projectState.bank_iban" placeholder="FR76 1234 5678 9012 3456 7890 123"
+                                    icon="i-lucide-credit-card" />
+                            </UFormField>
 
-                        <UFormField label="BIC/SWIFT" name="bank_bic" required>
-                            <UInput v-model="projectState.bank_bic" placeholder="EXAMPLEFR1" icon="i-lucide-building" />
-                        </UFormField>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <UFormField label="BIC/SWIFT" name="bank_bic" required>
+                                    <UInput v-model="projectState.bank_bic" placeholder="EXAMPLEFR1"
+                                        icon="i-lucide-building" />
+                                </UFormField>
 
-                        <UFormField label="Bénéficiaire" name="bank_beneficiary" required>
-                            <UInput v-model="projectState.bank_beneficiary" placeholder="Votre Entreprise SARL"
-                                icon="i-lucide-user" />
-                        </UFormField>
+                                <UFormField label="Bénéficiaire" name="bank_beneficiary" required>
+                                    <UInput v-model="projectState.bank_beneficiary" placeholder="Votre Entreprise SARL"
+                                        icon="i-lucide-user" />
+                                </UFormField>
+                            </div>
+                        </div>
+                    </div>
 
-                        <UAlert color="info" variant="soft" icon="i-lucide-info">
-                            <template #description>
-                                Ces coordonnées seront transmises au client pour effectuer le paiement.
-                            </template>
-                        </UAlert>
+                    <!-- Remaining Amount Info -->
+                    <div v-if="pricing && pricing.remainingAmount > 0"
+                        class="pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-neutral-600 dark:text-neutral-400">Montant à payer :</span>
+                            <span class="font-semibold text-neutral-900 dark:text-neutral-100">{{
+                                formattedRemainingAmount }}</span>
+                        </div>
                     </div>
 
                     <!-- Payment Info Missing Alert -->
@@ -74,64 +147,6 @@
                         </template>
                     </UAlert>
                 </div>
-
-                <!-- Pricing Information Display -->
-                <div v-if="pricing"
-                    class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                    <div class="flex items-center gap-2 mb-3">
-                        <UIcon name="i-lucide-info" class="w-4 h-4 text-orange-500" />
-                        <span class="text-sm font-medium text-orange-900 dark:text-orange-100">Informations de
-                            tarification</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div>
-                            <span class="text-orange-700 dark:text-orange-300">Prix total :</span>
-                            <p class="font-semibold text-orange-900 dark:text-orange-100">{{ formattedBasePrice }}</p>
-                        </div>
-                        <div>
-                            <span class="text-orange-700 dark:text-orange-300">Acompte payé :</span>
-                            <p class="font-semibold text-orange-900 dark:text-orange-100">{{ formattedDepositPaid }}</p>
-                        </div>
-                        <div>
-                            <span class="text-orange-700 dark:text-orange-300">Reste à payer :</span>
-                            <p class="font-semibold text-orange-900 dark:text-orange-100">{{ formattedRemainingAmount }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Payment method info if set -->
-                    <div v-if="paymentMethodInfo" class="mt-3 pt-3 border-t border-orange-300 dark:border-orange-700">
-                        <div class="flex items-center gap-2 mb-2">
-                            <UIcon name="i-lucide-credit-card" class="w-4 h-4 text-orange-600" />
-                            <span class="text-sm font-medium text-orange-900 dark:text-orange-100">
-                                Méthode de paiement (définie lors de la proposition)
-                            </span>
-                        </div>
-                        <div class="text-sm">
-                            <span class="text-orange-700 dark:text-orange-300">Méthode :</span>
-                            <span class="font-semibold text-orange-900 dark:text-orange-100 ml-1">
-                                {{ paymentMethodInfo.label }}
-                            </span>
-                        </div>
-                        <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            La méthode de paiement a été définie lors de la proposition et ne peut pas être modifiée.
-                        </p>
-                    </div>
-
-                    <div class="mt-3 text-xs text-orange-600 dark:text-orange-400">
-                        {{ state.payment_required && pricing && pricing.remainingAmount > 0
-                            ? `Le client devra payer ${formattedRemainingAmount} pour télécharger les images.`
-                            : 'Le téléchargement sera gratuit pour le client.' }}
-                    </div>
-                </div>
-
-                <UAlert v-if="state.payment_required && pricing && pricing.remainingAmount === 0" color="success"
-                    variant="soft" icon="i-lucide-check-circle" title="Paiement déjà effectué">
-                    <template #description>
-                        L'acompte couvre le prix total. Le client pourra télécharger les images gratuitement.
-                    </template>
-                </UAlert>
             </div>
         </div>
 
@@ -200,11 +215,7 @@
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
 
-            <UButton type="submit" label="Sauvegarder comme brouillon" color="neutral" variant="outline"
-                :loading="isSubmitting && submitAsDraft" @click="submitAsDraft = true" />
-
-            <UButton type="submit" label="Envoyer au client" color="primary" :loading="isSubmitting && !submitAsDraft"
-                @click="submitAsDraft = false" />
+            <UButton type="submit" label="Sauvegarder" color="primary" :loading="isSubmitting" />
         </div>
     </UForm>
 </template>
@@ -238,7 +249,6 @@ interface Emits {
     (e: "gallery-saved", data: {
         gallery: GalleryFormData;
         project: ProjectPaymentData;
-        projectUpdated: boolean;
         selectedFiles?: File[]
     }): void;
     (e: "cancel"): void;
@@ -255,17 +265,10 @@ const isFree = computed(() => projectSetupStore.isFree)
 
 // Form state
 const state = reactive<GalleryFormData>({
-    payment_required: props.gallery?.payment_required ?? true,
     selection_id: props.gallery?.selection_id || null,
+    requires_client_validation: props.gallery?.requires_client_validation ?? true,
     status: props.gallery?.status || "draft",
 });
-
-// Watch isFree to update payment_required when project changes
-watch(isFree, (free) => {
-    if (free) {
-        state.payment_required = false;
-    }
-}, { immediate: true });
 
 // Project state for payment info
 const projectState = reactive<ProjectPaymentData>({
@@ -286,7 +289,6 @@ const schema = galleryFormSchema;
 
 // Local loading state for form submission
 const isSubmitting = ref(false);
-const submitAsDraft = ref(false);
 
 // Computed
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
@@ -309,22 +311,6 @@ const paymentMethod = computed({
 
 // Pricing computed
 const pricing = computed(() => props.pricing);
-const formattedBasePrice = computed(() => {
-    if (!pricing.value?.basePrice) return "Non défini";
-    return new Intl.NumberFormat("fr-FR", {
-        style: "currency",
-        currency: "EUR",
-    }).format(pricing.value.basePrice);
-});
-
-const formattedDepositPaid = computed(() => {
-    if (!pricing.value?.depositPaid) return "Aucun acompte";
-    return new Intl.NumberFormat("fr-FR", {
-        style: "currency",
-        currency: "EUR",
-    }).format(pricing.value.depositPaid);
-});
-
 const formattedRemainingAmount = computed(() => {
     if (!pricing.value?.remainingAmount) return "Gratuit";
     return new Intl.NumberFormat("fr-FR", {
@@ -337,19 +323,52 @@ const formattedRemainingAmount = computed(() => {
 const isPaymentInfoRequired = computed(() => {
     // Si le projet est gratuit, le paiement n'est jamais requis
     if (isFree.value) return false;
-    return state.payment_required && (pricing.value?.remainingAmount ?? 0) > 0;
+    // Si la livraison directe est activée, le paiement n'est pas requis (sera annulé)
+    if (!state.requires_client_validation) return false;
+    return (pricing.value?.remainingAmount ?? 0) > 0;
 });
+
+const isPaymentMethodLocked = computed(() => {
+    // La méthode de paiement est verrouillée si un acompte a déjà été payé
+    return (pricing.value?.depositPaid ?? 0) > 0;
+});
+
+const showPaymentMethodSelector = computed(() => {
+    // Afficher le sélecteur seulement si le paiement est requis mais la méthode n'est pas verrouillée
+    return isPaymentInfoRequired.value && !isPaymentMethodLocked.value;
+});
+
 const isPaymentInfoMissing = computed(() => {
     if (!isPaymentInfoRequired.value) return false;
-    if (projectState.payment_method === 'bank_transfer') {
+
+    // Si la méthode est verrouillée, on utilise la méthode existante du projet
+    const methodToCheck = isPaymentMethodLocked.value
+        ? (props.project?.payment_method || props.proposalPaymentInfo?.payment_method)
+        : projectState.payment_method;
+
+    if (methodToCheck === 'bank_transfer') {
         return !projectState.bank_iban || !projectState.bank_bic || !projectState.bank_beneficiary;
     }
+
+    // Pour une méthode verrouillée, pas besoin de vérifier si elle est définie (elle l'est déjà)
+    if (isPaymentMethodLocked.value) return false;
+
     return !projectState.payment_method;
 });
 
 const paymentMethodInfo = computed(() => {
-    if (!props.proposalPaymentInfo?.payment_method) return null;
-    return paymentMethodOptions.find(option => option.value === props.proposalPaymentInfo?.payment_method);
+    // Pour une méthode verrouillée, utiliser la méthode du projet ou de la proposition
+    const lockedMethod = props.project?.payment_method || props.proposalPaymentInfo?.payment_method;
+    if (isPaymentMethodLocked.value && lockedMethod) {
+        return paymentMethodOptions.find(option => option.value === lockedMethod);
+    }
+
+    // Pour les méthodes non verrouillées, utiliser la méthode sélectionnée
+    if (!isPaymentMethodLocked.value && projectState.payment_method) {
+        return paymentMethodOptions.find(option => option.value === projectState.payment_method);
+    }
+
+    return null;
 });
 
 // Handle existing image deletion
@@ -387,23 +406,17 @@ const handleDeleteExistingImage = async (imageId: string) => {
 const handleSubmit = async (_event: FormSubmitEvent<GalleryFormData>) => {
     isSubmitting.value = true;
     try {
-        // Determine the new status based on user action
-        let newStatus: "draft" | "awaiting_client";
-
-        if (submitAsDraft.value) {
-            newStatus = "draft";
-        } else {
-            newStatus = "awaiting_client";
-        }
+        // For creation, always save as draft
+        // For update, keep current status
+        const finalStatus = props.gallery ? props.gallery.status : "draft";
 
         // Emit the gallery data to parent component for handling
         emit("gallery-saved", {
             gallery: {
                 ...state,
-                status: newStatus,
+                status: finalStatus,
             },
             project: projectState,
-            projectUpdated: newStatus === "awaiting_client",
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
     } finally {

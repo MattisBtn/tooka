@@ -12,16 +12,25 @@
 
             <!-- Action buttons overlay -->
             <div class="absolute top-2 right-2 flex gap-2">
-                <!-- View button -->
+                <!-- View button - desktop only, appears on hover -->
                 <UButton icon="i-lucide-eye" color="neutral" variant="solid" size="xs"
-                    class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    class="hidden sm:block backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     @click.stop="openImagePreview" />
+
+                <!-- Download button - desktop: appears on hover, mobile: always visible -->
+                <UButton v-if="showDownloadButton" icon="i-lucide-download" color="primary" variant="solid"
+                    :size="isMobile ? 'sm' : 'xs'"
+                    class="backdrop-blur-sm bg-primary-500/90 hover:bg-primary-500 text-white transition-opacity duration-300"
+                    :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'" :loading="downloadingImage"
+                    @click.stop="handleDownloadImage" />
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { useClientGalleryActions } from '~/composables/galleries/client/useClientGalleryActions'
+import { useClientGalleryStore } from '~/stores/public/gallery'
 import type { GalleryImageWithSignedUrl } from '~/types/gallery'
 
 interface Props {
@@ -38,9 +47,43 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Store and actions
+const store = useClientGalleryStore()
+const actions = useClientGalleryActions()
+
+// Reactive mobile detection
+const isMobile = ref(false)
+
+// Computed properties
+const showDownloadButton = computed(() => store.gallery?.status === 'completed')
+const downloadingImage = computed(() => actions.downloadingImage.value)
+
+// Update mobile detection on mount and resize
+const updateMobileDetection = () => {
+    if (import.meta.client) {
+        isMobile.value = window.innerWidth < 640 // sm breakpoint
+    }
+}
+
+onMounted(() => {
+    updateMobileDetection()
+    window.addEventListener('resize', updateMobileDetection)
+})
+
+onUnmounted(() => {
+    if (import.meta.client) {
+        window.removeEventListener('resize', updateMobileDetection)
+    }
+})
+
 // Image preview methods
 const openImagePreview = () => {
     emit('open-preview', props.image)
+}
+
+// Download methods
+const handleDownloadImage = () => {
+    actions.downloadImage(props.image.id)
 }
 </script>
 

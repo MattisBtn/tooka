@@ -85,17 +85,21 @@ export default defineEventHandler(
       const totalImages = count || 0;
       const hasMore = offset + pageSize < totalImages;
 
-      // Generate signed URLs for all images
+      // Generate signed URLs for all images (only if there are images)
       const filepaths = (imagesData || []).map((img) => img.file_url);
-      const { data: signedUrlsData, error: signedUrlsError } =
-        await supabase.storage
+      let signedUrlsData: { path: string | null; signedUrl: string }[] = [];
+
+      if (filepaths.length > 0) {
+        const { data: urls, error: signedUrlsError } = await supabase.storage
           .from("selection-images")
           .createSignedUrls(filepaths, 3600);
 
-      if (signedUrlsError) {
-        throw new Error(
-          `Failed to generate signed URLs: ${signedUrlsError.message}`
-        );
+        if (signedUrlsError) {
+          throw new Error(
+            `Failed to generate signed URLs: ${signedUrlsError.message}`
+          );
+        }
+        signedUrlsData = urls || [];
       }
 
       // Map images to include userSelected field and signed URLs for client compatibility

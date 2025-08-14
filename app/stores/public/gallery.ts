@@ -48,9 +48,7 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
 
   const hasRemainingAmount = computed(() => {
     return !!(
-      project.value?.remainingAmount &&
-      project.value.remainingAmount > 0 &&
-      gallery.value?.payment_required
+      project.value?.remainingAmount && project.value.remainingAmount > 0
     );
   });
 
