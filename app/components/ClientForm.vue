@@ -154,8 +154,9 @@
                 </div>
             </div>
 
-            <UFormField label="Adresse" name="billing_address">
-                <UInput v-model="state.billing_address" placeholder="123 Rue de la Paix" icon="i-heroicons-home" />
+            <UFormField class="w-full" label="Adresse" name="billing_address">
+                <UInput v-model="state.billing_address" placeholder="123 Rue de la Paix" icon="i-heroicons-home"
+                    class="w-full" />
             </UFormField>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -169,32 +170,6 @@
 
                 <UFormField label="Pays" name="billing_country">
                     <UInput v-model="state.billing_country" placeholder="France" icon="i-heroicons-globe-alt" />
-                </UFormField>
-            </div>
-        </div>
-
-        <!-- Payment Information (Company only) -->
-        <div v-if="isCompany" class="space-y-4">
-            <USeparator />
-            <div class="flex items-center gap-3 mb-6">
-                <div
-                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-credit-card" class="w-4 h-4 text-white dark:text-black" />
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations bancaires</h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Coordonnées bancaires (optionnel)</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UFormField label="IBAN" name="iban">
-                    <UInput v-model="state.iban" placeholder="FR76 1234 5678 9012 3456 789"
-                        icon="i-heroicons-credit-card" />
-                </UFormField>
-
-                <UFormField label="BIC" name="bic">
-                    <UInput v-model="state.bic" placeholder="BNPAFRPP" icon="i-heroicons-building-library" />
                 </UFormField>
             </div>
         </div>

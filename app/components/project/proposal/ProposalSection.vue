@@ -189,7 +189,7 @@
                         <ul class="text-sm text-neutral-600 dark:text-neutral-400 space-y-2">
                             <li class="flex items-start gap-2">
                                 <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                <span>Devis détaillé avec contenu personnalisable</span>
+                                <span>Devis avec contenu personnalisable</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <UIcon name="i-lucide-check" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />

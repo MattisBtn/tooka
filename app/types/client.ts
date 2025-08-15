@@ -67,41 +67,6 @@ const validateFrenchVAT = (vat?: string): boolean => {
   return key === calculatedKey;
 };
 
-const validateIBAN = (iban?: string): boolean => {
-  if (!iban) return true; // Optional field
-
-  // Remove spaces and convert to uppercase
-  const cleanIban = iban.replace(/\s/g, "").toUpperCase();
-
-  // Basic format check (15-34 characters, starts with 2 letters)
-  if (
-    !/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(cleanIban) ||
-    cleanIban.length < 15 ||
-    cleanIban.length > 34
-  ) {
-    return false;
-  }
-
-  // Move first 4 characters to end and convert letters to numbers
-  const rearranged = cleanIban.substring(4) + cleanIban.substring(0, 4);
-  const numeric = rearranged.replace(/[A-Z]/g, (letter) =>
-    (letter.charCodeAt(0) - 55).toString()
-  );
-
-  // Check mod 97
-  return BigInt(numeric) % 97n === 1n;
-};
-
-const validateBIC = (bic?: string): boolean => {
-  if (!bic) return true; // Optional field
-
-  // Remove spaces and convert to uppercase
-  const cleanBic = bic.replace(/\s/g, "").toUpperCase();
-
-  // BIC format: 4 letters (bank) + 2 letters (country) + 2 alphanumeric (location) + optional 3 alphanumeric (branch)
-  return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(cleanBic);
-};
-
 // Base schema with common fields
 const baseClientSchema = z.object({
   type: z.enum(["individual", "company"]),
@@ -153,20 +118,6 @@ export const individualClientSchema = baseClientSchema.extend({
       (val) => !val || val.trim() === "" || validateFrenchVAT(val),
       "Numéro de TVA invalide (format: FR + 2 chiffres + 9 chiffres SIREN)"
     ),
-  iban: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || val.trim() === "" || validateIBAN(val),
-      "IBAN invalide"
-    ),
-  bic: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || val.trim() === "" || validateBIC(val),
-      "Code BIC invalide (8 ou 11 caractères)"
-    ),
 });
 
 // Company client schema
@@ -186,17 +137,6 @@ export const companyClientSchema = baseClientSchema.extend({
     .refine(
       (val) => !val || validateFrenchVAT(val),
       "Numéro de TVA invalide (format: FR + 2 chiffres + 9 chiffres SIREN)"
-    ),
-  iban: z
-    .string()
-    .optional()
-    .refine((val) => !val || validateIBAN(val), "IBAN invalide"),
-  bic: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || validateBIC(val),
-      "Code BIC invalide (8 ou 11 caractères)"
     ),
   first_name: z.string().optional(),
   last_name: z.string().optional(),

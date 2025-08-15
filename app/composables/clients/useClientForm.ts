@@ -19,8 +19,6 @@ export const useClientForm = (initialClient?: Client) => {
     billing_phone: initialClient?.billing_phone || "",
     siret: initialClient?.siret || "",
     tax_id: initialClient?.tax_id || "",
-    iban: initialClient?.iban || "",
-    bic: initialClient?.bic || "",
     notes: initialClient?.notes || "",
   });
 
@@ -44,8 +42,6 @@ export const useClientForm = (initialClient?: Client) => {
       billing_phone: "",
       siret: "",
       tax_id: "",
-      iban: "",
-      bic: "",
       notes: "",
     });
   };
@@ -59,8 +55,6 @@ export const useClientForm = (initialClient?: Client) => {
       state.company_name = "";
       state.siret = "";
       state.tax_id = "";
-      state.iban = "";
-      state.bic = "";
     } else {
       state.first_name = "";
       state.last_name = "";
@@ -75,8 +69,6 @@ export const useClientForm = (initialClient?: Client) => {
         billing_phone: data.billing_phone || null,
         siret: data.siret || null,
         tax_id: data.tax_id || null,
-        iban: data.iban || null,
-        bic: data.bic || null,
         notes: data.notes || null,
         company_name: data.company_name || null,
         first_name: data.first_name || null,

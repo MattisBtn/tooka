@@ -41,7 +41,7 @@
         </UFormField>
 
         <!-- Quote Upload -->
-        <UFormField label="Devis détaillé" name="quote_url">
+        <UFormField label="Devis" name="quote_url">
             <div class="space-y-4">
                 <!-- Existing Quote File -->
                 <div v-if="props.existingQuoteUrl"

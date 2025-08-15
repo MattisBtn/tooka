@@ -1,4 +1,4 @@
-import { faker } from "@faker-js/faker/locale/fr";
+import { faker } from "@faker-js/faker";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import type { Database } from "~/types/database.types";
@@ -44,8 +44,6 @@ const generateClient = (
     tax_id: isCompany
       ? `FR${faker.number.int({ min: 10000000000, max: 99999999999 })}`
       : null,
-    iban: faker.finance.iban(),
-    bic: faker.finance.bic(),
     notes: faker.helpers.maybe(() => faker.lorem.paragraph(), {
       probability: 0.3,
     }),
@@ -61,15 +59,13 @@ async function seedClients(userId: string, count: number = 10) {
     .select();
 
   if (error) {
-    console.error("Error seeding clients:", error);
+    console.error("❌ Erreur lors de la création des clients:", error);
     return;
   }
 
-  console.log(`✅ Successfully created ${data.length} clients`);
+  console.log(`✅ ${data.length} clients créés avec succès`);
+  return data;
 }
 
-// Pour utiliser le script:
-// 1. Assurez-vous d'avoir les variables d'environnement SUPABASE_URL et SUPABASE_KEY
-// 2. Remplacez USER_ID par votre ID utilisateur
-// 3. Changez le nombre de clients à générer si besoin
-seedClients("f552326e-e6e2-4072-86a3-feec9e9f2af5", 50);
+// Exemple d'utilisation
+// seedClients("user-id-here", 5);

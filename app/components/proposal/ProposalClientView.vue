@@ -89,7 +89,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-semibold text-emerald-900 dark:text-emerald-100">Devis</p>
-                                    <p class="text-sm text-emerald-700 dark:text-emerald-300">Devis détaillé et
+                                    <p class="text-sm text-emerald-700 dark:text-emerald-300">Devis et
                                         estimations</p>
                                 </div>
                                 <UButton icon="i-lucide-external-link" size="sm" variant="soft" color="success"
