@@ -1,13 +1,36 @@
+import {
+  formatFileSize,
+  getSelectionAcceptedFormats,
+  uploadConfig,
+} from "~/utils/uploadConfig";
+
 export const useUploadRules = () => {
   const imageUploadRules = {
-    accept: "image/jpeg, image/png, image/webp",
-    maxFiles: 50,
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-    description:
-      "Formats supportés: JPG, PNG, WebP • Max 50 images • 10 MB par image",
+    accept: uploadConfig.moodboard.acceptedFormats,
+    maxFiles: uploadConfig.moodboard.maxFiles,
+    maxFileSize: uploadConfig.moodboard.maxFileSize,
+    description: uploadConfig.moodboard.description,
+  };
+
+  const selectionUploadRules = {
+    accept: getSelectionAcceptedFormats(),
+    maxFiles: uploadConfig.selection.maxFiles,
+    maxFileSize: uploadConfig.selection.maxFileSize,
+    description: uploadConfig.selection.description,
+  };
+
+  const galleryUploadRules = {
+    accept: uploadConfig.gallery.acceptedFormats,
+    maxFiles: uploadConfig.gallery.maxFiles,
+    maxFileSize: uploadConfig.gallery.maxFileSize,
+    description: uploadConfig.gallery.description,
   };
 
   return {
     imageUploadRules,
+    selectionUploadRules,
+    galleryUploadRules,
+    uploadConfig,
+    formatFileSize,
   };
 };

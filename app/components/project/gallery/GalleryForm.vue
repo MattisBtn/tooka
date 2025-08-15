@@ -197,7 +197,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images</template>
                 </h3>
-                <ProjectGalleryImageUploadField v-model="selectedFiles" :max-files="200" :disabled="isFormDisabled" />
+                <ProjectGalleryImageUploadField v-model="selectedFiles" :disabled="isFormDisabled" />
             </div>
 
             <!-- Summary -->

@@ -28,8 +28,8 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    maxFiles: 10,
-    maxFileSize: 10 * 1024 * 1024 // 10MB default
+    maxFiles: undefined, // Will use config default
+    maxFileSize: undefined // Will use config default
 })
 
 const emit = defineEmits<Emits>()
@@ -37,7 +37,7 @@ const emit = defineEmits<Emits>()
 // Get upload rules after props are defined
 const { imageUploadRules } = useUploadRules()
 
-// Use computed to get the actual values with fallbacks
+// Use computed to get the actual values with fallbacks from config
 const maxFiles = computed(() => props.maxFiles ?? imageUploadRules.maxFiles)
 const maxFileSize = computed(() => props.maxFileSize ?? imageUploadRules.maxFileSize)
 

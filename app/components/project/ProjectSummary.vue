@@ -1,5 +1,5 @@
 <template>
-    <UCard variant="subtle">
+    <UCard variant="outline">
         <template #header>
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">

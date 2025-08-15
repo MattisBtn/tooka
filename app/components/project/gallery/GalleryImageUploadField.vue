@@ -1,11 +1,10 @@
 <template>
     <div class="space-y-4">
         <!-- File Upload using UFileUpload -->
-        <UFileUpload v-model="selectedFiles" multiple accept="image/*" :max="maxFiles" :max-size="maxFileSize"
-            label="Glissez-déposez vos images de galerie ici"
-            :description="`Formats supportés: JPG, PNG, WebP • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
-            icon="i-solar-gallery-bold" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
-            @error="handleUploadError" />
+        <UFileUpload v-model="selectedFiles" multiple :accept="galleryUploadRules.accept" :max="maxFiles"
+            :max-size="maxFileSize" label="Glissez-déposez vos images de galerie ici"
+            :description="galleryUploadRules.description" icon="i-solar-gallery-bold" color="primary" variant="area"
+            size="lg" class="w-full min-h-48" layout="list" @error="handleUploadError" />
 
         <!-- Error Messages -->
         <div v-if="errors.length > 0" class="space-y-2">
@@ -16,6 +15,8 @@
 </template>
 
 <script lang="ts" setup>
+import { useUploadRules } from '~/composables/shared/useUploadRules'
+
 interface Props {
     modelValue: File[]
     maxFiles?: number
@@ -27,11 +28,18 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    maxFiles: 200,
-    maxFileSize: 100 * 1024 * 1024 // 10MB
+    maxFiles: undefined, // Will use config default
+    maxFileSize: undefined // Will use config default
 })
 
 const emit = defineEmits<Emits>()
+
+// Get upload rules after props are defined
+const { galleryUploadRules } = useUploadRules()
+
+// Use computed to get the actual values with fallbacks from config
+const maxFiles = computed(() => props.maxFiles ?? galleryUploadRules.maxFiles)
+const maxFileSize = computed(() => props.maxFileSize ?? galleryUploadRules.maxFileSize)
 
 // Local state - use computed to avoid recursive updates
 const selectedFiles = computed({

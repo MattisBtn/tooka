@@ -87,7 +87,7 @@
                     <template v-if="hasExistingImages">Ajouter de nouvelles images</template>
                     <template v-else>Uploader des images d'inspiration</template>
                 </h3>
-                <ProjectMoodboardImageUploadField v-model="selectedFiles" :max-files="50" />
+                <ProjectMoodboardImageUploadField v-model="selectedFiles" />
             </div>
 
             <!-- Summary -->

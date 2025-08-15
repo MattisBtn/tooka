@@ -159,7 +159,7 @@
                         Upload désactivé - sélection verrouillée
                     </p>
                 </div>
-                <ProjectSelectionImageUploadField v-else v-model="selectedFiles" :max-files="200" />
+                <ProjectSelectionImageUploadField v-else v-model="selectedFiles" />
             </div>
 
             <!-- Upload Progress -->

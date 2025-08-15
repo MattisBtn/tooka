@@ -1,12 +1,10 @@
 <template>
     <div class="space-y-4">
         <!-- File Upload using UFileUpload -->
-        <UFileUpload v-model="selectedFiles" multiple
-            accept="image/*,.nef,.dng,.raw,.cr2,.arw,.raf,.orf,.rw2,.crw,.pef,.srw,.x3f" :max="maxFiles"
+        <UFileUpload v-model="selectedFiles" multiple :accept="selectionUploadRules.accept" :max="maxFiles"
             :max-size="maxFileSize" label="Glissez-déposez vos images de sélection ici"
-            :description="`Formats supportés: JPG, PNG, WebP, ARW, CR2, DNG, NEF, RAW • Max ${maxFiles} images • ${maxFileSize / 1024 / 1024} MB par image`"
-            icon="i-lucide-images" color="primary" variant="area" size="lg" class="w-full min-h-48" layout="list"
-            @error="handleUploadError" />
+            :description="selectionUploadRules.description" icon="i-lucide-images" color="primary" variant="area"
+            size="lg" class="w-full min-h-48" layout="list" @error="handleUploadError" />
 
         <!-- Error Messages -->
         <div v-if="errors.length > 0" class="space-y-2">
@@ -17,6 +15,8 @@
 </template>
 
 <script lang="ts" setup>
+import { useUploadRules } from '~/composables/shared/useUploadRules'
+
 interface Props {
     modelValue: File[]
     maxFiles?: number
@@ -28,11 +28,18 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    maxFiles: 200,
-    maxFileSize: 100 * 1024 * 1024 // 100MB
+    maxFiles: undefined, // Will use config default
+    maxFileSize: undefined // Will use config default
 })
 
 const emit = defineEmits<Emits>()
+
+// Get upload rules after props are defined
+const { selectionUploadRules } = useUploadRules()
+
+// Use computed to get the actual values with fallbacks from config
+const maxFiles = computed(() => props.maxFiles ?? selectionUploadRules.maxFiles)
+const maxFileSize = computed(() => props.maxFileSize ?? selectionUploadRules.maxFileSize)
 
 // Local state - use computed to avoid recursive updates
 const selectedFiles = computed({
