@@ -17,10 +17,29 @@
 
             <!-- Proposition Content Builder -->
             <UFormField label="Contenu de la proposition" name="content" required>
+                <!-- Éditeur Notion Simple -->
+                <div
+                    class="border border-neutral-200 dark:border-neutral-700 rounded-lg p-6 bg-white dark:bg-neutral-800 min-h-[300px]">
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100 dark:border-neutral-700">
+                        <UIcon name="i-lucide-edit-3" class="w-4 h-4 text-primary-500" />
+                        <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Éditeur Notion</span>
+                        <UBadge color="success" variant="soft" size="xs" label="SIMPLE" />
+                        <div class="text-xs text-neutral-500 ml-auto">
+                            Tapez "/" pour les commandes • Enter pour nouveau bloc
+                        </div>
+                    </div>
+                    <ProjectProposalNotionLikeEditor :content-html="proposalState.content_html" :readonly="false"
+                        @update:content_html="proposalState.content_html = $event"
+                        @update:content_json="proposalState.content_json = $event" />
+                </div>
+
+                <!-- Ancien Content Builder (commenté temporairement) -->
+                <!-- 
                 <ProjectProposalContentBuilder :key="`form-builder-${proposalState.content_json?.length || 0}`"
                     :content-json="proposalState.content_json" :content-html="proposalState.content_html"
                     :status="'draft'" :readonly="false" @update:content_json="proposalState.content_json = $event"
                     @update:content_html="proposalState.content_html = $event" />
+                -->
             </UFormField>
         </div>
 
