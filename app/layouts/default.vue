@@ -3,6 +3,7 @@ import { useAuth } from '~/composables/auth/useAuth'
 import { useLogo } from '~/composables/shared/useLogo'
 import { useSubscriptionStore } from '~/stores/subscription'
 import { useUserStore } from '~/stores/user'
+import type { Client } from '~/types/client'
 
 const isSidebarCollapsed = ref(false)
 
@@ -10,6 +11,9 @@ const { user, logout: authLogout } = useAuth()
 const userStore = useUserStore()
 const subscriptionStore = useSubscriptionStore()
 const { logoSrc } = useLogo()
+
+// Client store for global modal
+const store = useClientsStore()
 
 // Define isDarkMode computed property for color mode toggle
 const isDarkMode = computed({
@@ -158,7 +162,7 @@ const logout = async () => {
                             <span class="text-sm font-medium truncate">{{ displayName }}</span>
                             <div class="flex items-center gap-1 min-w-0">
                                 <span class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ planLabel
-                                }}</span>
+                                    }}</span>
                                 <UDropdownMenu :items="accountMenuItems" :content="{ align: 'start' }">
                                     <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-down"
                                         size="sm" />
@@ -209,7 +213,7 @@ const logout = async () => {
                                     :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                     <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                         link.name
-                                        }}</span>
+                                    }}</span>
                                 </UButton>
                             </div>
                             <USeparator v-if="index < categories.length - 1" class="mt-4" />
@@ -242,5 +246,10 @@ const logout = async () => {
                 </div>
             </main>
         </div>
+
+        <!-- Global Modals -->
+        <ClientModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
+            :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined" :portal="true"
+            @update:model-value="store.closeModal" />
     </div>
 </template>

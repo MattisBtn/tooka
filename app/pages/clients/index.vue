@@ -12,8 +12,9 @@
       <div class="flex items-center gap-3">
         <UInput :model-value="store.searchQuery" icon="i-lucide-search" placeholder="Rechercher un client..."
           class="flex-1" @update:model-value="store.setSearchQuery" />
-        <USelectMenu :model-value="store.typeFilter" :items="typeOptions" value-key="value"
-          placeholder="Filtrer par type" class="w-48" @update:model-value="store.setTypeFilter" />
+        <UDropdownMenu :items="typeFilterOptions" :popper="{ placement: 'bottom-end' }">
+          <UButton icon="i-lucide-filter" color="neutral" variant="outline" :label="currentTypeFilterLabel" />
+        </UDropdownMenu>
         <UDropdownMenu :items="sortOptions" :popper="{ placement: 'bottom-end' }">
           <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" />
         </UDropdownMenu>
@@ -47,10 +48,7 @@
         @update:page="handlePageChange" />
     </div>
 
-    <!-- Client Modal -->
-    <ClientModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
-      :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined"
-      @update:model-value="store.closeModal" />
+
 
     <!-- Delete Confirmation Modal -->
     <UModal :open="store.modalState.type === 'delete'" :title="deleteModalTitle" :description="deleteModalDescription">
@@ -96,10 +94,24 @@ const store = useClientsStore()
 const rowSelection = ref({})
 
 // UI Options moved from store to component
-const typeOptions = [
-  { value: null, label: "Tous les types" },
-  { value: "individual" as const, label: "Particulier", color: "primary" },
-  { value: "company" as const, label: "Professionnel", color: "secondary" },
+const typeFilterOptions = [
+  [
+    {
+      label: "Tous les types",
+      icon: "i-lucide-filter",
+      onSelect: () => store.setTypeFilter(null)
+    },
+    {
+      label: "Particulier",
+      icon: "i-lucide-user",
+      onSelect: () => store.setTypeFilter("individual")
+    },
+    {
+      label: "Professionnel",
+      icon: "i-lucide-building",
+      onSelect: () => store.setTypeFilter("company")
+    }
+  ]
 ]
 
 const sortOptions = [
@@ -126,6 +138,12 @@ const sortOptions = [
     }
   ]
 ]
+
+const currentTypeFilterLabel = computed(() => {
+  if (!store.typeFilter) return "Tous les types"
+
+  return store.typeFilter === "individual" ? "Particulier" : "Professionnel"
+})
 
 // Initialize store
 onMounted(async () => {

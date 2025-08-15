@@ -1,8 +1,8 @@
 <template>
     <UForm id="client-form" :schema="schema" :state="state" class="space-y-6" @submit="handleSubmit">
-        <!-- Type Selection -->
-        <div class="space-y-4">
-            <div class="flex items-center gap-3 mb-6">
+        <!-- Type Selection - Only show for new clients -->
+        <div v-if="!isEditMode" class="space-y-4">
+            <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
                     <UIcon name="i-heroicons-user-group" class="w-4 h-4 text-white dark:text-black" />
                 </div>
@@ -11,49 +11,57 @@
                     <p class="text-sm text-neutral-600 dark:text-neutral-400">Choisissez le type de client à créer</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div v-for="item in clientTypeItems" :key="item.value" :class="[
-                    'cursor-pointer border-2 rounded-xl p-5 transition-all duration-200 hover:shadow-md',
+                    'group relative cursor-pointer rounded-lg p-4 transition-colors duration-200 border-2',
                     state.type === item.value
-                        ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 dark:bg-primary-950 dark:border-primary-400 dark:ring-primary-800'
-                        : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-800'
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-950'
+                        : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
                 ]" @click="changeClientType(item.value as 'individual' | 'company')">
-                    <div class="flex items-start gap-4">
+                    <!-- Selection indicator -->
+                    <div v-if="state.type === item.value" class="absolute -top-1 -right-1">
+                        <div class="w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
+                            <UIcon name="i-heroicons-check" class="w-2.5 h-2.5 text-white" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <!-- Icon -->
                         <div :class="[
-                            'flex items-center justify-center w-12 h-12 rounded-lg transition-colors',
+                            'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
                             state.type === item.value
-                                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900 dark:text-primary-400'
+                                ? 'text-white bg-black dark:bg-primary-600 dark:text-white'
                                 : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
                         ]">
-                            <UIcon :name="item.icon" class="w-6 h-6" />
+                            <UIcon :name="item.icon" class="w-5 h-5" />
                         </div>
+
+                        <!-- Content -->
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex-1 min-w-0">
-                                    <h3 :class="[
-                                        'font-semibold text-base',
-                                        state.type === item.value ? 'text-primary-900 dark:text-primary-100' : 'text-neutral-900 dark:text-neutral-100'
-                                    ]">
-                                        {{ item.label }}
-                                    </h3>
-                                    <p :class="[
-                                        'text-sm mt-1',
-                                        state.type === item.value ? 'text-primary-700 dark:text-primary-300' : 'text-neutral-600 dark:text-neutral-400'
-                                    ]">
-                                        {{ item.description }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div v-if="state.type === item.value" class="mt-3">
-                                <UBadge color="primary" variant="soft" size="sm" label="Sélectionné" />
-                            </div>
+                            <h3 :class="[
+                                'font-semibold text-sm transition-colors',
+                                state.type === item.value
+                                    ? 'text-primary-900 dark:text-primary-100'
+                                    : 'text-neutral-900 dark:text-neutral-100'
+                            ]">
+                                {{ item.label }}
+                            </h3>
+                            <p :class="[
+                                'text-xs text-neutral-600 dark:text-neutral-400 transition-colors',
+                                state.type === item.value
+                                    ? 'text-primary-700 dark:text-primary-300'
+                                    : 'text-neutral-600 dark:text-neutral-400'
+                            ]">
+                                {{ item.description }}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <USeparator />
+        <USeparator v-if="!isEditMode" />
 
         <!-- Individual Fields -->
         <div v-if="isIndividual" class="space-y-4">
@@ -198,7 +206,7 @@
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <UButton color="neutral" variant="ghost" label="Annuler" @click="$emit('cancel')" />
+            <UButton color="neutral" variant="ghost" label="Annuler" @click="emit('cancel')" />
             <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
         </div>
     </UForm>
@@ -212,7 +220,12 @@ interface Props {
     client?: Client;
 }
 
+interface Emits {
+    (e: 'cancel'): void;
+}
+
 const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const {
     state,

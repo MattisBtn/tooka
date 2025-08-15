@@ -264,7 +264,7 @@ export const clientService = {
    */
   async searchClients(
     query: string,
-    type?: "individual" | "company"
+    type?: "individual" | "company" | undefined
   ): Promise<Client[]> {
     if (!query?.trim()) {
       return [];

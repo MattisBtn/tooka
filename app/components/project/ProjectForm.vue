@@ -16,14 +16,19 @@
             </div>
 
             <UFormField label="Titre du projet" name="title" required>
-                <UInput v-model="state.title" placeholder="Ex: Shooting mariage Sarah & Thomas"
+                <UInput v-model="state.title" class="w-full" placeholder="Ex: Shooting mariage Sarah & Thomas"
                     icon="i-heroicons-document-text" />
             </UFormField>
 
             <UFormField label="Client" name="client_id" required>
-                <USelectMenu v-model="state.client_id" :items="clientOptions" value-key="value"
-                    placeholder="Sélectionner un client existant" :loading="loadingClients" searchable
-                    icon="i-heroicons-user-group" />
+                <div class="space-y-3">
+                    <USelectMenu v-model="state.client_id" class="w-full" :items="clientOptions" value-key="value"
+                        placeholder="Sélectionner un client existant" :loading="clientStore.loading" searchable
+                        icon="i-heroicons-user-group" />
+
+                    <UButton type="button" size="sm" icon="i-lucide-plus" label="Créer un nouveau client" block
+                        @click="clientStore.openCreateModal" />
+                </div>
             </UFormField>
 
             <UFormField label="Description" name="description" class="w-full">
@@ -49,8 +54,8 @@
             </div>
 
             <UFormField label="Prix" name="initial_price" help="Montant de base avant options et suppléments">
-                <UInput v-model="state.initial_price" type="number" placeholder="1500.00" step="0.01" min="0"
-                    icon="i-heroicons-currency-euro">
+                <UInput v-model="state.initial_price" class="w-full" type="number" placeholder="1500.00" step="0.01"
+                    min="0" icon="i-heroicons-currency-euro">
                     <template #trailing>
                         <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
                     </template>
@@ -88,7 +93,7 @@
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting" />
+            <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting" @click="handleCancel" />
             <UButton type="submit" color="primary" :loading="isSubmitting" :label="submitButtonLabel" />
         </div>
     </UForm>
@@ -96,7 +101,6 @@
 
 <script lang="ts" setup>
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useClientSelect } from "~/composables/clients/useClientSelect";
 import type { ProjectFormData, ProjectWithClient } from '~/types/project';
 import { projectFormSchema } from '~/types/project';
 
@@ -104,13 +108,40 @@ interface Props {
     project?: ProjectWithClient
 }
 
+interface Emits {
+    (e: 'cancel'): void;
+}
+
+
 const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-// Store
+// Stores
 const store = useProjectsStore()
+const clientStore = useClientsStore()
 
-// Client select composable
-const { clientOptions, pending: loadingClients } = useClientSelect()
+// Client options from store
+const clientOptions = computed(() =>
+    clientStore.clients.map((client) => ({
+        value: client.id,
+        label: client.type === "individual"
+            ? `${client.first_name || ""} ${client.last_name || ""}`.trim()
+            : client.company_name || "",
+    }))
+)
+
+// Initialize clients when component mounts
+onMounted(async () => {
+    if (clientStore.clients.length === 0) {
+        await clientStore.initialize()
+    }
+})
+
+watch(() => clientStore.modalState.type, async (newType, oldType) => {
+    if ((oldType === 'create' || oldType === 'edit') && newType === null) {
+        await clientStore.refresh()
+    }
+})
 
 // Form state
 const state = reactive<ProjectFormData>({
@@ -139,15 +170,21 @@ const submitButtonLabel = computed(() =>
 const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
     isSubmitting.value = true
     try {
-
         if (isEditMode.value && props.project) {
             await store.updateProject(props.project.id, event.data)
         } else {
             await store.createProject(event.data)
         }
+
+
     } finally {
         isSubmitting.value = false
         store.closeModal()
     }
+}
+
+const handleCancel = () => {
+    emit('cancel')
+    store.closeModal()
 }
 </script>

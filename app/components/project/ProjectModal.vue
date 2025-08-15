@@ -1,5 +1,6 @@
 <template>
-    <UModal v-model:open="isOpen" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }">
+    <UModal v-model:open="isOpen" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }"
+        :ui="{ content: 'w-[calc(100vw-2rem)] max-w-4xl' }">
         <template #header>
             <div class="flex items-center gap-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
@@ -16,7 +17,7 @@
         </template>
 
         <template #body>
-            <ProjectForm :project="project" />
+            <ProjectForm :project="project" @cancel="handleCancel" />
         </template>
     </UModal>
 </template>
@@ -36,8 +37,7 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// Store
-const store = useProjectsStore()
+
 
 // Computed properties
 const isOpen = computed({
@@ -49,11 +49,16 @@ const modalTitle = computed(() =>
     props.project ? 'Modifier le projet' : 'Nouveau projet'
 )
 
+// Handle form events
+const handleCancel = () => {
+    isOpen.value = false
+}
+
 // Handle escape key
 onKeyStroke('Escape', (e) => {
     if (isOpen.value) {
         e.preventDefault()
-        store.closeModal()
+        isOpen.value = false
     }
 })
 </script>
