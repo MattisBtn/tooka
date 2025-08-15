@@ -23,14 +23,29 @@
 
         <!-- Gallery view -->
         <GalleryClientView v-else-if="store.gallery && store.isAuthenticated && store.project" :gallery-id="galleryId"
-          :gallery="store.gallery" :project="store.project" :images="store.images" :has-more="store.hasMore"
-          :loading-more="store.loadingMore" @load-more="store.loadMore" />
+          :gallery="store.gallery" :project="store.project" :images="store.images" :total-images="store.totalImages"
+          :current-page="store.currentPage" :page-size="store.pageSize" :loading="store.loading"
+          @page-change="handlePageChange" />
 
         <!-- Loading state -->
-        <div v-else-if="store.loading" class="min-h-screen flex items-center justify-center">
-          <div class="text-center">
-            <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-            <p class="text-neutral-600 dark:text-neutral-400">Chargement de la galerie...</p>
+        <div v-else-if="store.loading" class="min-h-screen">
+          <!-- Header skeleton -->
+          <div class="bg-white dark:bg-neutral-900">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+              <div class="text-center max-w-4xl mx-auto">
+                <USkeleton class="h-16 w-64 mx-auto mb-4" />
+                <USkeleton class="h-6 w-48 mx-auto mb-8" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Images skeleton -->
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div v-for="i in 8" :key="i" class="aspect-square rounded-lg overflow-hidden">
+                <USkeleton class="w-full h-full" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -49,7 +64,7 @@
           @request-revisions="actions.requestRevisions" />
 
         <!-- Footer -->
-        <SharedClientFooter :config="footerConfig" />
+        <SharedClientFooter />
       </div>
     </div>
   </ClientOnly>
@@ -79,9 +94,8 @@ const { getGalleryConfig: getGalleryHeaderConfig } = useSimpleHeaderConfig();
 const simpleHeaderConfig = getGalleryHeaderConfig();
 
 // Get error and footer configurations
-const { getGalleryErrorConfig, getGalleryFooterConfig } = useClientConfig();
+const { getGalleryErrorConfig } = useClientConfig();
 const errorConfig = getGalleryErrorConfig();
-const footerConfig = getGalleryFooterConfig();
 
 // Store and actions
 const store = useClientGalleryStore();
@@ -89,6 +103,7 @@ const actions = useClientGalleryActions();
 
 // Load gallery data
 await store.loadGallery(galleryId);
+
 
 // Store methods
 const verifyPassword = store.verifyPassword;
@@ -119,6 +134,10 @@ const handlePayRemainingAmount = () => {
 
 const handleDownload = () => {
   actions.downloadGallery();
+};
+
+const handlePageChange = (page: number) => {
+  store.loadPage(page);
 };
 
 // SEO meta

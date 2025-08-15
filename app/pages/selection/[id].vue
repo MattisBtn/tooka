@@ -23,16 +23,31 @@
                 <!-- Selection view -->
                 <SelectionClientView v-else-if="store.selection && store.isAuthenticated && store.project"
                     :selection-id="selectionId" :selection="store.selection" :project="store.project"
-                    :images="mutableImages" :has-more="store.hasMore" :loading-more="store.loadingMore"
-                    :can-interact="store.canInteract" :selected-count="store.selectedCount"
-                    :max-allowed="store.maxAllowed" :extra-count="store.extraCount" :extra-price="store.extraPrice"
-                    @load-more="store.loadMore" @toggle-selection="handleToggleSelection" />
+                    :images="mutableImages" :total-images="store.totalImages" :current-page="store.currentPage"
+                    :page-size="store.pageSize" :loading="store.loading" :can-interact="store.canInteract"
+                    :selected-count="store.selectedCount" :max-allowed="store.maxAllowed"
+                    :extra-count="store.extraCount" :extra-price="store.extraPrice" @page-change="handlePageChange"
+                    @toggle-selection="handleToggleSelection" />
 
                 <!-- Loading state -->
-                <div v-else-if="store.loading" class="min-h-screen flex items-center justify-center">
-                    <div class="text-center">
-                        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-amber-600 animate-spin mx-auto mb-4" />
-                        <p class="text-neutral-600 dark:text-neutral-400">Chargement de la sélection...</p>
+                <div v-else-if="store.loading" class="min-h-screen">
+                    <!-- Header skeleton -->
+                    <div class="bg-white dark:bg-neutral-900">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                            <div class="text-center max-w-4xl mx-auto">
+                                <USkeleton class="h-16 w-64 mx-auto mb-4" />
+                                <USkeleton class="h-6 w-48 mx-auto mb-8" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Images skeleton -->
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div v-for="i in 8" :key="i" class="aspect-square rounded-lg overflow-hidden">
+                                <USkeleton class="w-full h-full" />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -50,7 +65,7 @@
                 @validate="actions.validateSelection" @request-revisions="actions.requestRevisions" />
 
             <!-- Footer -->
-            <SharedClientFooter :config="footerConfig" />
+            <SharedClientFooter />
         </div>
     </ClientOnly>
 </template>
@@ -79,9 +94,8 @@ const { getSelectionConfig: getSelectionHeaderConfig } = useSimpleHeaderConfig()
 const simpleHeaderConfig = getSelectionHeaderConfig();
 
 // Get error and footer configurations
-const { getSelectionErrorConfig, getSelectionFooterConfig } = useClientConfig();
+const { getSelectionErrorConfig } = useClientConfig();
 const errorConfig = getSelectionErrorConfig();
-const footerConfig = getSelectionFooterConfig();
 
 // Use client selection store and actions
 const store = useClientSelectionStore()
@@ -108,6 +122,11 @@ const handleValidate = () => {
 // Handle request revisions action from header
 const handleRequestRevisions = () => {
     actions.showRequestRevisionsDialog.value = true
+}
+
+// Handle page change
+const handlePageChange = (page: number) => {
+    store.loadPage(page);
 }
 
 // Handle image selection toggle

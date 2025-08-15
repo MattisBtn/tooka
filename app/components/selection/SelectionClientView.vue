@@ -1,118 +1,116 @@
 <template>
     <div class="min-h-screen">
         <!-- Selection Description -->
-        <div class="bg-white dark:bg-neutral-900">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-                <div class="text-center max-w-4xl mx-auto">
-                    <!-- Main title SELECTION -->
-                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight">
-                        SÉLECTION
-                    </h1>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+            <div class="text-center max-w-4xl mx-auto">
+                <!-- Main title SELECTION -->
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight">
+                    SÉLECTION
+                </h1>
 
-                    <!-- Subtitle with project title -->
-                    <div
-                        class="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-medium mb-8">
-                        <div>{{ project.title }}</div>
+                <!-- Subtitle with project title -->
+                <div
+                    class="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-medium mb-8">
+                    <div>{{ project.title }}</div>
+                </div>
+
+                <!-- Selection Instructions -->
+                <div class="max-w-2xl mx-auto mb-8">
+                    <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
+                        <template v-if="maxAllowed === Infinity">
+                            Sélectionnez vos images préférées en cliquant dessus.
+                            Vous pouvez choisir autant d'images que vous souhaitez.
+                        </template>
+                        <template v-else>
+                            Sélectionnez vos images préférées en cliquant dessus.
+                            Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses, ou plus avec un coût
+                            supplémentaire.
+                        </template>
+                    </p>
+                </div>
+
+                <!-- Selection Stats -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+                    <!-- Selected count -->
+                    <div class="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                        <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-white" />
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                                Images sélectionnées
+                            </div>
+                            <div class="text-lg font-bold text-amber-700 dark:text-amber-300">
+                                <template v-if="maxAllowed === Infinity">
+                                    {{ selectedCount }} / ∞
+                                </template>
+                                <template v-else>
+                                    {{ selectedCount }} / {{ maxAllowed }}
+                                </template>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Selection Instructions -->
-                    <div class="max-w-2xl mx-auto mb-8">
-                        <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
-                            <template v-if="maxAllowed === Infinity">
-                                Sélectionnez vos images préférées en cliquant dessus.
-                                Vous pouvez choisir autant d'images que vous souhaitez.
-                            </template>
-                            <template v-else>
-                                Sélectionnez vos images préférées en cliquant dessus.
-                                Vous pouvez choisir jusqu'à {{ maxAllowed }} images incluses, ou plus avec un coût
-                                supplémentaire.
-                            </template>
+                    <!-- Extra count -->
+                    <div v-if="extraCount > 0"
+                        class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                        <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-white" />
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                                Images supplémentaires
+                            </div>
+                            <div class="text-lg font-bold text-orange-700 dark:text-orange-300">
+                                {{ extraCount }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra price -->
+                    <div v-if="extraPrice > 0"
+                        class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                        <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
+                        </div>
+                        <div class="text-left">
+                            <div class="text-sm text-red-600 dark:text-red-400 font-medium">
+                                Coût supplémentaire
+                            </div>
+                            <div class="text-lg font-bold text-red-700 dark:text-red-300">
+                                +{{ extraPrice.toFixed(2) }}€
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div v-if="canInteract" class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+                    <div class="flex items-center gap-3 justify-center">
+                        <UIcon name="i-lucide-info" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                            Cliquez sur les images pour les sélectionner. Vous pouvez sélectionner plus d'images que
+                            la limite - un coût
+                            supplémentaire sera automatiquement calculé.
                         </p>
                     </div>
+                </div>
 
-                    <!-- Selection Stats -->
-                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-                        <!-- Selected count -->
-                        <div class="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-white" />
-                            </div>
-                            <div class="text-left">
-                                <div class="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                                    Images sélectionnées
-                                </div>
-                                <div class="text-lg font-bold text-amber-700 dark:text-amber-300">
-                                    <template v-if="maxAllowed === Infinity">
-                                        {{ selectedCount }} / ∞
-                                    </template>
-                                    <template v-else>
-                                        {{ selectedCount }} / {{ maxAllowed }}
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Extra count -->
-                        <div v-if="extraCount > 0"
-                            class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-                            <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-white" />
-                            </div>
-                            <div class="text-left">
-                                <div class="text-sm text-orange-600 dark:text-orange-400 font-medium">
-                                    Images supplémentaires
-                                </div>
-                                <div class="text-lg font-bold text-orange-700 dark:text-orange-300">
-                                    {{ extraCount }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Extra price -->
-                        <div v-if="extraPrice > 0"
-                            class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                            <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
-                            </div>
-                            <div class="text-left">
-                                <div class="text-sm text-red-600 dark:text-red-400 font-medium">
-                                    Coût supplémentaire
-                                </div>
-                                <div class="text-lg font-bold text-red-700 dark:text-red-300">
-                                    +{{ extraPrice.toFixed(2) }}€
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Instructions -->
-                    <div v-if="canInteract" class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
-                        <div class="flex items-center gap-3 justify-center">
-                            <UIcon name="i-lucide-info" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            <p class="text-sm text-amber-700 dark:text-amber-300">
-                                Cliquez sur les images pour les sélectionner. Vous pouvez sélectionner plus d'images que
-                                la limite - un coût
-                                supplémentaire sera automatiquement calculé.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Selection status indicator -->
-                    <div v-if="canInteract && selectedCount > 0" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                        <div class="flex items-center gap-3 justify-center">
-                            <UIcon name="i-lucide-save" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                            <p class="text-sm text-blue-700 dark:text-blue-300">
-                                Vos sélections sont temporaires. Cliquez sur "Valider ma sélection" pour les confirmer.
-                            </p>
-                        </div>
+                <!-- Selection status indicator -->
+                <div v-if="!canInteract" class="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
+                    <div class="flex items-center gap-3 justify-center">
+                        <UIcon name="i-lucide-lock" class="w-5 h-5 text-neutral-500" />
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                            Cette sélection a été validée et ne peut plus être modifiée.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Images Grid -->
-        <div ref="selectionContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div v-if="images.length === 0" class="text-center py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div v-if="props.images.length === 0" class="text-center py-12">
                 <div
                     class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
                     <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
@@ -121,58 +119,61 @@
                     Aucune image pour le moment
                 </h3>
                 <p class="text-neutral-500 dark:text-neutral-400">
-                    Les images à sélectionner seront affichées ici
+                    Les images de sélection seront affichées ici
                 </p>
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <SelectionImageCard v-for="image in images" :key="image.id" :image="image" :selection-id="selectionId"
-                    :can-interact="canInteract" :signed-url="store.getImageSignedUrl(image.file_url)"
-                    @toggle-selection="$emit('toggle-selection', image.id)" @open-preview="openImagePreview" />
-            </div>
-
-            <!-- Loading indicator -->
-            <div v-if="loadingMore" class="text-center mt-8 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <UIcon name="i-lucide-loader-2" class="w-5 h-5 animate-spin text-amber-500" />
-                    <span class="text-neutral-600 dark:text-neutral-400">Chargement d'autres images...</span>
+            <div v-else>
+                <!-- Loading skeleton -->
+                <div v-if="props.loading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div v-for="i in 8" :key="i" class="aspect-square rounded-lg overflow-hidden">
+                        <USkeleton class="w-full h-full" />
+                    </div>
                 </div>
-            </div>
 
-            <!-- End of results -->
-            <div v-else-if="images.length > 0 && !hasMore" class="text-center mt-8 py-4">
-                <div class="flex items-center justify-center gap-2 text-neutral-500 dark:text-neutral-400">
-                    <UIcon name="i-lucide-check-circle" class="w-4 h-4" />
-                    <span>Toutes les images ont été chargées</span>
+                <!-- Images grid -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <SelectionImageCard v-for="image in props.images" :key="image.id" :image="image"
+                        :selection-id="selectionId" :can-interact="canInteract"
+                        :signed-url="store.getImageSignedUrl(image.file_url)"
+                        @toggle-selection="$emit('toggle-selection', image.id)" @open-preview="openImagePreview" />
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="props.totalImages > props.pageSize" class="flex justify-center mt-12 mb-8">
+                    <UPagination v-model:page="currentPageModel" :total="props.totalImages"
+                        :items-per-page="props.pageSize" :max="5"
+                        class="px-4 py-3 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm" />
                 </div>
             </div>
         </div>
 
         <!-- Image Preview Modal -->
-        <SelectionImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
-            :images="images" :current-index="imagePreview.currentIndex.value" :selection-id="selectionId"
-            :image-signed-urls="store.imageSignedUrls" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+        <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
+            :images="modalImages" :current-index="imagePreview.currentIndex.value"
+            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
             @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
             @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { useInfiniteScroll } from '@vueuse/core';
 import { useImagePreview } from '~/composables/shared/useImagePreview';
 import type {
     ClientSelectionAccess,
     SelectionImageWithSelection,
-    SelectionWithImages
+    SelectionWithDetails
 } from '~/types/selection';
 
 interface Props {
     selectionId: string
-    selection: SelectionWithImages
+    selection: SelectionWithDetails
     project: ClientSelectionAccess['project']
     images: SelectionImageWithSelection[]
-    hasMore: boolean
-    loadingMore: boolean
+    totalImages: number
+    currentPage: number
+    pageSize: number
+    loading: boolean
     canInteract: boolean
     selectedCount: number
     maxAllowed: number
@@ -181,68 +182,51 @@ interface Props {
 }
 
 interface Emits {
-    'load-more': []
     'toggle-selection': [imageId: string]
+    'page-change': [page: number]
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
-
-// Container ref for infinite scroll
-const selectionContainer = ref<HTMLElement | null>(null)
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 // Image preview composable
-const imagePreview = useImagePreview()
+const imagePreview = useImagePreview();
 
-// Image signed URLs from store
-const store = useClientSelectionStore()
+// Store for signed URLs
+const store = useClientSelectionStore();
 
-// Computed for current preview image
-const currentPreviewImage = computed(() => {
-    if (!imagePreview.currentImage.value || !props.images.length) return null
-    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null
-})
-
-// Debounced load more function to prevent excessive calls
-const loadMoreDebounced = useDebounceFn(async () => {
-    if (props.hasMore && !props.loadingMore) {
-        emit('load-more')
+// Current page model for v-model binding
+const currentPageModel = computed({
+    get: () => props.currentPage,
+    set: (page: number) => {
+        emit('page-change', page);
     }
-}, 300)
+});
 
-// Image preview methods
+// Image preview
+const currentPreviewImage = computed(() => {
+    if (!imagePreview.currentImage.value || !props.images.length) return null;
+    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null;
+});
+
+const modalImages = computed(() => props.images as unknown as SelectionImageWithSelection[]);
+
 const openImagePreview = (image: SelectionImageWithSelection) => {
     // Convert SelectionImageWithSelection to PreviewImage format
     const previewImages = props.images.map(img => ({
         id: img.id,
         file_url: img.file_url,
         created_at: img.created_at
-    }))
+    }));
 
     const previewImage = {
         id: image.id,
         file_url: image.file_url,
         created_at: image.created_at
-    }
+    };
 
-    imagePreview.openPreview(previewImage, previewImages)
-}
-
-// No need to load URLs anymore - they come from the store
-
-// Infinite scroll setup with better protection
-onMounted(() => {
-    if (selectionContainer.value) {
-        useInfiniteScroll(
-            selectionContainer.value,
-            loadMoreDebounced,
-            {
-                distance: 400, // Load more when 400px from bottom
-                canLoadMore: () => props.hasMore && !props.loadingMore
-            }
-        )
-    }
-})
+    imagePreview.openPreview(previewImage, previewImages);
+};
 </script>
 
 <style scoped>

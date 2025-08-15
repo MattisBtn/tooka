@@ -2,10 +2,7 @@
     <div class="w-full h-full" @click="$emit('click', $event)">
         <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="`Image de moodboard`" :class="imageClasses"
             @error="handleImageError" />
-        <div v-else-if="loading"
-            class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
-            <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
-        </div>
+        <USkeleton v-else-if="loading" class="w-full h-full" />
         <div v-else class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
             <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
         </div>

@@ -12,9 +12,9 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   const images = ref<MoodboardImageWithInteractions[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-  const hasMore = ref(true);
   const currentPage = ref(1);
-  const loadingMore = ref(false); // Separate loading state for pagination
+  const totalImages = ref(0);
+  const pageSize = ref(20);
 
   // Image signed URLs management
   const imageSignedUrls = ref<Map<string, string>>(new Map());
@@ -63,55 +63,46 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     moodboard.value = null;
     images.value = [];
     loading.value = false;
-    loadingMore.value = false;
     error.value = null;
-    hasMore.value = true;
     currentPage.value = 1;
+    totalImages.value = 0;
     imageSignedUrls.value.clear();
     auth.value = null;
   };
 
-  const loadMoodboard = async (id: string, page = 1) => {
+  const loadMoodboard = async (id: string) => {
     if (loading.value) return;
 
     moodboardId.value = id;
     loading.value = true;
     error.value = null;
 
-    // Initialize auth
     initializeAuth();
 
     try {
       const response = await $fetch<ClientMoodboardAccess>(
         `/api/moodboard/client/${id}`,
-        {
-          query: { page, pageSize: 50 },
-        }
+        { query: { page: 1, pageSize: 20 } }
       );
 
       project.value = response.project;
       moodboard.value = response.moodboard;
-      images.value = Array.from(response.moodboard.images || []);
-      hasMore.value = response.moodboard.hasMore || false;
-      currentPage.value = response.moodboard.currentPage || 1;
+      images.value = [...(response.moodboard.images || [])];
+      currentPage.value = 1;
+      totalImages.value = response.moodboard.imageCount || 0;
 
       // Store signed URLs
       imageSignedUrls.value.clear();
-      if (response.moodboard.images) {
-        response.moodboard.images.forEach((image) => {
-          const imageWithUrl = image as MoodboardImageWithInteractions;
-          if (imageWithUrl.signed_url) {
-            imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
-          }
-        });
-      }
+      (response.moodboard.images || []).forEach((image) => {
+        const imageWithUrl = image as MoodboardImageWithInteractions;
+        if (imageWithUrl.signed_url) {
+          imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
+        }
+      });
 
-      // Initialize auth for password-protected projects
       if (response.project.hasPassword && auth.value) {
         auth.value.initializeAuth();
       }
-
-      return response;
     } catch (err) {
       if (err instanceof Error && err.message.includes("404")) {
         error.value = new Error("Moodboard non trouvé");
@@ -126,51 +117,36 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     }
   };
 
-  const loadMore = async () => {
-    // Protection against multiple simultaneous calls
-    if (
-      !hasMore.value ||
-      !isAuthenticated.value ||
-      !moodboardId.value ||
-      loadingMore.value
-    ) {
-      return false;
-    }
+  const loadPage = async (page: number) => {
+    if (loading.value || !moodboardId.value) return;
 
-    loadingMore.value = true;
+    loading.value = true;
 
     try {
-      const nextPage = currentPage.value + 1;
       const response = await $fetch<ClientMoodboardAccess>(
         `/api/moodboard/client/${moodboardId.value}`,
         {
-          query: { page: nextPage, pageSize: 20 },
+          query: { page, pageSize: pageSize.value },
         }
       );
 
-      if (response.moodboard.images && response.moodboard.images.length > 0) {
-        images.value = [...images.value, ...response.moodboard.images];
-        hasMore.value = response.moodboard.hasMore || false;
-        currentPage.value = nextPage;
+      // Update all properties atomically
+      images.value = [...(response.moodboard.images || [])];
+      currentPage.value = page;
+      totalImages.value = response.moodboard.imageCount || 0;
 
-        // Store signed URLs for new images
-        response.moodboard.images.forEach((image) => {
-          const imageWithUrl = image as MoodboardImageWithInteractions;
-          if (imageWithUrl.signed_url) {
-            imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
-          }
-        });
-
-        return true;
-      } else {
-        hasMore.value = false;
-        return false;
-      }
+      // Store signed URLs for new images
+      imageSignedUrls.value.clear();
+      (response.moodboard.images || []).forEach((image) => {
+        const imageWithUrl = image as MoodboardImageWithInteractions;
+        if (imageWithUrl.signed_url) {
+          imageSignedUrls.value.set(image.file_url, imageWithUrl.signed_url);
+        }
+      });
     } catch (err) {
-      console.error("Failed to load more images:", err);
-      return false;
+      console.error("Failed to load page:", err);
     } finally {
-      loadingMore.value = false;
+      loading.value = false;
     }
   };
 
@@ -203,7 +179,6 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
       | "awaiting_client"
       | "revision_requested"
       | "completed"
-      | "payment_pending"
   ) => {
     if (moodboard.value) {
       moodboard.value.status = status;
@@ -221,67 +196,6 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     return imageSignedUrls.value.get(fileUrl) || null;
   };
 
-  // Optimized update methods to avoid full reloads
-  const addImages = (newImages: MoodboardImageWithInteractions[]) => {
-    images.value = [...images.value, ...newImages];
-
-    // Store signed URLs for new images
-    newImages.forEach((image) => {
-      if (image.signed_url) {
-        imageSignedUrls.value.set(image.file_url, image.signed_url);
-      }
-    });
-  };
-
-  const updateImageComments = async (imageId: string, newComment?: string) => {
-    const imageIndex = images.value.findIndex((img) => img.id === imageId);
-    if (imageIndex !== -1) {
-      const image = images.value[imageIndex];
-      if (image && newComment) {
-        // Add new comment locally
-        const comment = {
-          id: `temp-${Date.now()}`,
-          content: newComment,
-          created_at: new Date().toISOString(),
-          image_id: imageId,
-        };
-        image.comments = [...(image.comments || []), comment];
-      }
-      // Trigger reactivity
-      images.value = [...images.value];
-    }
-  };
-
-  const updateImageReactions = async (
-    imageId: string,
-    reaction: "love" | "like" | "dislike",
-    action: "add" | "remove"
-  ) => {
-    const imageIndex = images.value.findIndex((img) => img.id === imageId);
-    if (imageIndex !== -1) {
-      const image = images.value[imageIndex];
-      if (image) {
-        // Initialize reactions if not present
-        if (!image.reactions) {
-          image.reactions = { love: 0, like: 0, dislike: 0 };
-        }
-
-        // Update reaction count locally
-        if (action === "add") {
-          image.reactions[reaction] = (image.reactions[reaction] || 0) + 1;
-        } else {
-          image.reactions[reaction] = Math.max(
-            0,
-            (image.reactions[reaction] || 0) - 1
-          );
-        }
-
-        // Trigger reactivity
-        images.value = [...images.value];
-      }
-    }
-  };
-
   return {
     // State
     moodboardId: readonly(moodboardId),
@@ -289,29 +203,28 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     moodboard: readonly(moodboard),
     images: readonly(images),
     loading: readonly(loading),
-    loadingMore: readonly(loadingMore),
     error: readonly(error),
-    hasMore: readonly(hasMore),
     currentPage: readonly(currentPage),
+    totalImages: readonly(totalImages),
+    pageSize: readonly(pageSize),
     imageSignedUrls: readonly(imageSignedUrls),
+
+    // Auth
     isAuthenticated,
     authError,
+    needsPassword,
+    verifyPassword,
+    logout,
 
     // Computed
-    needsPassword,
     canInteract,
 
     // Actions
     reset,
     loadMoodboard,
-    loadMore,
-    verifyPassword,
-    logout,
+    loadPage,
     updateMoodboardStatus,
     updateMoodboardRevisionComment,
     getImageSignedUrl,
-    addImages,
-    updateImageComments,
-    updateImageReactions,
   };
 });

@@ -12,20 +12,18 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const images = ref<SelectionImageWithSelection[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
-  const hasMore = ref(true);
   const currentPage = ref(1);
-  const loadingMore = ref(false);
-
-  // Auth state - use composable for persistence
-  const auth = ref<ReturnType<typeof useClientAuth> | null>(null);
-
-  // Selection state
-  const selectedImages = ref<Set<string>>(new Set());
-  const maxAllowed = ref<number>(Infinity);
-  const extraPricePerImage = ref<number>(0);
+  const totalImages = ref(0);
+  const pageSize = ref(20);
 
   // Image signed URLs management
   const imageSignedUrls = ref<Map<string, string>>(new Map());
+
+  // Selected images tracking
+  const selectedImages = ref<Set<string>>(new Set());
+
+  // Auth state - use composable for persistence
+  const auth = ref<ReturnType<typeof useClientAuth> | null>(null);
 
   // Computed
   const needsPassword = computed(
@@ -53,8 +51,11 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     );
   });
 
-  // Selection calculations
   const selectedCount = computed(() => selectedImages.value.size);
+
+  const maxAllowed = computed(() => {
+    return selection.value?.maxAllowed || Infinity;
+  });
 
   const extraCount = computed(() => {
     if (maxAllowed.value === Infinity) return 0;
@@ -62,7 +63,8 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   });
 
   const extraPrice = computed(() => {
-    return extraCount.value * extraPricePerImage.value;
+    if (!selection.value?.extraImagePrice || extraCount.value === 0) return 0;
+    return extraCount.value * selection.value.extraImagePrice;
   });
 
   // Initialize auth when selectionId changes
@@ -80,70 +82,54 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     selection.value = null;
     images.value = [];
     loading.value = false;
-    loadingMore.value = false;
     error.value = null;
-    hasMore.value = true;
     currentPage.value = 1;
+    totalImages.value = 0;
+    imageSignedUrls.value.clear();
     selectedImages.value.clear();
-    maxAllowed.value = Infinity;
-    extraPricePerImage.value = 0;
     auth.value = null;
   };
 
-  const loadSelection = async (id: string, page = 1) => {
+  const loadSelection = async (id: string) => {
     if (loading.value) return;
 
     selectionId.value = id;
     loading.value = true;
     error.value = null;
 
-    // Initialize auth
     initializeAuth();
 
     try {
       const response = await $fetch<ClientSelectionAccess>(
         `/api/selection/client/${id}`,
-        {
-          query: { page, pageSize: 50 },
-        }
+        { query: { page: 1, pageSize: 20 } }
       );
 
       project.value = response.project;
       selection.value = response.selection;
-      images.value = Array.from(response.selection.images || []);
-      hasMore.value = response.selection.hasMore || false;
-      currentPage.value = response.selection.currentPage || 1;
+      images.value = [...(response.selection.images || [])];
+      currentPage.value = 1;
+      totalImages.value = response.selection.imageCount || 0;
 
       // Store signed URLs
       imageSignedUrls.value.clear();
-      if (response.selection.images) {
-        response.selection.images.forEach((image) => {
-          if (image.signed_url) {
-            imageSignedUrls.value.set(image.file_url, image.signed_url);
-          }
-        });
-      }
+      (response.selection.images || []).forEach((image) => {
+        if (image.signed_url) {
+          imageSignedUrls.value.set(image.file_url, image.signed_url);
+        }
+      });
 
-      // Set selection limits from project
-      maxAllowed.value = response.project.maxImages ?? Infinity;
-      extraPricePerImage.value = response.project.extraImagePrice ?? 0;
-
-      // Synchronize server selections with local state
+      // Initialize selected images
       selectedImages.value.clear();
-      if (response.selection.images) {
-        response.selection.images.forEach((image) => {
-          if (image.userSelected) {
-            selectedImages.value.add(image.id);
-          }
-        });
-      }
+      (response.selection.images || []).forEach((image) => {
+        if (image.userSelected) {
+          selectedImages.value.add(image.id);
+        }
+      });
 
-      // Initialize auth for password-protected projects
       if (response.project.hasPassword && auth.value) {
         auth.value.initializeAuth();
       }
-
-      return response;
     } catch (err) {
       if (err instanceof Error && err.message.includes("404")) {
         error.value = new Error("Sélection non trouvée");
@@ -158,57 +144,42 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     }
   };
 
-  const loadMore = async () => {
-    // Protection against multiple simultaneous calls
-    if (
-      !hasMore.value ||
-      !isAuthenticated.value ||
-      !selectionId.value ||
-      loadingMore.value
-    ) {
-      return false;
-    }
+  const loadPage = async (page: number) => {
+    if (loading.value || !selectionId.value) return;
 
-    loadingMore.value = true;
+    loading.value = true;
 
     try {
-      const nextPage = currentPage.value + 1;
       const response = await $fetch<ClientSelectionAccess>(
         `/api/selection/client/${selectionId.value}`,
         {
-          query: { page: nextPage, pageSize: 20 },
+          query: { page, pageSize: pageSize.value },
         }
       );
 
-      if (response.selection.images && response.selection.images.length > 0) {
-        images.value = [...images.value, ...response.selection.images];
-        hasMore.value = response.selection.hasMore || false;
-        currentPage.value = nextPage;
+      // Update all properties atomically
+      images.value = [...(response.selection.images || [])];
+      currentPage.value = page;
+      totalImages.value = response.selection.imageCount || 0;
 
-        // Store signed URLs for new images
-        response.selection.images.forEach((image) => {
-          if (image.signed_url) {
-            imageSignedUrls.value.set(image.file_url, image.signed_url);
-          }
-        });
+      // Store signed URLs for new images
+      imageSignedUrls.value.clear();
+      (response.selection.images || []).forEach((image) => {
+        if (image.signed_url) {
+          imageSignedUrls.value.set(image.file_url, image.signed_url);
+        }
+      });
 
-        // Synchronize new images selections
-        response.selection.images.forEach((image) => {
-          if (image.userSelected) {
-            selectedImages.value.add(image.id);
-          }
-        });
-
-        return true;
-      } else {
-        hasMore.value = false;
-        return false;
-      }
+      // Synchronize new images selections
+      (response.selection.images || []).forEach((image) => {
+        if (image.userSelected) {
+          selectedImages.value.add(image.id);
+        }
+      });
     } catch (err) {
-      console.error("Failed to load more images:", err);
-      return false;
+      console.error("Failed to load page:", err);
     } finally {
-      loadingMore.value = false;
+      loading.value = false;
     }
   };
 
@@ -235,27 +206,42 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     }
   };
 
-  // Selection management
-  const toggleImageSelection = (imageId: string) => {
+  const toggleImageSelection = async (imageId: string) => {
     if (!canInteract.value) return;
 
-    if (selectedImages.value.has(imageId)) {
-      selectedImages.value.delete(imageId);
-    } else {
-      selectedImages.value.add(imageId);
+    try {
+      const response = await $fetch<{ selected: boolean }>(
+        `/api/selection/client/${selectionId.value}/toggle-selection`,
+        {
+          method: "POST",
+          body: { imageId },
+        }
+      );
+
+      if (response.selected) {
+        selectedImages.value.add(imageId);
+      } else {
+        selectedImages.value.delete(imageId);
+      }
+
+      // Update local image state
+      const imageIndex = images.value.findIndex((img) => img.id === imageId);
+      if (imageIndex !== -1) {
+        images.value[imageIndex].userSelected = response.selected;
+        // Trigger reactivity
+        images.value = [...images.value];
+      }
+    } catch (err) {
+      console.error("Failed to toggle image selection:", err);
     }
   };
 
-  const isImageSelected = (imageId: string) => {
-    return selectedImages.value.has(imageId);
-  };
-
-  const clearSelections = () => {
-    selectedImages.value.clear();
-  };
-
   const updateSelectionStatus = (
-    status: "draft" | "awaiting_client" | "revision_requested" | "completed"
+    status:
+      | "draft"
+      | "awaiting_client"
+      | "revision_requested"
+      | "completed"
   ) => {
     if (selection.value) {
       selection.value.status = status;
@@ -275,40 +261,37 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
 
   return {
     // State
-    selectionId: selectionId,
-    project: project,
-    selection: selection,
-    images: images,
-    loading: loading,
-    loadingMore: loadingMore,
-    error: error,
-    hasMore: hasMore,
-    currentPage: currentPage,
+    selectionId: readonly(selectionId),
+    project: readonly(project),
+    selection: readonly(selection),
+    images: readonly(images),
+    loading: readonly(loading),
+    error: readonly(error),
+    currentPage: readonly(currentPage),
+    totalImages: readonly(totalImages),
+    pageSize: readonly(pageSize),
+    imageSignedUrls: readonly(imageSignedUrls),
+    selectedImages: readonly(selectedImages),
+
+    // Auth
     isAuthenticated,
     authError,
-
-    // Selection state
-    selectedImages: selectedImages,
-    maxAllowed: maxAllowed,
-    extraPricePerImage: extraPricePerImage,
-    imageSignedUrls: imageSignedUrls,
+    needsPassword,
+    verifyPassword,
+    logout,
 
     // Computed
-    needsPassword,
     canInteract,
     selectedCount,
+    maxAllowed,
     extraCount,
     extraPrice,
 
     // Actions
     reset,
     loadSelection,
-    loadMore,
-    verifyPassword,
-    logout,
+    loadPage,
     toggleImageSelection,
-    isImageSelected,
-    clearSelections,
     updateSelectionStatus,
     updateSelectionRevisionComment,
     getImageSignedUrl,

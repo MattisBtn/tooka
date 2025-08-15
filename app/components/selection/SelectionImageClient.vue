@@ -2,10 +2,7 @@
     <div ref="imageRef" class="w-full h-full">
         <NuxtImg v-if="imageUrl" :src="imageUrl" :alt="`Image de sélection`" :class="imageClasses"
             @error="handleImageError" />
-        <div v-else-if="loading"
-            class="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse flex items-center justify-center">
-            <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
-        </div>
+        <USkeleton v-else-if="loading" class="w-full h-full" />
         <div v-else-if="error"
             class="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
             <UIcon name="i-lucide-image-off" class="w-8 h-8 text-neutral-400" />

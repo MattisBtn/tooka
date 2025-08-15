@@ -1,40 +1,38 @@
 <template>
     <div class="min-h-screen">
         <!-- Moodboard Description -->
-        <div class="bg-white dark:bg-neutral-900">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-                <div class="text-center max-w-4xl mx-auto">
-                    <!-- Main title MOODBOARD -->
-                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight">
-                        MOODBOARD
-                    </h1>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+            <div class="text-center max-w-4xl mx-auto">
+                <!-- Main title MOODBOARD -->
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black mb-4 tracking-tight">
+                    MOODBOARD
+                </h1>
 
-                    <!-- Subtitle with project and moodboard titles -->
-                    <div
-                        class="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-medium mb-8 space-y-1">
-                        <div>{{ project.title }}</div>
-                        <div class="text-neutral-400 dark:text-neutral-500">{{ moodboard.title }}</div>
-                    </div>
+                <!-- Subtitle with project and moodboard titles -->
+                <div
+                    class="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 uppercase tracking-wider font-medium mb-8 space-y-1">
+                    <div>{{ project.title }}</div>
+                    <div class="text-neutral-400 dark:text-neutral-500">{{ moodboard.title }}</div>
+                </div>
 
-                    <!-- Description -->
-                    <div v-if="moodboard.description" class="max-w-2xl mx-auto">
-                        <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
-                            {{ moodboard.description }}
-                        </p>
-                    </div>
+                <!-- Description -->
+                <div v-if="moodboard.description" class="max-w-2xl mx-auto">
+                    <p class="text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-light">
+                        {{ moodboard.description }}
+                    </p>
+                </div>
 
-                    <!-- Upload section for interactive mode -->
-                    <div v-if="canInteract" class="mt-12">
-                        <MoodboardImageUpload :disabled="uploadingImages"
-                            @files-selected="$emit('upload-images', $event)" />
-                    </div>
+                <!-- Upload section for interactive mode -->
+                <div v-if="canInteract" class="mt-12">
+                    <MoodboardImageUpload :disabled="uploadingImages"
+                        @files-selected="$emit('upload-images', $event)" />
                 </div>
             </div>
         </div>
 
         <!-- Images Grid -->
-        <div ref="moodboardContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div v-if="images.length === 0" class="text-center py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div v-if="props.images.length === 0" class="text-center py-12">
                 <div
                     class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
                     <UIcon name="i-lucide-image" class="w-8 h-8 text-neutral-400" />
@@ -47,41 +45,42 @@
                 </p>
             </div>
 
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <MoodboardImageCard v-for="image in images" :key="image.id" :image="image" :moodboard-id="moodboardId"
-                    :can-interact="canInteract" :signed-url="store.getImageSignedUrl(image.file_url)"
-                    @react="$emit('react-to-image', image.id, $event)" @comment="$emit('add-comment', image.id, $event)"
-                    @open-preview="openImagePreview" />
-            </div>
-
-            <!-- Loading indicator -->
-            <div v-if="loadingMore" class="text-center mt-8 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <UIcon name="i-lucide-loader-2" class="w-5 h-5 animate-spin text-primary-500" />
-                    <span class="text-neutral-600 dark:text-neutral-400">Chargement d'autres images...</span>
+            <div v-else>
+                <!-- Loading skeleton -->
+                <div v-if="props.loading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div v-for="i in 8" :key="i" class="aspect-square rounded-lg overflow-hidden">
+                        <USkeleton class="w-full h-full" />
+                    </div>
                 </div>
-            </div>
 
-            <!-- End of results -->
-            <div v-else-if="images.length > 0 && !hasMore" class="text-center mt-8 py-4">
-                <div class="flex items-center justify-center gap-2 text-neutral-500 dark:text-neutral-400">
-                    <UIcon name="i-lucide-check-circle" class="w-4 h-4" />
-                    <span>Toutes les images ont été chargées</span>
+                <!-- Images grid -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <MoodboardImageCard v-for="image in props.images" :key="image.id" :image="image"
+                        :moodboard-id="moodboardId" :can-interact="canInteract"
+                        :signed-url="store.getImageSignedUrl(image.file_url)"
+                        @react="$emit('react-to-image', image.id, $event)"
+                        @comment="$emit('add-comment', image.id, $event)" @open-preview="openImagePreview" />
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="props.totalImages > props.pageSize" class="flex justify-center mt-12 mb-8">
+                    <UPagination v-model:page="currentPageModel" :total="props.totalImages"
+                        :items-per-page="props.pageSize" :max="5"
+                        class="px-4 py-3 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm" />
                 </div>
             </div>
         </div>
 
         <!-- Image Preview Modal -->
-        <MoodboardImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
-            :images="images" :current-index="imagePreview.currentIndex.value" :moodboard-id="moodboardId"
-            :image-signed-urls="store.imageSignedUrls" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
-            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+        <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
+            :images="modalImages" :current-index="imagePreview.currentIndex.value"
+            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview"
+            @next="imagePreview.nextImage" @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
             @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { useInfiniteScroll } from '@vueuse/core';
 import { useImagePreview } from '~/composables/shared/useImagePreview';
 import type {
     ClientMoodboardAccess,
@@ -94,75 +93,62 @@ interface Props {
     moodboard: MoodboardWithDetails
     project: ClientMoodboardAccess['project']
     images: MoodboardImageWithInteractions[]
-    hasMore: boolean
-    loadingMore: boolean
+    totalImages: number
+    currentPage: number
+    pageSize: number
+    loading: boolean
     canInteract: boolean
     uploadingImages: boolean
 }
 
 interface Emits {
-    'load-more': []
     'upload-images': [files: File[]]
     'add-comment': [imageId: string, comment: string]
     'react-to-image': [imageId: string, reaction: 'love' | 'like' | 'dislike']
+    'page-change': [page: number]
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
-
-// Container ref for infinite scroll
-const moodboardContainer = ref<HTMLElement | null>(null)
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 // Image preview composable
-const imagePreview = useImagePreview()
+const imagePreview = useImagePreview();
 
-// Image signed URLs from store
-const store = useClientMoodboardStore()
+// Store for signed URLs
+const store = useClientMoodboardStore();
 
-// Computed for current preview image
-const currentPreviewImage = computed(() => {
-    if (!imagePreview.currentImage.value || !props.images.length) return null
-    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null
-})
-
-// Debounced load more function to prevent excessive calls
-const loadMoreDebounced = useDebounceFn(async () => {
-    if (props.hasMore && !props.loadingMore) {
-        emit('load-more')
+// Current page model for v-model binding
+const currentPageModel = computed({
+    get: () => props.currentPage,
+    set: (page: number) => {
+        emit('page-change', page);
     }
-}, 300)
+});
 
-// Image preview methods
+// Image preview
+const currentPreviewImage = computed(() => {
+    if (!imagePreview.currentImage.value || !props.images.length) return null;
+    return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null;
+});
+
+const modalImages = computed(() => props.images as unknown as MoodboardImageWithInteractions[]);
+
 const openImagePreview = (image: MoodboardImageWithInteractions) => {
     // Convert MoodboardImageWithInteractions to PreviewImage format
     const previewImages = props.images.map(img => ({
         id: img.id,
         file_url: img.file_url,
         created_at: img.created_at
-    }))
+    }));
 
     const previewImage = {
         id: image.id,
         file_url: image.file_url,
         created_at: image.created_at
-    }
+    };
 
-    imagePreview.openPreview(previewImage, previewImages)
-}
-
-// Infinite scroll setup with better protection
-onMounted(() => {
-    if (moodboardContainer.value) {
-        useInfiniteScroll(
-            moodboardContainer.value,
-            loadMoreDebounced,
-            {
-                distance: 400, // Load more when 400px from bottom
-                canLoadMore: () => props.hasMore && !props.loadingMore
-            }
-        )
-    }
-})
+    imagePreview.openPreview(previewImage, previewImages);
+};
 </script>
 
 <style scoped>

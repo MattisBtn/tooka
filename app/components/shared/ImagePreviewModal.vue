@@ -1,69 +1,106 @@
 <template>
     <UModal :open="isOpen" :fullscreen="true" :transition="true" @update:is-open="$emit('update:isOpen', $event)">
         <template #content>
-            <div class="flex h-full bg-black/95">
-                <!-- Close button -->
-                <UButton icon="i-lucide-x" size="lg" color="neutral" variant="ghost" class="absolute top-4 right-4 z-50"
-                    @click="closePreview" />
+            <div class="flex h-full bg-black/95 relative">
+                <!-- Header controls -->
+                <div class="absolute top-4 left-4 right-4 flex items-center justify-between z-50">
+                    <!-- Left side - Download button on mobile -->
+                    <div class="flex items-center gap-2">
+                        <UButton v-if="showDownloadButton && isMobile" icon="i-lucide-download" size="sm"
+                            color="primary" variant="solid" :loading="downloadingImage"
+                            @click="handleDownloadCurrentImage" />
+                    </div>
 
-                <!-- Navigation arrows -->
-                <UButton v-if="images.length > 1" icon="i-lucide-chevron-left" size="lg" color="neutral" variant="ghost"
-                    class="absolute left-4 top-1/2 -translate-y-1/2 z-50" @click="previousImage" />
+                    <!-- Right side - Controls -->
+                    <div class="flex items-center gap-2">
+                        <!-- Download button on desktop -->
+                        <UButton v-if="showDownloadButton && !isMobile" icon="i-lucide-download" size="md"
+                            color="primary" variant="solid" :loading="downloadingImage"
+                            @click="handleDownloadCurrentImage" />
 
-                <UButton v-if="images.length > 1" icon="i-lucide-chevron-right" size="lg" color="neutral"
-                    variant="ghost" class="absolute right-4 top-1/2 -translate-y-1/2 z-50" @click="nextImage" />
+                        <!-- Close button -->
+                        <UButton icon="i-lucide-x" :size="isMobile ? 'sm' : 'md'" color="neutral" variant="ghost"
+                            @click="closePreview" />
+                    </div>
+                </div>
+
+                <!-- Navigation arrows - Hidden on mobile when thumbnails are disabled -->
+                <UButton v-if="images.length > 1 && (!isMobile || showThumbnails)" icon="i-lucide-chevron-left"
+                    :size="isMobile ? 'md' : 'lg'" color="neutral" variant="ghost"
+                    class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-50" @click="previousImage" />
+
+                <UButton v-if="images.length > 1 && (!isMobile || showThumbnails)" icon="i-lucide-chevron-right"
+                    :size="isMobile ? 'md' : 'lg'" color="neutral" variant="ghost"
+                    class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-50" @click="nextImage" />
 
                 <!-- Image container -->
-                <div class="flex-1 flex items-center justify-center p-8">
+                <div class="flex-1 flex items-center justify-center p-4 sm:p-8 w-full h-full">
                     <div v-if="currentImage" class="relative w-full h-full flex items-center justify-center">
                         <!-- Main image -->
-                        <NuxtImg v-if="currentImageUrl" :src="currentImageUrl"
-                            :alt="`Image preview ${currentIndex + 1}`"
-                            class="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain" loading="eager"
-                            @error="handleImageError" />
-                        <div v-else
-                            class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
-                            <UIcon name="i-lucide-loader-2" class="w-8 h-8 text-neutral-400 animate-spin" />
+                        <div v-if="currentImageUrl" class="relative w-full h-full flex items-center justify-center">
+                            <NuxtImg :src="currentImageUrl" :alt="`Image preview ${currentIndex + 1}`"
+                                class="max-w-full max-h-full w-auto h-auto object-contain transition-all duration-300"
+                                loading="eager" @error="handleImageError" />
+                        </div>
+                        <div v-else class="w-full h-full flex items-center justify-center">
+                            <USkeleton class="w-full h-full max-w-4xl max-h-4xl" />
                         </div>
 
-                        <!-- Image counter -->
+                        <!-- Image counter - Always visible -->
                         <div v-if="images.length > 1"
-                            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
                             {{ currentIndex + 1 }} / {{ images.length }}
+                        </div>
+
+                        <!-- Swipe indicator on mobile when no thumbnails -->
+                        <div v-if="isMobile && images.length > 1 && !showThumbnails"
+                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                            <div class="flex items-center gap-2 text-white/60 text-xs">
+                                <UIcon name="i-lucide-move-horizontal" class="w-4 h-4" />
+                                <span>Glissez pour naviguer</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Thumbnail navigation -->
-                <div v-if="images.length > 1"
-                    class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto">
+                <!-- Thumbnail navigation - Hidden on mobile -->
+                <div v-if="images.length > 1 && !isMobile && showThumbnails"
+                    class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto pb-2">
                     <button v-for="(image, index) in images" :key="image.id"
                         class="w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-110 flex-shrink-0"
                         :class="index === currentIndex ? 'border-white' : 'border-white/30'" @click="goToImage(index)">
                         <NuxtImg v-if="thumbnailUrls[image.id]" :src="thumbnailUrls[image.id]"
                             :alt="`Thumbnail ${index + 1}`" class="w-full h-full object-cover" loading="lazy" />
-                        <div v-else
-                            class="w-full h-full bg-neutral-100 dark:bg-neutral-700 flex items-center justify-center">
-                            <UIcon name="i-lucide-loader-2" class="w-4 h-4 text-neutral-400 animate-spin" />
-                        </div>
+                        <USkeleton v-else class="w-full h-full" />
                     </button>
                 </div>
+
+                <!-- Mobile swipe area -->
+                <div v-if="isMobile && images.length > 1" class="absolute inset-0 z-40" @touchstart="handleTouchStart"
+                    @touchend="handleTouchEnd" />
             </div>
         </template>
     </UModal>
 </template>
 
 <script lang="ts" setup>
-import type { PreviewImage } from '~/composables/shared/useImagePreview'
+interface ImageWithFileUrl {
+    id: string
+    file_url: string
+    created_at: string
+}
 
 interface Props {
     isOpen: boolean
-    currentImage: PreviewImage | null
-    images: PreviewImage[]
+    currentImage: ImageWithFileUrl | null
+    images: ImageWithFileUrl[]
     currentIndex: number
-    storageBucket?: string // Pour permettre de spécifier le bucket de stockage
-    // Optionnel: fonction de résolution d'URL (peut retourner une URL signée)
-    getUrl?: (filePath: string) => Promise<string> | string
+    imageSignedUrls: ReadonlyMap<string, string>
+    // Optional props for download functionality
+    showDownloadButton?: boolean
+    downloadingImage?: boolean
+    onDownloadImage?: (imageId: string) => void
+    showThumbnails?: boolean // New prop to control thumbnail visibility
 }
 
 interface Emits {
@@ -73,15 +110,76 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    storageBucket: 'moodboard-images', // Par défaut, mais peut être surchargé
-    getUrl: undefined
+    showDownloadButton: false,
+    downloadingImage: false,
+    showThumbnails: true,
 })
 
 const emit = defineEmits<Emits>()
 
-// Reactive state for image URLs
-const currentImageUrl = ref<string | null>(null)
-const thumbnailUrls = ref<Record<string, string>>({})
+// Device detection using nuxt-device
+const { isMobile } = useDevice()
+
+// Touch handling for mobile swipe
+const touchStart = ref<{ x: number; y: number } | null>(null)
+const touchEnd = ref<{ x: number; y: number } | null>(null)
+
+// Minimum swipe distance
+const minSwipeDistance = 50
+
+const handleTouchStart = (e: TouchEvent) => {
+    touchEnd.value = null
+    if (e.targetTouches && e.targetTouches[0]) {
+        touchStart.value = {
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY,
+        }
+    }
+}
+
+const handleTouchEnd = (e: TouchEvent) => {
+    if (!touchStart.value) return
+
+    if (e.changedTouches && e.changedTouches[0]) {
+        touchEnd.value = {
+            x: e.changedTouches[0].clientX,
+            y: e.changedTouches[0].clientY,
+        }
+    }
+
+    if (!touchEnd.value) return
+
+    const distanceX = touchStart.value.x - touchEnd.value.x
+    const distanceY = touchStart.value.y - touchEnd.value.y
+    const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY)
+
+    if (isHorizontalSwipe && Math.abs(distanceX) > minSwipeDistance) {
+        if (distanceX > 0) {
+            // Swipe left - next image
+            emit('next')
+        } else {
+            // Swipe right - previous image
+            emit('previous')
+        }
+    }
+}
+
+// Use signed URLs from props
+const currentImageUrl = computed(() => {
+    if (!props.currentImage) return null
+    return props.imageSignedUrls.get(props.currentImage.file_url) || null
+})
+
+const thumbnailUrls = computed(() => {
+    const urls: Record<string, string> = {}
+    props.images.forEach(image => {
+        const signedUrl = props.imageSignedUrls.get(image.file_url)
+        if (signedUrl) {
+            urls[image.id] = signedUrl
+        }
+    })
+    return urls
+})
 
 const closePreview = () => emit('close')
 const nextImage = () => emit('next')
@@ -92,100 +190,10 @@ const handleImageError = () => {
     console.error('Failed to load image in preview modal')
 }
 
-// Resolve URL using provided getUrl prop or fallback to Supabase public URL
-const resolveUrl = async (filePath: string): Promise<string> => {
-    try {
-        if (props.getUrl) {
-            const maybePromise = props.getUrl(filePath)
-            return typeof (maybePromise as unknown as { then?: unknown }).then === 'function'
-                ? await (maybePromise as Promise<string>)
-                : (maybePromise as string)
-        }
-
-        const supabase = useSupabaseClient()
-        const { data } = supabase.storage
-            .from(props.storageBucket)
-            .getPublicUrl(filePath)
-        return data.publicUrl
-    } catch (error) {
-        console.error('Error resolving image URL:', error)
-        return `https://via.placeholder.com/800x600?text=Error+Loading+Image`
+// Download methods
+const handleDownloadCurrentImage = () => {
+    if (props.currentImage && props.onDownloadImage) {
+        props.onDownloadImage(props.currentImage.id)
     }
 }
-
-// Fast sync public URL (used when no signed URL resolver is provided)
-const getPublicUrlSync = (filePath: string): string => {
-    try {
-        const supabase = useSupabaseClient()
-        const { data } = supabase.storage
-            .from(props.storageBucket)
-            .getPublicUrl(filePath)
-        return data.publicUrl
-    } catch (error) {
-        console.error('Error getting public image URL:', error)
-        return `https://via.placeholder.com/800x600?text=Error+Loading+Image`
-    }
-}
-
-// Load thumbnail URL for an image
-const loadThumbnailUrl = async (image: PreviewImage) => {
-    if (!thumbnailUrls.value[image.id]) {
-        try {
-            const url = await resolveUrl(image.file_url)
-            thumbnailUrls.value[image.id] = url
-        } catch (error) {
-            console.error('Error loading thumbnail URL:', error)
-            thumbnailUrls.value[image.id] = `https://via.placeholder.com/64x64?text=Error`
-        }
-    }
-}
-
-// Load current image URL when image changes
-watch(() => props.currentImage, async (newImage) => {
-    if (newImage) {
-        try {
-            if (props.getUrl) {
-                currentImageUrl.value = await resolveUrl(newImage.file_url)
-            } else {
-                currentImageUrl.value = getPublicUrlSync(newImage.file_url)
-            }
-        } catch (error) {
-            console.error('Error loading current image URL:', error)
-            currentImageUrl.value = `https://via.placeholder.com/800x600?text=Error+Loading+Image`
-        }
-    } else {
-        currentImageUrl.value = null
-    }
-}, { immediate: true })
-
-// Preload thumbnail URLs
-onMounted(async () => {
-    if (props.images.length > 1) {
-        if (props.getUrl) {
-            const imagesToPreload = props.images.slice(0, 5)
-            await Promise.all(imagesToPreload.map(image => loadThumbnailUrl(image)))
-        } else {
-            // No signed URL resolver provided → fill thumbnails synchronously
-            const entries = props.images.map(image => [image.id as string, getPublicUrlSync(image.file_url)])
-            thumbnailUrls.value = Object.fromEntries(entries)
-        }
-    }
-})
-
-watch(() => props.images, async (newImages) => {
-    if (!newImages || newImages.length === 0) {
-        thumbnailUrls.value = {}
-        return
-    }
-
-    if (!props.getUrl) {
-        // Keep thumbnails in sync when the list changes in public URL mode
-        const entries = newImages.map(image => [image.id as string, getPublicUrlSync(image.file_url)])
-        thumbnailUrls.value = Object.fromEntries(entries)
-    } else {
-        // Ensure at least first few thumbnails are loaded when using signed URLs
-        const imagesToPreload = newImages.slice(0, 5)
-        await Promise.all(imagesToPreload.map(image => loadThumbnailUrl(image)))
-    }
-}, { deep: false })
 </script>

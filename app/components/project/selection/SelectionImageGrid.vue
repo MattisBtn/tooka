@@ -71,8 +71,8 @@
     <!-- Image Preview Modal -->
     <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="imagePreview.currentImage.value"
         :images="imagePreview.images.value" :current-index="imagePreview.currentIndex.value"
-        :storage-bucket="'selection-images'" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
-        @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage" />
+        :image-signed-urls="imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview"
+        @next="imagePreview.nextImage" @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage" />
 </template>
 
 <script lang="ts" setup>
@@ -108,6 +108,37 @@ const imagePreview = useImagePreview()
 // Local state for show more/less
 const showAll = ref(false)
 
+// Create a Map of signed URLs for the preview modal
+const imageSignedUrls = ref<Map<string, string>>(new Map())
+
+watchEffect(async () => {
+    const supabase = useSupabaseClient()
+    const filepaths = props.images.map(image => image.file_url)
+
+    if (filepaths.length === 0) {
+        imageSignedUrls.value = new Map<string, string>()
+        return
+    }
+
+    const { data: urls, error } = await supabase.storage
+        .from('selection-images')
+        .createSignedUrls(filepaths, 3600)
+
+    if (error) {
+        console.error('Error creating signed URLs:', error)
+        imageSignedUrls.value = new Map<string, string>()
+        return
+    }
+
+    const urlMap = new Map<string, string>()
+    urls?.forEach(urlData => {
+        if (urlData.path && urlData.signedUrl) {
+            urlMap.set(urlData.path, urlData.signedUrl)
+        }
+    })
+
+    imageSignedUrls.value = urlMap
+})
 
 
 // Handle image click to open preview

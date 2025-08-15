@@ -49,8 +49,8 @@ export const useClientMoodboardActions = () => {
       uploadProgress.value = 100;
 
       if (response.images && response.images.length > 0) {
-        // Add new images to existing ones instead of full reload
-        store.addImages(response.images);
+        // Reload current page to show new images
+        await store.loadPage(store.currentPage);
       }
 
       setTimeout(() => {
@@ -94,8 +94,8 @@ export const useClientMoodboardActions = () => {
         body: { imageId, content: comment },
       });
 
-      // Update locally instead of making another API call
-      await store.updateImageComments(imageId, comment);
+      // Reload current page to show updated comments
+      await store.loadPage(store.currentPage);
 
       const toast = useToast();
       toast.add({
@@ -119,36 +119,31 @@ export const useClientMoodboardActions = () => {
   const reactToImage = async (imageId: string, reaction: ReactionType) => {
     if (!store.canInteract || !store.moodboardId) return;
 
-    // Find the image in the store to check if user has already reacted
-    const image = store.images.find((img) => img.id === imageId);
-    const hasUserReaction = (image?.reactions?.[reaction] || 0) > 0;
-
     try {
-      const action = hasUserReaction ? "remove" : "add";
-
       await $fetch(`/api/moodboard/client/${store.moodboardId}/reaction`, {
         method: "POST",
-        body: { imageId, reaction, action },
+        body: { imageId, reaction },
       });
 
-      // Update locally instead of making another API call
-      await store.updateImageReactions(imageId, reaction, action);
+      // Reload current page to show updated reactions
+      await store.loadPage(store.currentPage);
     } catch (err) {
       console.error("Error setting reaction:", err);
     }
   };
 
   const validateMoodboard = async () => {
-    if (!store.moodboard || !store.moodboardId) return;
+    if (!store.moodboardId || !store.canInteract) return;
 
     try {
       validatingMoodboard.value = true;
+
       await $fetch(`/api/moodboard/client/${store.moodboardId}/validate`, {
         method: "POST",
       });
 
-      // Update moodboard status locally instead of full reload
       store.updateMoodboardStatus("completed");
+      showValidateDialog.value = false;
 
       const toast = useToast();
       toast.add({
@@ -157,8 +152,8 @@ export const useClientMoodboardActions = () => {
         icon: "i-lucide-check-circle",
         color: "success",
       });
-    } catch (error) {
-      console.error("Failed to validate moodboard:", error);
+    } catch (err) {
+      console.error("Error validating moodboard:", err);
       const toast = useToast();
       toast.add({
         title: "Erreur",
@@ -168,36 +163,27 @@ export const useClientMoodboardActions = () => {
       });
     } finally {
       validatingMoodboard.value = false;
-      showValidateDialog.value = false;
     }
   };
 
   const requestRevisions = async () => {
-    if (!store.moodboard || !store.moodboardId) return;
+    if (!store.moodboardId || !store.canInteract) return;
 
     try {
       requestingRevisions.value = true;
-      const response = await $fetch<{
-        success: boolean;
-        message: string;
-        moodboard: {
-          id: string;
-          status: string;
-          revision_last_comment?: string | null;
-        };
-        comment: string | null;
-      }>(`/api/moodboard/client/${store.moodboardId}/request-revisions`, {
-        method: "POST",
-        body: { comment: revisionComment.value },
-      });
 
-      // Update moodboard status and comment locally instead of full reload
+      await $fetch(
+        `/api/moodboard/client/${store.moodboardId}/request-revisions`,
+        {
+          method: "POST",
+          body: { comment: revisionComment.value },
+        }
+      );
+
       store.updateMoodboardStatus("revision_requested");
-      if (response.moodboard.revision_last_comment) {
-        store.updateMoodboardRevisionComment(
-          response.moodboard.revision_last_comment
-        );
-      }
+      store.updateMoodboardRevisionComment(revisionComment.value);
+      showRequestRevisionsDialog.value = false;
+      revisionComment.value = "";
 
       const toast = useToast();
       toast.add({
@@ -206,8 +192,8 @@ export const useClientMoodboardActions = () => {
         icon: "i-lucide-message-circle",
         color: "success",
       });
-    } catch (error) {
-      console.error("Failed to request revisions:", error);
+    } catch (err) {
+      console.error("Error requesting revisions:", err);
       const toast = useToast();
       toast.add({
         title: "Erreur",
@@ -217,13 +203,11 @@ export const useClientMoodboardActions = () => {
       });
     } finally {
       requestingRevisions.value = false;
-      showRequestRevisionsDialog.value = false;
-      revisionComment.value = "";
     }
   };
 
   return {
-    // Action states - use store.loadingMore instead of local state
+    // Action states
     validatingMoodboard: readonly(validatingMoodboard),
     requestingRevisions: readonly(requestingRevisions),
     uploadingImages: readonly(uploadingImages),

@@ -135,8 +135,7 @@
                         </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="selectionStore.selection?.status !== 'draft' && !isProjectCompleted"
-                            text="Voir l'aperçu client">
+                        <UTooltip v-if="selectionStore.selection?.status !== 'draft'" text="Voir l'aperçu client">
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/selection/${selectionStore.selection?.id}`"
                                 target="_blank" />

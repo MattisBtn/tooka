@@ -250,14 +250,6 @@ export const useClientGalleryActions = () => {
     }
   };
 
-  // Load more action
-  const loadMore = async () => {
-    if (!store.hasMore || !store.isAuthenticated || store.loadingMore) {
-      return false;
-    }
-    return await store.loadMore();
-  };
-
   return {
     // Action states
     validatingGallery: readonly(validatingGallery),
@@ -278,6 +270,5 @@ export const useClientGalleryActions = () => {
     confirmPayment,
     downloadGallery,
     downloadImage,
-    loadMore,
   };
 };

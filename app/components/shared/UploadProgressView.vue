@@ -8,7 +8,7 @@
                 <h3 class="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-3">
                     {{ title }}
                 </h3>
-                <p class="text-lg text-neutral-600 dark:text-neutral-400">
+                <p class="text-center text-lg text-neutral-600 dark:text-neutral-400">
                     {{ progress.completedFiles }} sur {{ progress.totalFiles }}
                     {{ itemName }}
                 </p>
@@ -56,7 +56,7 @@ interface Props {
     itemName?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     title: "Upload en cours",
     itemName: "fichiers",
 });

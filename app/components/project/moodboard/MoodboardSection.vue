@@ -133,8 +133,7 @@
                         </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="moodboardStore.moodboard?.status !== 'draft' && !isProjectCompleted"
-                            text="Voir l'aperçu client">
+                        <UTooltip v-if="moodboardStore.moodboard?.status !== 'draft'" text="Voir l'aperçu client">
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/moodboard/${moodboardStore.moodboard?.id}`"
                                 target="_blank" />

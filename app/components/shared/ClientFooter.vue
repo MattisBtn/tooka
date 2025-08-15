@@ -4,10 +4,7 @@
             <div class="text-center">
                 <p class="text-sm text-neutral-500 dark:text-neutral-400">
                     Powered by
-                    <span :class="[
-                        'font-medium',
-                        config.brandColorClass
-                    ]">Tooka</span>
+                    <span class="font-medium">Tooka</span>
                 </p>
             </div>
         </div>
@@ -15,13 +12,5 @@
 </template>
 
 <script setup lang="ts">
-export interface FooterConfig {
-    brandColorClass: string;
-}
 
-interface Props {
-    config: FooterConfig;
-}
-
-defineProps<Props>();
 </script>

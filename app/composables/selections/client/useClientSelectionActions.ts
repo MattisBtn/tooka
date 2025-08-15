@@ -14,25 +14,22 @@ export const useClientSelectionActions = () => {
   const toggleImageSelection = async (imageId: string) => {
     if (!store.canInteract) return;
 
-    // Toggle selection locally - allow unlimited selection with automatic extra price calculation
-    store.toggleImageSelection(imageId);
+    // Use the store method that handles the API call
+    await store.toggleImageSelection(imageId);
   };
 
   const validateSelection = async () => {
-    if (!store.selection || !store.selectionId) return;
+    if (!store.selectionId || !store.canInteract) return;
 
     try {
       validatingSelection.value = true;
 
-      // Send all local selections to server
-      const selectedImageIds = Array.from(store.selectedImages);
       await $fetch(`/api/selection/client/${store.selectionId}/validate`, {
         method: "POST",
-        body: { selectedImages: selectedImageIds },
       });
 
-      // Update selection status locally instead of full reload
       store.updateSelectionStatus("completed");
+      showValidateDialog.value = false;
 
       const toast = useToast();
       toast.add({
@@ -41,8 +38,8 @@ export const useClientSelectionActions = () => {
         icon: "i-lucide-check-circle",
         color: "success",
       });
-    } catch (error) {
-      console.error("Failed to validate selection:", error);
+    } catch (err) {
+      console.error("Error validating selection:", err);
       const toast = useToast();
       toast.add({
         title: "Erreur",
@@ -52,36 +49,27 @@ export const useClientSelectionActions = () => {
       });
     } finally {
       validatingSelection.value = false;
-      showValidateDialog.value = false;
     }
   };
 
   const requestRevisions = async () => {
-    if (!store.selection || !store.selectionId) return;
+    if (!store.selectionId || !store.canInteract) return;
 
     try {
       requestingRevisions.value = true;
-      const response = await $fetch<{
-        success: boolean;
-        message: string;
-        selection: {
-          id: string;
-          status: string;
-          revision_last_comment?: string | null;
-        };
-        comment: string | null;
-      }>(`/api/selection/client/${store.selectionId}/request-revisions`, {
-        method: "POST",
-        body: { comment: revisionComment.value },
-      });
 
-      // Update selection status and comment locally instead of full reload
+      await $fetch(
+        `/api/selection/client/${store.selectionId}/request-revisions`,
+        {
+          method: "POST",
+          body: { comment: revisionComment.value },
+        }
+      );
+
       store.updateSelectionStatus("revision_requested");
-      if (response.selection.revision_last_comment) {
-        store.updateSelectionRevisionComment(
-          response.selection.revision_last_comment
-        );
-      }
+      store.updateSelectionRevisionComment(revisionComment.value);
+      showRequestRevisionsDialog.value = false;
+      revisionComment.value = "";
 
       const toast = useToast();
       toast.add({
@@ -90,8 +78,8 @@ export const useClientSelectionActions = () => {
         icon: "i-lucide-message-circle",
         color: "success",
       });
-    } catch (error) {
-      console.error("Failed to request revisions:", error);
+    } catch (err) {
+      console.error("Error requesting revisions:", err);
       const toast = useToast();
       toast.add({
         title: "Erreur",
@@ -101,8 +89,6 @@ export const useClientSelectionActions = () => {
       });
     } finally {
       requestingRevisions.value = false;
-      showRequestRevisionsDialog.value = false;
-      revisionComment.value = "";
     }
   };
 

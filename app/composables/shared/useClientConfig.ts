@@ -1,4 +1,3 @@
-import type { FooterConfig } from "~/components/shared/ClientFooter.vue";
 import type { ErrorStateConfig } from "~/components/shared/ErrorState.vue";
 
 export const useClientConfig = () => {
@@ -26,32 +25,11 @@ export const useClientConfig = () => {
     helpText: "Vérifiez le lien fourni ou contactez votre photographe.",
   });
 
-  const getGalleryFooterConfig = (): FooterConfig => ({
-    brandColorClass: "text-primary-600 dark:text-primary-400",
-  });
-
-  const getMoodboardFooterConfig = (): FooterConfig => ({
-    brandColorClass: "text-pink-600 dark:text-pink-400",
-  });
-
-  const getSelectionFooterConfig = (): FooterConfig => ({
-    brandColorClass: "text-amber-600 dark:text-amber-400",
-  });
-
-  const getProposalFooterConfig = (): FooterConfig => ({
-    brandColorClass: "text-primary-600 dark:text-primary-400",
-  });
-
   return {
     // Error state configs
     getGalleryErrorConfig,
     getMoodboardErrorConfig,
     getSelectionErrorConfig,
     getProposalErrorConfig,
-    // Footer configs
-    getGalleryFooterConfig,
-    getMoodboardFooterConfig,
-    getSelectionFooterConfig,
-    getProposalFooterConfig,
   };
 };

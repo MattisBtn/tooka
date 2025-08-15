@@ -146,8 +146,7 @@
                         </UTooltip>
 
                         <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="galleryStore.gallery?.status !== 'draft' && !isProjectCompleted"
-                            text="Voir l'aperçu client">
+                        <UTooltip v-if="galleryStore.gallery?.status !== 'draft'" text="Voir l'aperçu client">
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
                         </UTooltip>

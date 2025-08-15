@@ -54,7 +54,7 @@
                 @validate="validateProposal" @request-revisions="requestRevisions" @confirm-payment="confirmPayment" />
 
             <!-- Footer -->
-            <SharedClientFooter :config="footerConfig" />
+            <SharedClientFooter />
         </div>
     </ClientOnly>
 </template>
@@ -82,9 +82,8 @@ const { getProposalConfig: getProposalHeaderConfig } = useSimpleHeaderConfig();
 const simpleHeaderConfig = getProposalHeaderConfig();
 
 // Get error and footer configurations
-const { getProposalErrorConfig, getProposalFooterConfig } = useClientConfig();
+const { getProposalErrorConfig } = useClientConfig();
 const errorConfig = getProposalErrorConfig();
-const footerConfig = getProposalFooterConfig();
 
 // Use client proposal composable
 const {

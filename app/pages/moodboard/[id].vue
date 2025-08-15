@@ -21,17 +21,31 @@
                 <!-- Moodboard view -->
                 <MoodboardClientView v-else-if="store.moodboard && store.isAuthenticated && store.project"
                     :moodboard-id="moodboardId" :moodboard="store.moodboard" :project="store.project"
-                    :images="mutableImages" :has-more="store.hasMore" :loading-more="store.loadingMore"
-                    :can-interact="store.canInteract" :uploading-images="actions.uploadingImages.value"
-                    :upload-progress="actions.uploadProgress.value" @load-more="store.loadMore"
-                    @upload-images="handleUploadImages" @add-comment="handleAddComment"
+                    :images="mutableImages" :total-images="store.totalImages" :current-page="store.currentPage"
+                    :page-size="store.pageSize" :loading="store.loading" :can-interact="store.canInteract"
+                    :uploading-images="actions.uploadingImages.value" :upload-progress="actions.uploadProgress.value"
+                    @page-change="handlePageChange" @upload-images="handleUploadImages" @add-comment="handleAddComment"
                     @react-to-image="handleReactToImage" />
 
                 <!-- Loading state -->
-                <div v-else-if="store.loading" class="min-h-screen flex items-center justify-center">
-                    <div class="text-center">
-                        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-pink-600 animate-spin mx-auto mb-4" />
-                        <p class="text-neutral-600 dark:text-neutral-400">Chargement du moodboard...</p>
+                <div v-else-if="store.loading" class="min-h-screen">
+                    <!-- Header skeleton -->
+                    <div class="bg-white dark:bg-neutral-900">
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                            <div class="text-center max-w-4xl mx-auto">
+                                <USkeleton class="h-16 w-64 mx-auto mb-4" />
+                                <USkeleton class="h-6 w-48 mx-auto mb-8" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Images skeleton -->
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div v-for="i in 8" :key="i" class="aspect-square rounded-lg overflow-hidden">
+                                <USkeleton class="w-full h-full" />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -48,7 +62,7 @@
                 @request-revisions="actions.requestRevisions" />
 
             <!-- Footer -->
-            <SharedClientFooter :config="footerConfig" />
+            <SharedClientFooter />
         </div>
     </ClientOnly>
 </template>
@@ -77,9 +91,8 @@ const { getMoodboardConfig: getMoodboardHeaderConfig } = useSimpleHeaderConfig()
 const simpleHeaderConfig = getMoodboardHeaderConfig();
 
 // Get error and footer configurations
-const { getMoodboardErrorConfig, getMoodboardFooterConfig } = useClientConfig();
+const { getMoodboardErrorConfig } = useClientConfig();
 const errorConfig = getMoodboardErrorConfig();
-const footerConfig = getMoodboardFooterConfig();
 
 // Use client moodboard store and actions
 const store = useClientMoodboardStore()
@@ -106,6 +119,11 @@ const handleValidate = () => {
 // Handle request revisions action from header
 const handleRequestRevisions = () => {
     actions.showRequestRevisionsDialog.value = true
+}
+
+// Handle page change
+const handlePageChange = (page: number) => {
+    store.loadPage(page);
 }
 
 // Handle image upload
