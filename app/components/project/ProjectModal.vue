@@ -17,7 +17,7 @@
         </template>
 
         <template #body>
-            <ProjectForm :project="project" @cancel="handleCancel" />
+            <ProjectForm :project="project" @cancel="handleCancel" @success="handleSuccess" />
         </template>
     </UModal>
 </template>
@@ -32,6 +32,7 @@ interface Props {
 
 interface Emits {
     (e: 'update:modelValue', value: boolean): void
+    (e: 'success', project: ProjectWithClient): void
 }
 
 const props = defineProps<Props>()
@@ -52,6 +53,11 @@ const modalTitle = computed(() =>
 // Handle form events
 const handleCancel = () => {
     isOpen.value = false
+}
+
+const handleSuccess = (project: ProjectWithClient) => {
+    isOpen.value = false
+    emit('success', project)
 }
 
 // Handle escape key

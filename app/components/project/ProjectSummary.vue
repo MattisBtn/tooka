@@ -32,47 +32,90 @@
         </template>
 
         <!-- Edit Mode -->
-        <ProjectModal v-if="isEditing" v-model="isEditing" :project="project" />
+        <ProjectModal v-if="isEditing" v-model="isEditing" :project="project" @success="handleEditSuccess" />
 
         <!-- View Mode -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Client Info -->
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-user" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Client</span>
+        <div v-else class="space-y-4">
+            <!-- Project Information -->
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-heroicons-folder" class="w-4 h-4 text-white dark:text-black" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations du projet
+                        </h3>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails principaux et identification
+                            du projet
+                        </p>
+                    </div>
                 </div>
-                <p class="text-neutral-900 dark:text-neutral-100">{{ clientDisplayName }}</p>
-                <p class="text-sm text-neutral-600 dark:text-neutral-400">{{ project.client?.billing_email }}</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <UFormField label="Titre du projet" name="title">
+                        <UInput :model-value="project.title" readonly class="w-full" icon="i-heroicons-document-text" />
+                    </UFormField>
+
+                    <UFormField label="Client" name="client">
+                        <UInput :model-value="clientDisplayName" readonly class="w-full"
+                            icon="i-heroicons-user-group" />
+                    </UFormField>
+                </div>
+
+                <UFormField v-if="project.description" label="Description" name="description" class="w-full">
+                    <UTextarea :model-value="project.description" readonly :rows="2" class="w-full" />
+                </UFormField>
             </div>
 
-            <!-- Price Info -->
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-euro" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Prix</span>
+            <USeparator />
+
+            <!-- Project Settings -->
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white dark:text-black" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h3>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions financières</p>
+                    </div>
                 </div>
-                <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{{ formattedPrice }}</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <UFormField label="Prix" name="price">
+                        <UInput :model-value="formattedPrice" readonly class="w-full" icon="i-heroicons-currency-euro">
+                            <template #trailing>
+                                <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
+                            </template>
+                        </UInput>
+                    </UFormField>
+
+                    <UFormField label="Créé le" name="created_at">
+                        <UInput :model-value="formattedCreatedAt" readonly class="w-full" icon="i-heroicons-calendar" />
+                    </UFormField>
+                </div>
             </div>
 
-            <!-- Dates Info -->
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-calendar" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Créé le</span>
-                </div>
-                <p class="text-neutral-900 dark:text-neutral-100">{{ formattedCreatedAt }}</p>
-            </div>
+            <!-- Security Settings -->
+            <div v-if="project.password_hash" class="space-y-3">
+                <USeparator />
 
-            <!-- Password Hash -->
-            <div v-if="project.password_hash" class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-key" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Mot de passe</span>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                        <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-white dark:text-black" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Sécurité</h3>
+                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Protection et accès sécurisé</p>
+                    </div>
                 </div>
-                <div>
+
+                <UFormField label="Mot de passe" name="password">
                     <UInput :model-value="project.password_hash" :type="showPassword ? 'text' : 'password'" readonly
-                        size="sm" variant="outline" :ui="{ trailing: 'pe-1' }">
+                        class="w-full" icon="i-heroicons-key" :ui="{ trailing: 'pe-1' }">
                         <template #trailing>
                             <div class="flex items-center gap-1">
                                 <UTooltip :text="showPassword ? 'Masquer' : 'Afficher'" :content="{ side: 'top' }">
@@ -89,16 +132,7 @@
                             </div>
                         </template>
                     </UInput>
-                </div>
-            </div>
-
-            <!-- Description -->
-            <div v-if="project.description" class="md:col-span-2 space-y-2">
-                <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-file-text" class="w-4 h-4 text-neutral-500" />
-                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Description</span>
-                </div>
-                <p class="text-neutral-900 dark:text-neutral-100">{{ project.description }}</p>
+                </UFormField>
             </div>
         </div>
     </UCard>
@@ -119,16 +153,12 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Store
-const store = useProjectSetupStore()
-
 // Password management
 const showPassword = ref(false)
 const passwordCopied = ref(false)
 
 // Edit state
 const isEditing = ref(false)
-
 
 // Copy password to clipboard
 const copyPassword = async () => {
@@ -149,5 +179,13 @@ const copyPassword = async () => {
 const startEditing = () => {
     if (!props.canEditProject) return
     isEditing.value = true
+}
+
+// Handle edit success
+const handleEditSuccess = async (_updatedProject: ProjectWithClient) => {
+    // Update the project in the store
+    const projectSetupStore = useProjectSetupStore()
+    await projectSetupStore.refreshProject()
+    isEditing.value = false
 }
 </script>

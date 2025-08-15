@@ -110,6 +110,7 @@ interface Props {
 
 interface Emits {
     (e: 'cancel'): void;
+    (e: 'success', project: ProjectWithClient): void;
 }
 
 
@@ -171,20 +172,18 @@ const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
     isSubmitting.value = true
     try {
         if (isEditMode.value && props.project) {
-            await store.updateProject(props.project.id, event.data)
+            const updatedProject = await store.updateProject(props.project.id, event.data)
+            emit('success', updatedProject)
         } else {
-            await store.createProject(event.data)
+            const newProject = await store.createProject(event.data)
+            emit('success', newProject)
         }
-
-
     } finally {
         isSubmitting.value = false
-        store.closeModal()
     }
 }
 
 const handleCancel = () => {
     emit('cancel')
-    store.closeModal()
 }
 </script>
