@@ -15,7 +15,7 @@
         <USelectMenu :model-value="store.typeFilter" :items="typeOptions" value-key="value"
           placeholder="Filtrer par type" class="w-48" @update:model-value="store.setTypeFilter" />
         <UDropdownMenu :items="sortOptions" :popper="{ placement: 'bottom-end' }">
-          <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" size="lg" label="Ordre de tri" />
+          <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" />
         </UDropdownMenu>
       </div>
     </div>

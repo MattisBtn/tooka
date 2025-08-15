@@ -64,7 +64,7 @@ const getStepDisplayStatus = (stepNumber: WorkflowStep): StepInfo | null => {
 }
 
 // Helper function to determine the most advanced step
-const getMostAdvancedStep = (): WorkflowStep => {
+const getMostAdvancedStep = (currentStep?: WorkflowStep): WorkflowStep => {
     if (!projectSetupStore.project) return 1;
 
     const moduleMap = {
@@ -73,6 +73,30 @@ const getMostAdvancedStep = (): WorkflowStep => {
         3: "selection",
         4: "gallery",
     } as const;
+
+    // If we have a current step, check if it's still valid first
+    if (currentStep) {
+        const currentStepStatus = getStepDisplayStatus(currentStep);
+        if (currentStepStatus?.canView) {
+            // Check if there's any step with stronger status that should take priority
+            let hasStrongerStatus = false;
+
+            for (let i = 1; i <= 4; i++) {
+                const moduleKey = moduleMap[i as keyof typeof moduleMap];
+                const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
+
+                if (exists && (status === "awaiting_client" || status === "completed")) {
+                    hasStrongerStatus = true;
+                    break;
+                }
+            }
+
+            // If no stronger status found, keep current step
+            if (!hasStrongerStatus) {
+                return currentStep;
+            }
+        }
+    }
 
     // First, check if any step is in_progress (awaiting_client)
     for (let i = 1; i <= 4; i++) {
@@ -117,7 +141,7 @@ const getMostAdvancedStep = (): WorkflowStep => {
 // Auto-select the most advanced step when project changes
 watch(() => projectSetupStore.project, () => {
     if (projectSetupStore.project) {
-        const mostAdvancedStep = getMostAdvancedStep();
+        const mostAdvancedStep = getMostAdvancedStep(props.currentStep);
         if (mostAdvancedStep !== props.currentStep) {
             emit('step-changed', mostAdvancedStep);
         }

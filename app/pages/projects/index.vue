@@ -12,10 +12,11 @@
       <div class="flex items-center gap-3">
         <UInput :model-value="store.searchQuery" icon="i-lucide-search" placeholder="Rechercher un projet..."
           class="flex-1" @update:model-value="store.setSearchQuery" />
-        <USelectMenu :model-value="store.statusFilter" :items="statusOptions" value-key="value"
-          placeholder="Filtrer par statut" class="w-48" @update:model-value="store.setStatusFilter" />
+        <UDropdownMenu :items="statusFilterOptions" :popper="{ placement: 'bottom-end' }">
+          <UButton icon="i-lucide-filter" color="neutral" variant="outline" :label="currentStatusFilterLabel" />
+        </UDropdownMenu>
         <UDropdownMenu :items="sortOptions" :popper="{ placement: 'bottom-end' }">
-          <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" size="lg" label="Ordre de tri" />
+          <UButton icon="i-lucide-arrow-up-down" color="neutral" variant="outline" />
         </UDropdownMenu>
       </div>
     </div>
@@ -137,6 +138,38 @@ const sortOptions = [
     }
   ]
 ]
+
+const statusFilterOptions = [
+  [
+    {
+      label: "Tous les statuts",
+      icon: "i-lucide-filter",
+      onSelect: () => store.setStatusFilter(null)
+    },
+    {
+      label: "Brouillon",
+      icon: "i-lucide-file-text",
+      onSelect: () => store.setStatusFilter("draft")
+    },
+    {
+      label: "En cours",
+      icon: "i-lucide-clock",
+      onSelect: () => store.setStatusFilter("in_progress")
+    },
+    {
+      label: "Terminé",
+      icon: "i-lucide-check-circle",
+      onSelect: () => store.setStatusFilter("completed")
+    }
+  ]
+]
+
+const currentStatusFilterLabel = computed(() => {
+  if (!store.statusFilter) return "Tous les statuts"
+
+  const statusOption = statusOptions.find(s => s.value === store.statusFilter)
+  return statusOption?.label || "Tous les statuts"
+})
 
 // Computed properties for bulk actions
 const selectedProjectsCount = computed(() => Object.keys(rowSelection.value).length)
