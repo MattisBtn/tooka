@@ -113,21 +113,3 @@ export interface ProjectWithClient extends Project {
 
 // Workflow step types
 export type WorkflowStep = 1 | 2 | 3 | 4;
-
-export interface WorkflowStepInfo {
-  step: WorkflowStep;
-  module: "proposal" | "moodboard" | "selection" | "gallery";
-  title: string;
-  description: string;
-  canEdit: boolean;
-  canDelete: boolean;
-  isCompleted: boolean;
-}
-
-// Workflow validation
-export interface WorkflowValidation {
-  canProceedToNextStep: boolean;
-  currentStepCompleted: boolean;
-  previousStepsCompleted: boolean;
-  errorMessage?: string;
-}
