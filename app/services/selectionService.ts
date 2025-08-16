@@ -226,10 +226,13 @@ export const selectionService = {
   async deleteSelection(id: string): Promise<void> {
     const selection = await this.getSelectionById(id);
 
-    // Business rule: can only delete selections that are not completed (validated by client)
-    if (selection.status === "completed") {
+    // Business rule: can only delete selections that are not completed or payment pending
+    if (
+      selection.status === "completed" ||
+      selection.status === "payment_pending"
+    ) {
       throw new Error(
-        "Cannot delete selections that have been validated by the client"
+        "Cannot delete selections that are payment pending or completed"
       );
     }
 

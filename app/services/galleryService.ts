@@ -256,14 +256,13 @@ export const galleryService = {
   async deleteGallery(id: string): Promise<void> {
     const gallery = await this.getGalleryById(id);
 
-    // Business rule: can't delete galleries that are awaiting client or completed
+    // Business rule: can't delete galleries that are completed or payment pending
     if (
-      gallery.status === "awaiting_client" ||
       gallery.status === "completed" ||
       gallery.status === "payment_pending"
     ) {
       throw new Error(
-        "Cannot delete galleries that are awaiting client response, payment pending, or completed"
+        "Cannot delete galleries that are payment pending or completed"
       );
     }
 

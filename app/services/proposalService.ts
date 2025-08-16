@@ -189,10 +189,13 @@ export const proposalService = {
   async deleteProposal(id: string): Promise<void> {
     const proposal = await this.getProposalById(id);
 
-    // Business rule: can't delete proposals that are not draft
-    if (proposal.status !== "draft") {
+    // Business rule: can't delete proposals that are completed or payment pending
+    if (
+      proposal.status === "completed" ||
+      proposal.status === "payment_pending"
+    ) {
       throw new Error(
-        "Seules les propositions en brouillon peuvent être supprimées"
+        "Cannot delete proposals that are payment pending or completed"
       );
     }
 

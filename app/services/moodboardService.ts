@@ -189,14 +189,13 @@ export const moodboardService = {
   async deleteMoodboard(id: string): Promise<void> {
     const moodboard = await this.getMoodboardById(id);
 
-    // Business rule: can't delete moodboards that are awaiting client or completed
+    // Business rule: can't delete moodboards that are completed or payment pending
     if (
-      moodboard.status === "awaiting_client" ||
       moodboard.status === "completed" ||
       moodboard.status === "payment_pending"
     ) {
       throw new Error(
-        "Cannot delete moodboards that are awaiting client response, payment pending, or completed"
+        "Cannot delete moodboards that are payment pending or completed"
       );
     }
 

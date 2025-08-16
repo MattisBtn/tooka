@@ -145,13 +145,15 @@
                                 label="Marquer comme terminé" disabled />
                         </UTooltip>
 
-                        <!-- Delete Action - Only for draft -->
-                        <UTooltip v-if="proposalStore.proposal?.status === 'draft' && !isProjectCompleted"
+                        <!-- Delete Action - Only for draft and awaiting_client -->
+                        <UTooltip
+                            v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'awaiting_client') && !isProjectCompleted"
                             text="Supprimer la proposition">
                             <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
                                 :loading="proposalStore.loading" @click="handleDelete" />
                         </UTooltip>
-                        <UTooltip v-else-if="proposalStore.proposal?.status === 'draft' && isProjectCompleted"
+                        <UTooltip
+                            v-else-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'awaiting_client') && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
                                 disabled />
