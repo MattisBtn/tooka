@@ -1,16 +1,21 @@
 <template>
     <UCard>
         <template #header>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-user-circle" class="w-4 h-4 text-white dark:text-black" />
+                </div>
                 <div>
                     <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Profil utilisateur</h3>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                        Gérez vos informations personnelles et professionnelles
-                    </p>
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Gérez vos informations personnelles et
+                        professionnelles</p>
                 </div>
-                <UBadge v-if="profile" :color="isProfileComplete ? 'success' : 'warning'" variant="subtle">
-                    {{ completionPercentage }}% complet
-                </UBadge>
+                <div class="ml-auto">
+                    <UBadge v-if="profile" :color="isProfileComplete ? 'success' : 'warning'" variant="subtle">
+                        {{ completionPercentage }}% complet
+                    </UBadge>
+                </div>
             </div>
         </template>
 
