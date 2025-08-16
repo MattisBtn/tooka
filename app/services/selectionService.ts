@@ -236,9 +236,6 @@ export const selectionService = {
       );
     }
 
-    // Delete all images first
-    await selectionImageRepository.deleteMany(id);
-
     // Delete selection
     await selectionRepository.delete(id);
 
@@ -824,20 +821,5 @@ export const selectionService = {
       return "Sélection illimitée";
     }
     return `${maxSelection} image${maxSelection > 1 ? "s" : ""} maximum`;
-  },
-
-  /**
-   * Subscribe to real-time updates for selection images
-   */
-  subscribeToSelectionImages(
-    selectionId: string,
-    callback: (
-      payload: import("~/types/selection").SelectionImageRealtimePayload
-    ) => void
-  ) {
-    return selectionImageRepository.subscribeToSelectionImages(
-      selectionId,
-      callback
-    );
   },
 };

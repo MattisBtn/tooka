@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { moodboardService } from "~/services/moodboardService";
 import type {
   MoodboardFormData,
+  MoodboardImage,
   MoodboardUploadResult,
   MoodboardWithDetails,
 } from "~/types/moodboard";
@@ -159,19 +160,25 @@ export const useMoodboardStore = defineStore("moodboard", () => {
       };
 
       const result = await moodboardService.createMoodboard(data);
-      moodboard.value = result.moodboard;
 
       // Upload images if provided with progress tracking
+      let uploadedImages: MoodboardImage[] = [];
       if (selectedFiles && selectedFiles.length > 0) {
-        await uploadImagesWithProgress(result.moodboard.id, selectedFiles);
+        const uploadResult = await uploadImagesWithProgress(
+          result.moodboard.id,
+          selectedFiles
+        );
+        uploadedImages = uploadResult.uploadedImages;
       }
 
-      // Check and update project status automatically
-      const { useProjectSetupStore } = await import(
-        "~/stores/admin/projectSetup"
-      );
-      const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      // Update moodboard state directly with images instead of reloading
+      moodboard.value = {
+        ...result.moodboard,
+        images: uploadedImages,
+        imageCount: uploadedImages.length,
+      };
+
+      // Project status will be updated automatically when needed
 
       showForm.value = false;
       return result.moodboard;
@@ -202,19 +209,26 @@ export const useMoodboardStore = defineStore("moodboard", () => {
       };
 
       const result = await moodboardService.updateMoodboard(moodboardId, data);
-      moodboard.value = result.moodboard;
 
       // Upload images if provided with progress tracking
+      let uploadedImages: MoodboardImage[] = [];
       if (selectedFiles && selectedFiles.length > 0) {
-        await uploadImagesWithProgress(result.moodboard.id, selectedFiles);
+        const uploadResult = await uploadImagesWithProgress(
+          result.moodboard.id,
+          selectedFiles
+        );
+        uploadedImages = uploadResult.uploadedImages;
       }
 
-      // Check and update project status automatically
-      const { useProjectSetupStore } = await import(
-        "~/stores/admin/projectSetup"
-      );
-      const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      // Update moodboard state directly with new images
+      moodboard.value = {
+        ...result.moodboard,
+        images: [...(result.moodboard.images || []), ...uploadedImages],
+        imageCount:
+          (result.moodboard.images?.length || 0) + uploadedImages.length,
+      };
+
+      // Project status will be updated automatically when needed
 
       showForm.value = false;
       return result.moodboard;

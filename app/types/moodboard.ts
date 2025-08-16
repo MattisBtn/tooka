@@ -31,9 +31,9 @@ export interface IMoodboardRepository {
   findById(id: string): Promise<Moodboard | null>;
   findByProjectId(projectId: string): Promise<Moodboard | null>;
   create(
-    data: Omit<Moodboard, "id" | "created_at" | "updated_at">
+    moodboardData: Omit<Moodboard, "id" | "created_at" | "updated_at">
   ): Promise<Moodboard>;
-  update(id: string, data: Partial<Moodboard>): Promise<Moodboard>;
+  update(id: string, moodboardData: Partial<Moodboard>): Promise<Moodboard>;
   delete(id: string): Promise<void>;
 }
 

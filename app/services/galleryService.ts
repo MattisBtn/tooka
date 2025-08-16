@@ -266,9 +266,6 @@ export const galleryService = {
       );
     }
 
-    // Delete all images first
-    await galleryImageRepository.deleteMany(id);
-
     // Delete gallery
     await galleryRepository.delete(id);
   },

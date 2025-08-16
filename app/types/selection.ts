@@ -37,40 +37,12 @@ export interface ISelectionImageRepository {
   ): Promise<SelectionImage>;
   update(id: string, data: Partial<SelectionImage>): Promise<SelectionImage>;
   delete(id: string): Promise<void>;
-  deleteMany(selectionId: string): Promise<void>;
   getPublicUrl(filePath: string): string;
   getSignedUrl(filePath: string, expiresIn?: number): Promise<string>;
   downloadImageBlob(
     filePath: string,
     options?: ImageDownloadOptions
   ): Promise<Blob>;
-  subscribeToSelectionImages(
-    selectionId: string,
-    callback: (payload: SelectionImageRealtimePayload) => void
-  ): { unsubscribe: () => Promise<"ok" | "timed out" | "error"> };
-  updateConversionStatus(
-    imageIds: string[],
-    status:
-      | "pending"
-      | "queued"
-      | "processing"
-      | "completed"
-      | "failed"
-      | "retrying"
-      | "cancelled"
-  ): Promise<void>;
-  getImagesRequiringConversion(
-    selectionId: string,
-    statuses?: (
-      | "pending"
-      | "queued"
-      | "processing"
-      | "completed"
-      | "failed"
-      | "retrying"
-      | "cancelled"
-    )[]
-  ): Promise<SelectionImage[]>;
 }
 
 export interface IPagination {

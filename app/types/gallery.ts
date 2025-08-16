@@ -47,7 +47,6 @@ export interface IGalleryImageRepository {
   create(data: Omit<GalleryImage, "id" | "created_at">): Promise<GalleryImage>;
   update(id: string, data: Partial<GalleryImage>): Promise<GalleryImage>;
   delete(id: string): Promise<void>;
-  deleteMany(galleryId: string): Promise<void>;
   getPublicUrl(filePath: string): string;
 }
 

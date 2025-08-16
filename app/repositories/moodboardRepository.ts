@@ -3,6 +3,8 @@ import type {
   IMoodboardRepository,
   IPagination,
   Moodboard,
+  MoodboardImage,
+  MoodboardWithDetails,
 } from "~/types/moodboard";
 
 export const moodboardRepository: IMoodboardRepository = {
@@ -79,7 +81,9 @@ export const moodboardRepository: IMoodboardRepository = {
     return data;
   },
 
-  async findByProjectId(projectId: string): Promise<Moodboard | null> {
+  async findByProjectId(
+    projectId: string
+  ): Promise<MoodboardWithDetails | null> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -91,6 +95,11 @@ export const moodboardRepository: IMoodboardRepository = {
           id,
           title,
           status
+        ),
+        moodboard_images(
+          id,
+          file_url,
+          created_at
         )
       `
       )
@@ -98,10 +107,22 @@ export const moodboardRepository: IMoodboardRepository = {
       .maybeSingle();
 
     if (error) {
-      throw new Error(`Failed to fetch moodboard: ${error.message}`);
+      throw new Error(
+        `Failed to fetch moodboard with images: ${error.message}`
+      );
     }
 
-    return data;
+    if (!data) {
+      return null;
+    }
+
+    // Transform the data to match MoodboardWithDetails interface
+    const images = data.moodboard_images || [];
+    return {
+      ...data,
+      images: images as MoodboardImage[],
+      imageCount: images.length,
+    };
   },
 
   async create(
@@ -134,7 +155,7 @@ export const moodboardRepository: IMoodboardRepository = {
   async update(
     id: string,
     moodboardData: Partial<Moodboard>
-  ): Promise<Moodboard> {
+  ): Promise<MoodboardWithDetails> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -148,16 +169,29 @@ export const moodboardRepository: IMoodboardRepository = {
           id,
           title,
           status
+        ),
+        moodboard_images(
+          id,
+          file_url,
+          created_at
         )
       `
       )
       .single();
 
     if (error) {
-      throw new Error(`Failed to update moodboard: ${error.message}`);
+      throw new Error(
+        `Failed to update moodboard with images: ${error.message}`
+      );
     }
 
-    return data;
+    // Transform the data to match MoodboardWithDetails interface
+    const images = data.moodboard_images || [];
+    return {
+      ...data,
+      images: images as MoodboardImage[],
+      imageCount: images.length,
+    };
   },
 
   async delete(id: string): Promise<void> {

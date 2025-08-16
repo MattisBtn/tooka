@@ -371,9 +371,6 @@ const handleDelete = async () => {
     try {
         await moodboardStore.deleteMoodboard(moodboardStore.moodboard.id)
 
-        // Refresh project to sync module states
-        await projectSetupStore.refreshProject()
-
         const toast = useToast()
         toast.add({
             title: 'Moodboard supprimé',
@@ -397,7 +394,6 @@ const sendToClient = async () => {
 
     try {
         await moodboardStore.sendToClient(moodboardStore.moodboard.id)
-        await projectSetupStore.refreshProject()
 
         const toast = useToast();
         toast.add({
@@ -422,10 +418,5 @@ const handleUploadCompleted = async () => {
     // Reset upload state and close form
     moodboardStore.resetUploadState()
     moodboardStore.closeForm()
-
-    // Reload moodboard data to get the updated images
-    if (projectSetupStore.project?.id) {
-        await moodboardStore.loadMoodboard(projectSetupStore.project.id)
-    }
 }
 </script>

@@ -1,7 +1,6 @@
 import type {
   ISelectionImageRepository,
   SelectionImage,
-  SelectionImageRealtimePayload,
 } from "~/types/selection";
 
 export const selectionImageRepository: ISelectionImageRepository = {
@@ -62,20 +61,7 @@ export const selectionImageRepository: ISelectionImageRepository = {
   async delete(id: string): Promise<void> {
     const supabase = useSupabaseClient();
 
-    // Get file URLs before deletion for storage cleanup
-    const { data: imageData, error: fetchError } = await supabase
-      .from("selection_images")
-      .select("file_url, source_file_url")
-      .eq("id", id)
-      .single();
-
-    if (fetchError) {
-      throw new Error(
-        `Failed to fetch image for deletion: ${fetchError.message}`
-      );
-    }
-
-    // Delete from database first
+    // Delete from database
     const { error } = await supabase
       .from("selection_images")
       .delete()
@@ -84,157 +70,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     if (error) {
       throw new Error(`Failed to delete selection image: ${error.message}`);
     }
-
-    // Collect all file paths to delete from storage
-    const filesToDelete = [];
-    if (imageData) {
-      // Add main file URL
-      if (imageData.file_url) {
-        filesToDelete.push(imageData.file_url);
-      }
-
-      // Add source file URL if different from main file URL
-      if (
-        imageData.source_file_url &&
-        imageData.source_file_url !== imageData.file_url
-      ) {
-        filesToDelete.push(imageData.source_file_url);
-      }
-    }
-
-    // Delete all files from storage
-    if (filesToDelete.length > 0) {
-      try {
-        const { error: storageError } = await supabase.storage
-          .from("selection-images")
-          .remove(filesToDelete);
-
-        if (storageError) {
-          console.warn(
-            "Failed to delete some files from storage:",
-            storageError
-          );
-          // Don't throw error for storage deletion failure as DB deletion was successful
-        }
-      } catch (storageError) {
-        console.warn("Failed to delete files from storage:", storageError);
-        // Don't throw error for storage deletion failure
-      }
-    }
-  },
-
-  async deleteMany(selectionId: string): Promise<void> {
-    const supabase = useSupabaseClient();
-
-    // Get all images for the selection with their file URLs
-    const images = await this.findBySelectionId(selectionId);
-
-    if (images.length === 0) return;
-
-    // Delete from database first
-    const { error } = await supabase
-      .from("selection_images")
-      .delete()
-      .eq("selection_id", selectionId);
-
-    if (error) {
-      throw new Error(`Failed to delete selection images: ${error.message}`);
-    }
-
-    // Collect all unique file paths to delete from storage
-    const filesToDelete = new Set<string>();
-
-    images.forEach((img) => {
-      // Add main file URL
-      if (img.file_url) {
-        filesToDelete.add(img.file_url);
-      }
-
-      // Add source file URL if different from main file URL
-      if (img.source_file_url && img.source_file_url !== img.file_url) {
-        filesToDelete.add(img.source_file_url);
-      }
-    });
-
-    // Delete all files from storage
-    if (filesToDelete.size > 0) {
-      try {
-        const filePathsArray = Array.from(filesToDelete);
-        const { error: storageError } = await supabase.storage
-          .from("selection-images")
-          .remove(filePathsArray);
-
-        if (storageError) {
-          console.warn(
-            "Failed to delete some files from storage:",
-            storageError
-          );
-          // Don't throw error for storage deletion failure as DB deletion was successful
-        }
-      } catch (storageError) {
-        console.warn("Failed to delete files from storage:", storageError);
-        // Don't throw error for storage deletion failure
-      }
-    }
-  },
-
-  /**
-   * Update conversion status for multiple images
-   */
-  async updateConversionStatus(
-    imageIds: string[],
-    status:
-      | "pending"
-      | "queued"
-      | "processing"
-      | "completed"
-      | "failed"
-      | "retrying"
-      | "cancelled"
-  ): Promise<void> {
-    const supabase = useSupabaseClient();
-
-    const { error } = await supabase
-      .from("selection_images")
-      .update({ conversion_status: status })
-      .in("id", imageIds);
-
-    if (error) {
-      throw new Error(`Failed to update conversion status: ${error.message}`);
-    }
-  },
-
-  /**
-   * Get images that require conversion for a selection
-   */
-  async getImagesRequiringConversion(
-    selectionId: string,
-    statuses: (
-      | "pending"
-      | "queued"
-      | "processing"
-      | "completed"
-      | "failed"
-      | "retrying"
-      | "cancelled"
-    )[] = ["pending", "failed"]
-  ): Promise<SelectionImage[]> {
-    const supabase = useSupabaseClient();
-
-    const { data, error } = await supabase
-      .from("selection_images")
-      .select("*")
-      .eq("selection_id", selectionId)
-      .eq("requires_conversion", true)
-      .in("conversion_status", statuses);
-
-    if (error) {
-      throw new Error(
-        `Failed to fetch images requiring conversion: ${error.message}`
-      );
-    }
-
-    return data || [];
   },
 
   /**
@@ -285,41 +120,5 @@ export const selectionImageRepository: ISelectionImageRepository = {
     }
 
     return data;
-  },
-
-  /**
-   * Subscribe to real-time updates for selection images
-   */
-  subscribeToSelectionImages(
-    selectionId: string,
-    callback: (payload: SelectionImageRealtimePayload) => void
-  ) {
-    const supabase = useSupabaseClient();
-
-    const subscription = supabase
-      .channel(`selection_images_${selectionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "selection_images",
-          filter: `selection_id=eq.${selectionId}`,
-        },
-        (payload) => {
-          callback({
-            eventType: payload.eventType as "INSERT" | "UPDATE" | "DELETE",
-            new: payload.new as SelectionImage,
-            old: payload.old as SelectionImage,
-          });
-        }
-      )
-      .subscribe();
-
-    return {
-      unsubscribe: () => {
-        return supabase.removeChannel(subscription);
-      },
-    };
   },
 };

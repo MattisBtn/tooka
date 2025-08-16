@@ -188,8 +188,7 @@ const handleDeleteExistingImage = async (imageId: string) => {
     if (!confirmed) return;
 
     try {
-        const { moodboardService } = await import("~/services/moodboardService");
-        await moodboardService.deleteImage(imageId);
+        await moodboardStore.deleteImage(imageId);
 
         // Remove from local state
         images.value = images.value.filter((img) => img.id !== imageId);
@@ -223,8 +222,7 @@ const handleDeleteAllImages = async () => {
     isDeletingAllImages.value = true;
 
     try {
-        const { moodboardService } = await import("~/services/moodboardService");
-        await moodboardService.deleteAllImages(props.moodboard?.id || '');
+        await moodboardStore.deleteAllImages();
 
         // Clear local state
         images.value = [];

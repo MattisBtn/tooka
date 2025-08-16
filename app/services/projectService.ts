@@ -437,16 +437,16 @@ export const projectService = {
   },
 
   /**
-   * Update project status to in_progress if needed
+   * Update project status to in_progress if needed (optimized version)
    */
-  async updateProjectStatusIfNeeded(projectId: string): Promise<void> {
+  async updateProjectStatusIfNeeded(
+    projectId: string,
+    currentProject: ProjectWithClient
+  ): Promise<string | null> {
     const supabase = useSupabaseClient();
 
-    // Get current project data
-    const project = await this.getProjectById(projectId);
-
     // Check if status should be updated to completed first
-    if (this.shouldUpdateProjectToCompleted(project)) {
+    if (this.shouldUpdateProjectToCompleted(currentProject)) {
       const { error } = await supabase
         .from("projects")
         .update({ status: "completed" })
@@ -455,11 +455,14 @@ export const projectService = {
       if (error) {
         throw new Error(`Failed to update project status: ${error.message}`);
       }
-      return;
+      return "completed";
     }
 
     // Check if status should be updated to in_progress
-    if (this.shouldUpdateProjectStatus(project)) {
+    if (
+      currentProject.status === "draft" &&
+      this.shouldUpdateProjectStatus(currentProject)
+    ) {
       const { error } = await supabase
         .from("projects")
         .update({ status: "in_progress" })
@@ -468,6 +471,9 @@ export const projectService = {
       if (error) {
         throw new Error(`Failed to update project status: ${error.message}`);
       }
+      return "in_progress";
     }
+
+    return null; // No status change needed
   },
 };

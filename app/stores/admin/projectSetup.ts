@@ -87,43 +87,6 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     return !hasNonDraftModule;
   });
 
-  // Edit project inline
-  const updateProjectInline = async (updates: {
-    title?: string;
-    description?: string | null;
-    client_id?: string;
-    initial_price?: number | null;
-    require_password?: boolean;
-  }) => {
-    if (!project.value || !canEditProject.value) {
-      throw new Error(
-        "Le projet ne peut pas être modifié car certaines étapes ne sont plus en brouillon"
-      );
-    }
-
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const updatedProject = await projectService.updateProject(
-        project.value.id,
-        updates
-      );
-      // Merge shallowly with explicit cast to avoid excessive type instantiation
-      project.value = {
-        ...(project.value as ProjectWithClient),
-        ...(updatedProject as Partial<ProjectWithClient>),
-      } as ProjectWithClient;
-      return updatedProject;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err : new Error("Failed to update project");
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
   const refreshProject = async () => {
     if (!project.value?.id) return;
 
@@ -139,10 +102,18 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     if (!project.value?.id) return;
 
     try {
-      const { projectService } = await import("~/services/projectService");
-      await projectService.updateProjectStatusIfNeeded(project.value.id);
-      // Refresh project data to get updated status
-      await fetchProject(project.value.id);
+      const updatedStatus = await projectService.updateProjectStatusIfNeeded(
+        project.value.id,
+        project.value
+      );
+
+      // Update project status locally if it changed
+      if (updatedStatus && project.value) {
+        project.value = {
+          ...project.value,
+          status: updatedStatus as "draft" | "completed" | "in_progress",
+        };
+      }
     } catch (err) {
       console.error("Error updating project status:", err);
     }
@@ -163,7 +134,6 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     canEditProject,
     reset,
     fetchProject,
-    updateProjectInline,
     refreshProject,
     checkAndUpdateProjectStatus,
   };

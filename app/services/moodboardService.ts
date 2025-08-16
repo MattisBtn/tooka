@@ -1,8 +1,6 @@
 import { moodboardImageRepository } from "~/repositories/moodboardImageRepository";
 import { moodboardRepository } from "~/repositories/moodboardRepository";
 import type {
-  IMoodboardFilters,
-  IPagination,
   Moodboard,
   MoodboardImage,
   MoodboardUploadResult,
@@ -13,28 +11,6 @@ import { MOODBOARD_UPLOAD_CONFIG } from "~/types/upload";
 import { uploadImagesWithProgress } from "~/utils/uploadService";
 
 export const moodboardService = {
-  /**
-   * Fetch moodboards with pagination and filtering
-   */
-  async getMoodboards(
-    filters: IMoodboardFilters = {},
-    pagination: IPagination
-  ): Promise<Moodboard[]> {
-    const moodboards = await moodboardRepository.findMany(filters, pagination);
-
-    // Business logic: sort by status priority
-    return moodboards.sort((a, b) => {
-      const statusOrder = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
-      };
-      return statusOrder[a.status] - statusOrder[b.status];
-    });
-  },
-
   /**
    * Get moodboard by ID with validation
    */
@@ -62,22 +38,8 @@ export const moodboardService = {
       throw new Error("Project ID is required");
     }
 
-    const moodboard = await moodboardRepository.findByProjectId(projectId);
-
-    if (!moodboard) {
-      return null;
-    }
-
-    // Get images count
-    const images = await moodboardImageRepository.findByMoodboardId(
-      moodboard.id
-    );
-
-    return {
-      ...moodboard,
-      images,
-      imageCount: images.length,
-    };
+    // Use optimized single query with join instead of 2 separate calls
+    return await moodboardRepository.findByProjectId(projectId);
   },
 
   /**
@@ -94,27 +56,21 @@ export const moodboardService = {
       throw new Error("Le titre est requis");
     }
 
-    // Check if moodboard already exists for this project
-    const existingMoodboard = await this.getMoodboardByProjectId(
-      moodboardData.project_id
-    );
-    if (existingMoodboard) {
-      throw new Error("Un moodboard existe déjà pour ce projet");
+    try {
+      const moodboard = await moodboardRepository.create({
+        ...moodboardData,
+        status: "draft" as const,
+      });
+      return { moodboard, projectUpdated: false };
+    } catch (error) {
+      if (
+        (error instanceof Error && error.message.includes("duplicate key")) ||
+        (error as Error).message.includes("unique")
+      ) {
+        throw new Error("Un moodboard existe déjà pour ce projet");
+      }
+      throw error;
     }
-
-    // For creation, always save as draft
-    const finalMoodboardData = {
-      ...moodboardData,
-      status: "draft" as const,
-    };
-
-    // Create moodboard
-    const moodboard = await moodboardRepository.create(finalMoodboardData);
-
-    // For creation, project is never updated automatically
-    const projectUpdated = false;
-
-    return { moodboard, projectUpdated };
   },
 
   /**
@@ -124,58 +80,13 @@ export const moodboardService = {
     id: string,
     updates: Partial<Moodboard>
   ): Promise<{ moodboard: MoodboardWithDetails; projectUpdated: boolean }> {
-    const existingMoodboard = await this.getMoodboardById(id);
-
-    // Apply updates as-is
     const finalUpdates = { ...updates };
 
-    // Business rules for status transitions
-    if (finalUpdates.status) {
-      const currentStatus = existingMoodboard.status;
-      const newStatus = finalUpdates.status;
-
-      // Allow logical transitions:
-      // - draft -> awaiting_client (send to client)
-      // - awaiting_client -> draft (back to draft)
-      // - revision_requested -> draft (back to draft)
-      // - revision_requested -> awaiting_client (send updated version to client)
-
-      const allowedTransitions: Record<string, string[]> = {
-        draft: ["awaiting_client"],
-        awaiting_client: ["draft", "revision_requested"],
-        revision_requested: ["draft", "awaiting_client"],
-        payment_pending: ["draft", "awaiting_client"],
-        completed: [], // completed moodboards cannot be modified
-      };
-
-      if (currentStatus === "completed" && newStatus !== "completed") {
-        throw new Error(
-          "Les moodboards validés par le client ne peuvent plus être modifiés"
-        );
-      }
-
-      // Allow same status (no change)
-      if (
-        currentStatus !== newStatus &&
-        !allowedTransitions[currentStatus]?.includes(newStatus)
-      ) {
-        throw new Error(
-          `Transition de statut non autorisée: ${currentStatus} -> ${newStatus}`
-        );
-      }
-    }
-
-    // Update moodboard
-    const moodboard = await moodboardRepository.update(id, finalUpdates);
-
-    // Get updated moodboard with images
-    const moodboardWithDetails = await this.getMoodboardByProjectId(
-      moodboard.project_id
+    // Update moodboard and get images in a single optimized call
+    const moodboardWithDetails = await moodboardRepository.update(
+      id,
+      finalUpdates
     );
-
-    if (!moodboardWithDetails) {
-      throw new Error("Failed to fetch updated moodboard details");
-    }
 
     // Project is considered updated when moodboard is sent to client
     const projectUpdated = finalUpdates.status === "awaiting_client";
@@ -199,10 +110,6 @@ export const moodboardService = {
       );
     }
 
-    // Delete all images first
-    await moodboardImageRepository.deleteMany(id);
-
-    // Delete moodboard
     await moodboardRepository.delete(id);
   },
 
@@ -225,9 +132,6 @@ export const moodboardService = {
     files: File[],
     options: UploadOptions = {}
   ): Promise<MoodboardUploadResult> {
-    // Verify moodboard exists
-    const _moodboard = await this.getMoodboardById(moodboardId);
-
     return uploadImagesWithProgress<MoodboardImage>(
       moodboardId,
       files,
