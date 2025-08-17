@@ -6,6 +6,20 @@ import { useUserStore } from '~/stores/user'
 import type { Client } from '~/types/client'
 
 const isSidebarCollapsed = ref(false)
+const isNotificationSlideoverOpen = ref(false)
+
+// Notifications
+const { unreadCount, init: initNotifications, cleanup: cleanupNotifications } = useNotifications()
+
+// Initialiser les notifications au montage
+onMounted(() => {
+    initNotifications()
+})
+
+// Cleanup des notifications au démontage
+onUnmounted(() => {
+    cleanupNotifications()
+})
 
 const { user, logout: authLogout } = useAuth()
 const userStore = useUserStore()
@@ -162,7 +176,7 @@ const logout = async () => {
                             <span class="text-sm font-medium truncate">{{ displayName }}</span>
                             <div class="flex items-center gap-1 min-w-0">
                                 <span class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ planLabel
-                                    }}</span>
+                                }}</span>
                                 <UDropdownMenu :items="accountMenuItems" :content="{ align: 'start' }">
                                     <UButton color="neutral" variant="ghost" icon="i-heroicons-chevron-down"
                                         size="sm" />
@@ -172,9 +186,22 @@ const logout = async () => {
                     </div>
                 </div>
 
-                <UButton to="/me?tab=profile" color="neutral" variant="ghost" class="p-0" aria-label="Profil">
-                    <UAvatar :src="displayAvatar" :alt="displayName" size="sm" />
-                </UButton>
+                <div class="flex items-center gap-6">
+                    <!-- Notification Bell -->
+                    <div v-if="unreadCount > 0">
+                        <UChip :value="unreadCount" color="error" size="xl">
+                            <UButton icon="i-heroicons-bell" color="neutral" variant="subtle" size="md"
+                                @click="isNotificationSlideoverOpen = true" />
+                        </UChip>
+                    </div>
+                    <UButton v-else icon="i-heroicons-bell" color="neutral" variant="subtle" size="md"
+                        @click="isNotificationSlideoverOpen = true" />
+
+                    <!-- Avatar -->
+                    <UButton to="/me?tab=profile" color="neutral" variant="ghost" class="p-0" aria-label="Profil">
+                        <UAvatar :src="displayAvatar" :alt="displayName" size="sm" />
+                    </UButton>
+                </div>
             </div>
         </header>
 
@@ -213,7 +240,7 @@ const logout = async () => {
                                     :active-variant="$route.path === link.to ? 'ghost' : 'ghost'" size="md">
                                     <span v-if="!isSidebarCollapsed" class="transition-opacity duration-300 ml-2">{{
                                         link.name
-                                    }}</span>
+                                        }}</span>
                                 </UButton>
                             </div>
                             <USeparator v-if="index < categories.length - 1" class="mt-4" />
@@ -251,5 +278,12 @@ const logout = async () => {
         <ClientModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
             :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined" :portal="true"
             @update:model-value="store.closeModal" />
+
+        <!-- Notification Slideover -->
+        <USlideover v-model:open="isNotificationSlideoverOpen" title="Notifications">
+            <template #body>
+                <NotificationList />
+            </template>
+        </USlideover>
     </div>
 </template>

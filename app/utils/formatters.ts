@@ -18,6 +18,39 @@ export const formatDate = (date: string | Date): string => {
   }).format(new Date(date));
 };
 
+// Formatage des dates relatives avec Intl.RelativeTimeFormat
+export const formatRelativeDate = (dateString: string | null): string => {
+  if (!dateString) return "Date inconnue";
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+
+  const rtf = new Intl.RelativeTimeFormat("fr", {
+    numeric: "auto",
+    style: "short",
+  });
+
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) {
+    return "À l'instant";
+  } else if (diffInMinutes < 60) {
+    return rtf.format(-diffInMinutes, "minute");
+  } else if (diffInHours < 24) {
+    return rtf.format(-diffInHours, "hour");
+  } else if (diffInDays < 7) {
+    return rtf.format(-diffInDays, "day");
+  } else {
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+};
+
 // Labels des statuts
 export const getStatusLabel = (
   status: string,
