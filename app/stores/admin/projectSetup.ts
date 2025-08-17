@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
+import { normalizeModule } from "~/composables/projects/useProjectSteps";
 import { projectService } from "~/services/projectService";
 import type { Project, ProjectWithClient } from "~/types/project";
-import { formatDate, formatPrice, normalizeModule } from "~/utils/formatters";
+import { formatDate, formatPrice } from "~/utils/formatters";
 
 export const useProjectSetupStore = defineStore("projectSetup", () => {
   const project = ref<ProjectWithClient | null>(null);

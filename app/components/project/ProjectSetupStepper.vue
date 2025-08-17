@@ -1,42 +1,39 @@
 <template>
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div v-for="(step, index) in steps" :key="step.key" :class="[
-            'flex items-center gap-3 p-3 rounded-lg border transition-all',
-            getStepClasses((index + 1) as WorkflowStep),
-            getStepInteractionClasses((index + 1) as WorkflowStep)
-        ]" @click="handleStepClick(index + 1)">
-            <div :class="getStepIconClasses((index + 1) as WorkflowStep)">
-                <UIcon v-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.status === 'completed'"
-                    name="i-lucide-check" class="w-4 h-4" />
-                <span v-else>{{ index + 1 }}</span>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <UTooltip v-for="(step, index) in steps" :key="step.key" :text="getStepTooltip((index + 1) as WorkflowStep)"
+            :popper="{ placement: 'top' }">
+            <div :class="getStepCardClasses((index + 1) as WorkflowStep)" @click="handleStepClick(index + 1)">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div :class="getStepIconClasses((index + 1) as WorkflowStep)">
+                            <UIcon
+                                v-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.moduleStatus === 'completed'"
+                                name="i-lucide-check" class="w-4 h-4" />
+                            <span v-else class="text-sm font-medium">{{ index + 1 }}</span>
+                        </div>
 
-            <div>
-                <p :class="getStepTitleClasses((index + 1) as WorkflowStep)">
-                    {{ step.title }}
-                </p>
-                <p class="text-xs text-neutral-500 dark:text-neutral-500">
-                    {{ step.description }}
-                </p>
+                        <div class="flex-1 min-w-0">
+                            <h3 :class="getStepTitleClasses((index + 1) as WorkflowStep)">
+                                {{ step.title }}
+                            </h3>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                {{ step.description }}
+                            </p>
+                        </div>
+                    </div>
 
-                <div class="flex gap-1 mt-1">
-                    <UBadge v-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.status === 'completed'"
-                        color="success" variant="subtle" size="xs" label="Terminé" />
-                    <UBadge v-else-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.status === 'in_progress'"
-                        color="warning" variant="subtle" size="xs" label="En cours" />
-                    <UBadge v-else-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.status === 'locked'"
-                        color="neutral" variant="subtle" size="xs" label="Verrouillé" />
-                    <UBadge v-else-if="getStepDisplayStatus((index + 1) as WorkflowStep)?.status === 'not_started'"
-                        color="neutral" variant="subtle" size="xs" label="Non démarré" />
+                    <UBadge :color="getStepBadgeColor((index + 1) as WorkflowStep)"
+                        :label="getStepBadgeLabel((index + 1) as WorkflowStep)" variant="subtle" size="xs"
+                        class="ml-2 flex-shrink-0" />
                 </div>
             </div>
-        </div>
+        </UTooltip>
     </div>
 </template>
 
 <script lang="ts" setup>
-import type { WorkflowStep } from '~/types/project';
-import { getStepStatus, normalizeModule, type StepInfo } from '~/utils/formatters';
+import { getStepStatus } from '~/composables/projects/useProjectSteps';
+import type { StepInfo, WorkflowStep } from '~/types/project';
 
 interface Props {
     currentStep: number
@@ -63,161 +60,72 @@ const getStepDisplayStatus = (stepNumber: WorkflowStep): StepInfo | null => {
     return getStepStatus(stepNumber, projectSetupStore.project);
 }
 
-// Helper function to determine the most advanced step
-const getMostAdvancedStep = (currentStep?: WorkflowStep): WorkflowStep => {
+// Helper function to determine the default step to show
+const getDefaultStep = (): WorkflowStep => {
     if (!projectSetupStore.project) return 1;
 
-    const moduleMap = {
-        1: "proposal",
-        2: "moodboard",
-        3: "selection",
-        4: "gallery",
-    } as const;
+    const project = projectSetupStore.project;
 
-    // If we have a current step, check if it's still valid first
-    if (currentStep) {
-        const currentStepStatus = getStepDisplayStatus(currentStep);
-        if (currentStepStatus?.canView) {
-            // Check if there's any step with stronger status that should take priority
-            let hasStrongerStatus = false;
+    // Find the highest step that exists (is started)
+    if (project.gallery) return 4;
+    if (project.selection) return 3;
+    if (project.moodboard) return 2;
+    if (project.proposal) return 1;
 
-            for (let i = 1; i <= 4; i++) {
-                const moduleKey = moduleMap[i as keyof typeof moduleMap];
-                const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
-
-                if (exists && (status === "awaiting_client" || status === "completed")) {
-                    hasStrongerStatus = true;
-                    break;
-                }
-            }
-
-            // If no stronger status found, keep current step
-            if (!hasStrongerStatus) {
-                return currentStep;
-            }
-        }
-    }
-
-    // First, check if any step is in_progress (awaiting_client)
-    for (let i = 1; i <= 4; i++) {
-        const moduleKey = moduleMap[i as keyof typeof moduleMap];
-        const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
-
-        if (exists && status === "awaiting_client") {
-            // If any step is in_progress, stay on that step
-            return i as WorkflowStep;
-        }
-    }
-
-    // Find the last completed step
-    let lastCompletedStep = 0;
-    for (let i = 1; i <= 4; i++) {
-        const moduleKey = moduleMap[i as keyof typeof moduleMap];
-        const { exists, status } = normalizeModule(projectSetupStore.project[moduleKey as keyof typeof projectSetupStore.project]);
-
-        if (exists && status === "completed") {
-            lastCompletedStep = i;
-        }
-    }
-
-    // If step 4 is completed, go to step 4
-    if (lastCompletedStep === 4) {
-        return 4;
-    }
-
-    // Find the first accessible step after the last completed step
-    for (let i = lastCompletedStep + 1; i <= 4; i++) {
-        const stepStatus = getStepDisplayStatus(i as WorkflowStep);
-
-        if (stepStatus?.canView) {
-            return i as WorkflowStep;
-        }
-    }
-
-    // If no accessible step found after last completed, go to the last completed step
-    return lastCompletedStep > 0 ? lastCompletedStep as WorkflowStep : 1;
+    return 1;
 }
 
-// Auto-select the most advanced step when project changes
+// Auto-select the default step when project changes
 watch(() => projectSetupStore.project, () => {
     if (projectSetupStore.project) {
-        const mostAdvancedStep = getMostAdvancedStep(props.currentStep);
-        if (mostAdvancedStep !== props.currentStep) {
-            emit('step-changed', mostAdvancedStep);
+        const defaultStep = getDefaultStep();
+        if (defaultStep !== props.currentStep) {
+            emit('step-changed', defaultStep);
         }
     }
 }, { immediate: true })
 
-const getStepClasses = (stepNumber: WorkflowStep) => {
+const getStepCardClasses = (stepNumber: WorkflowStep) => {
     const status = getStepDisplayStatus(stepNumber)
     const isCurrentStep = stepNumber === props.currentStep
 
+    const baseClasses = 'p-4 rounded-xl border transition-all duration-200'
+    const interactionClasses = status?.canView ? 'cursor-pointer hover:shadow-sm' : 'cursor-not-allowed'
+
     if (isCurrentStep) {
-        return 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
+        return `${baseClasses} ${interactionClasses} bg-black text-white border-black dark:bg-white dark:text-black dark:border-white`
     }
 
-    if (status?.status === 'completed') {
-        return 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-    }
-
-    if (status?.status === 'in_progress') {
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-    }
-
-    if (status?.status === 'not_started') {
-        return 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
+    if (status?.moduleStatus === 'completed') {
+        return `${baseClasses} ${interactionClasses} bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800`
     }
 
     if (status?.status === 'locked') {
-        return 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 opacity-50'
+        return `${baseClasses} ${interactionClasses} bg-zinc-50 border-zinc-200 opacity-60 dark:bg-zinc-900 dark:border-zinc-700`
     }
 
-    if (status?.canView) {
-        return 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'
-    }
-
-    return 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 opacity-50'
-}
-
-const getStepInteractionClasses = (stepNumber: WorkflowStep) => {
-    const status = getStepDisplayStatus(stepNumber)
-
-    if (status?.status === 'locked') {
-        return 'cursor-not-allowed'
-    }
-
-    if (status?.canView) {
-        return 'cursor-pointer'
-    }
-
-    return 'cursor-not-allowed'
+    return `${baseClasses} ${interactionClasses} bg-white border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:hover:bg-zinc-800`
 }
 
 const getStepIconClasses = (stepNumber: WorkflowStep) => {
     const status = getStepDisplayStatus(stepNumber)
     const isCurrentStep = stepNumber === props.currentStep
 
+    const baseClasses = 'w-8 h-8 rounded-full flex items-center justify-center'
+
     if (isCurrentStep) {
-        return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-primary-500'
+        return `${baseClasses} bg-white text-black dark:bg-black dark:text-white`
     }
 
-    if (status?.status === 'completed') {
-        return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-emerald-500 text-white'
-    }
-
-    if (status?.status === 'in_progress') {
-        return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-blue-500 text-white'
-    }
-
-    if (status?.status === 'not_started') {
-        return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-400'
+    if (status?.moduleStatus === 'completed') {
+        return `${baseClasses} bg-emerald-500 text-white`
     }
 
     if (status?.canView) {
-        return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-400'
+        return `${baseClasses} bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300`
     }
 
-    return 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-neutral-200 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'
+    return `${baseClasses} bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600`
 }
 
 const getStepTitleClasses = (stepNumber: WorkflowStep) => {
@@ -225,33 +133,62 @@ const getStepTitleClasses = (stepNumber: WorkflowStep) => {
     const isCurrentStep = stepNumber === props.currentStep
 
     if (isCurrentStep) {
-        return 'text-sm font-medium text-primary-700 dark:text-primary-300'
+        return 'text-sm font-semibold'
     }
 
-    if (status?.status === 'completed') {
+    if (status?.moduleStatus === 'completed') {
         return 'text-sm font-medium text-emerald-700 dark:text-emerald-300'
     }
 
-    if (status?.status === 'in_progress') {
-        return 'text-sm font-medium text-blue-700 dark:text-blue-300'
-    }
-
-    if (status?.status === 'not_started') {
-        return 'text-sm font-medium text-neutral-600 dark:text-neutral-400'
-    }
-
     if (status?.canView) {
-        return 'text-sm font-medium text-neutral-600 dark:text-neutral-400'
+        return 'text-sm font-medium text-zinc-900 dark:text-zinc-100'
     }
 
-    return 'text-sm font-medium text-neutral-400 dark:text-neutral-500'
+    return 'text-sm font-medium text-zinc-400 dark:text-zinc-500'
+}
+
+const getStepBadgeColor = (stepNumber: WorkflowStep) => {
+    const status = getStepDisplayStatus(stepNumber)
+
+    if (status?.moduleStatus === 'completed') return 'success'
+    if (status?.moduleExists) return 'warning'
+    if (status?.status === 'locked') return 'neutral'
+    return 'neutral'
+}
+
+const getStepBadgeLabel = (stepNumber: WorkflowStep) => {
+    const status = getStepDisplayStatus(stepNumber)
+
+    if (status?.moduleStatus === 'completed') return 'Terminé'
+    if (status?.moduleExists) return 'En cours'
+    if (status?.status === 'locked') return 'Verrouillé'
+    return 'Non démarré'
+}
+
+const getStepTooltip = (stepNumber: WorkflowStep) => {
+    const status = getStepDisplayStatus(stepNumber)
+    const stepName = steps[stepNumber - 1]?.title || `Étape ${stepNumber}`
+
+    if (status?.moduleStatus === 'completed') {
+        return `${stepName} : Ce module est terminé et prêt pour la suite.`
+    }
+
+    if (status?.moduleExists) {
+        return `${stepName} : Ce module est en cours de configuration.`
+    }
+
+    if (status?.status === 'locked') {
+        return `${stepName} : Ce module sera accessible après avoir terminé les étapes précédentes.`
+    }
+
+    return `${stepName} : Cliquez pour commencer la configuration de ce module.`
 }
 
 const handleStepClick = (stepNumber: number) => {
     const workflowStep = stepNumber as WorkflowStep
     const status = getStepDisplayStatus(workflowStep)
 
-    if (!status?.canView || status?.status === 'locked') {
+    if (!status?.canView) {
         const toast = useToast()
         toast.add({
             title: 'Step non accessible',

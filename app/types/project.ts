@@ -113,3 +113,13 @@ export interface ProjectWithClient extends Project {
 
 // Workflow step types
 export type WorkflowStep = 1 | 2 | 3 | 4;
+
+export type StepStatus = "accessible" | "locked";
+
+export interface StepInfo {
+  status: StepStatus;
+  canView: boolean;
+  canEdit: boolean;
+  moduleExists: boolean;
+  moduleStatus?: string;
+}
