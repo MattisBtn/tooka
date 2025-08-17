@@ -60,6 +60,161 @@ export const galleryService = {
   },
 
   /**
+   * Get gallery by project ID with all related data and pricing in a single query
+   */
+  async getGalleryByProjectIdWithDetails(projectId: string): Promise<{
+    gallery: GalleryWithDetails | null;
+    pricing: GalleryPricing;
+    project: {
+      id: string;
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+    } | null;
+  } | null> {
+    if (!projectId?.trim()) {
+      throw new Error("Project ID is required");
+    }
+
+    const data = await galleryRepository.findByProjectIdWithDetails(projectId);
+
+    if (!data) {
+      return null;
+    }
+
+    // Calculate pricing from the joined data
+    const pricing = this.calculatePricingFromData(data.proposal, data.project);
+
+    // Format gallery with images
+    const gallery: GalleryWithDetails | null = data.gallery
+      ? {
+          ...data.gallery,
+          images: data.images,
+          imageCount: data.images.length,
+        }
+      : null;
+
+    // Format project data
+    const project = data.project
+      ? {
+          id: data.project.id,
+          payment_method: data.project.payment_method,
+          bank_iban: data.project.bank_iban,
+          bank_bic: data.project.bank_bic,
+          bank_beneficiary: data.project.bank_beneficiary,
+        }
+      : null;
+
+    return {
+      gallery,
+      pricing,
+      project,
+    };
+  },
+
+  /**
+   * Get project data with pricing for gallery creation (when no gallery exists yet)
+   */
+  async getProjectDataForGalleryCreation(projectId: string): Promise<{
+    gallery: null;
+    pricing: GalleryPricing;
+    project: {
+      id: string;
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+    } | null;
+  }> {
+    if (!projectId?.trim()) {
+      throw new Error("Project ID is required");
+    }
+
+    const { projectService } = await import("~/services/projectService");
+    const data = await projectService.getProjectWithProposal(projectId);
+    if (!data || !data.project) {
+      throw new Error("Project not found");
+    }
+
+    // Calculate pricing from the joined data
+    const pricing = this.calculatePricingFromData(data.proposal, data.project);
+
+    // Format project data
+    const projectData = {
+      id: data.project.id,
+      payment_method: data.project.payment_method,
+      bank_iban: data.project.bank_iban,
+      bank_bic: data.project.bank_bic,
+      bank_beneficiary: data.project.bank_beneficiary,
+    };
+
+    return {
+      gallery: null,
+      pricing,
+      project: projectData,
+    };
+  },
+
+  /**
+   * Calculate pricing from proposal or project data
+   */
+  calculatePricingFromData(
+    proposal: {
+      id: string;
+      price: number;
+      deposit_required: boolean;
+      deposit_amount: number | null;
+    } | null,
+    project: {
+      id: string;
+      title: string;
+      status: "draft" | "in_progress" | "completed";
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+      initial_price: number | null;
+      remaining_amount: number | null;
+    } | null
+  ): GalleryPricing {
+    if (proposal) {
+      // Use proposal data if available
+      const basePrice = proposal.price;
+      const depositPaid =
+        proposal.deposit_required && proposal.deposit_amount
+          ? proposal.deposit_amount
+          : 0;
+      const remainingAmount = basePrice - depositPaid;
+
+      return {
+        basePrice,
+        depositPaid,
+        remainingAmount,
+      };
+    } else if (project) {
+      // Use project data when no proposal exists
+      const basePrice = project.initial_price ?? 0;
+      // If remaining_amount is null/undefined (not yet tracked), treat it as full amount remaining
+      const remainingAmountRaw = project.remaining_amount ?? basePrice;
+      const remainingAmount = Math.max(0, remainingAmountRaw);
+      const depositPaid = Math.max(0, basePrice - remainingAmount);
+
+      return {
+        basePrice,
+        depositPaid,
+        remainingAmount,
+      };
+    } else {
+      return {
+        basePrice: 0,
+        depositPaid: 0,
+        remainingAmount: 0,
+      };
+    }
+  },
+
+  /**
    * Calculate gallery pricing based on proposal or project data
    */
   async calculateGalleryPricing(projectId: string): Promise<GalleryPricing> {
@@ -91,10 +246,10 @@ export const galleryService = {
         };
       }
 
-      const basePrice = project.initial_price || 0;
-      const remainingAmount = project.remaining_amount || 0;
-      const depositPaid =
-        basePrice - remainingAmount < 0 ? 0 : basePrice - remainingAmount;
+      const basePrice = project.initial_price ?? 0;
+      const remainingAmountRaw = project.remaining_amount ?? basePrice;
+      const remainingAmount = Math.max(0, remainingAmountRaw);
+      const depositPaid = Math.max(0, basePrice - remainingAmount);
 
       return {
         basePrice,

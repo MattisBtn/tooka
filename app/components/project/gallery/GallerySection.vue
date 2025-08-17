@@ -150,25 +150,14 @@
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
                         </UTooltip>
-                        <UTooltip v-else-if="galleryStore.gallery?.status !== 'draft' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" disabled />
-                        </UTooltip>
 
                         <!-- Confirm Payment Action - Only for payment_pending and bank_transfer -->
                         <UTooltip
-                            v-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
+                            v-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && galleryStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
                             text="Confirmer le paiement reçu">
                             <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
                                 label="Confirmer paiement" :loading="galleryStore.loading"
                                 @click="handleConfirmPayment" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && projectSetupStore.project?.payment_method === 'bank_transfer' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
-                                label="Confirmer paiement" disabled />
                         </UTooltip>
 
                         <!-- Delete Action - Only for draft and awaiting_client -->
@@ -177,12 +166,6 @@
                             text="Supprimer la galerie">
                             <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
                                 :loading="galleryStore.loading" @click="handleDelete" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'awaiting_client') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                disabled />
                         </UTooltip>
                     </div>
                 </div>
@@ -283,9 +266,7 @@
                             <ProjectGalleryForm :gallery="galleryStore.gallery || undefined"
                                 :project-id="projectSetupStore.project?.id || ''"
                                 :existing-images="galleryStore.gallery?.images ? Array.from(galleryStore.gallery.images) : undefined"
-                                :pricing="galleryStore.pricing || undefined"
-                                :proposal-payment-info="proposalPaymentInfo"
-                                :project="galleryStore.project || undefined" @gallery-saved="handleGallerySaved"
+                                :proposal-payment-info="proposalPaymentInfo" @gallery-saved="handleGallerySaved"
                                 @cancel="galleryStore.closeForm()" @upload-completed="handleUploadCompleted" />
                         </div>
                     </div>
@@ -304,7 +285,6 @@ import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const galleryStore = useGalleryStore()
-const proposalStore = useProposalStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
@@ -316,15 +296,12 @@ const isFree = computed(() => projectSetupStore.isFree)
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
-    if (!proposalStore.proposal || !projectSetupStore.project) return undefined;
-
-    const project = projectSetupStore.project;
-    const proposal = proposalStore.proposal;
+    if (!galleryStore.pricing) return undefined;
 
     return {
-        payment_method: project.payment_method,
-        deposit_required: proposal.deposit_required,
-        deposit_amount: proposal.deposit_amount
+        payment_method: galleryStore.project?.payment_method || null,
+        deposit_required: galleryStore.pricing.depositPaid > 0,
+        deposit_amount: galleryStore.pricing.depositPaid
     };
 });
 
@@ -332,10 +309,7 @@ const proposalPaymentInfo = computed(() => {
 watch(() => projectSetupStore.project, async (project) => {
     if (project?.id) {
         try {
-            await Promise.all([
-                galleryStore.loadGallery(project.id),
-                proposalStore.loadProposal(project.id)
-            ])
+            await galleryStore.loadGallery(project.id)
         } catch (err) {
             console.error('Error loading project data:', err)
         }
@@ -476,7 +450,7 @@ const sendToClient = async () => {
 };
 
 const handleConfirmPayment = async () => {
-    if (!galleryStore.gallery || projectSetupStore.project?.payment_method !== 'bank_transfer' || isFree.value) return
+    if (!galleryStore.gallery || galleryStore.project?.payment_method !== 'bank_transfer' || isFree.value) return
 
     try {
         await galleryStore.confirmPayment(galleryStore.gallery.id)

@@ -173,37 +173,28 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
-      const { projectService } = await import("~/services/projectService");
 
-      const data = await galleryService.getGalleryByProjectId(projectId);
+      // Try to get existing gallery with details
+      const data = await galleryService.getGalleryByProjectIdWithDetails(
+        projectId
+      );
 
       if (data) {
-        gallery.value = data;
-
-        // Fetch pricing information
-        const pricingData = await galleryService.calculateGalleryPricing(
-          projectId
-        );
-        pricing.value = pricingData;
+        // Gallery exists
+        gallery.value = data.gallery;
+        pricing.value = data.pricing;
+        project.value = data.project;
       } else {
+        // No gallery exists yet, load project data for creation
+        const projectData =
+          await galleryService.getProjectDataForGalleryCreation(projectId);
         gallery.value = null;
-        pricing.value = null;
-      }
-
-      // Always load project data for payment information
-      const projectData = await projectService.getProjectById(projectId);
-      if (projectData) {
-        project.value = {
-          id: projectData.id,
-          payment_method: projectData.payment_method,
-          bank_iban: projectData.bank_iban,
-          bank_bic: projectData.bank_bic,
-          bank_beneficiary: projectData.bank_beneficiary,
-        };
+        pricing.value = projectData.pricing;
+        project.value = projectData.project;
       }
 
       isInitialized.value = true;
-      return data;
+      return data?.gallery || null;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to load gallery");
@@ -350,10 +341,32 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
+      const { projectService } = await import("~/services/projectService");
+
+      // Get project ID before deleting gallery
+      const projectId = gallery.value?.project_id;
+
       await galleryService.deleteGallery(galleryId);
+
+      // Clean up project payment_method if no proposal exists
+      if (projectId) {
+        const projectData = await projectService.getProjectWithProposal(
+          projectId
+        );
+        if (projectData && !projectData.proposal) {
+          // No proposal exists, clean up payment_method from project
+          await projectService.updateProject(projectId, {
+            payment_method: null,
+            bank_iban: null,
+            bank_bic: null,
+            bank_beneficiary: null,
+          });
+        }
+      }
 
       gallery.value = null;
       pricing.value = null;
+      project.value = null;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete gallery");

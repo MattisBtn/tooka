@@ -104,6 +104,89 @@ export const galleryRepository: IGalleryRepository = {
     return data;
   },
 
+  /**
+   * Get gallery by project ID with all related data in a single query
+   */
+  async findByProjectIdWithDetails(projectId: string): Promise<{
+    gallery: Gallery | null;
+    project: {
+      id: string;
+      title: string;
+      status: "draft" | "in_progress" | "completed";
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+      initial_price: number | null;
+      remaining_amount: number | null;
+    } | null;
+    proposal: {
+      id: string;
+      price: number;
+      deposit_required: boolean;
+      deposit_amount: number | null;
+    } | null;
+    images: Array<{
+      id: string;
+      file_url: string;
+      created_at: string;
+      gallery_id: string;
+    }>;
+  } | null> {
+    const supabase = useSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("galleries")
+      .select(
+        `
+        *,
+        project:projects(
+          id,
+          title,
+          status,
+          payment_method,
+          bank_iban,
+          bank_bic,
+          bank_beneficiary,
+          initial_price,
+          remaining_amount,
+          proposals(
+            id,
+            price,
+            deposit_required,
+            deposit_amount
+          )
+        ),
+        gallery_images(
+          id,
+          file_url,
+          created_at,
+          gallery_id
+        )
+      `
+      )
+      .eq("project_id", projectId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch gallery with details: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Extract proposal from the nested project data
+    const proposal = data.project?.proposals?.[0] || null;
+
+    return {
+      gallery: data,
+      project: data.project,
+      proposal: proposal,
+      images: data.gallery_images || [],
+    };
+  },
+
   async create(
     galleryData: Omit<Gallery, "id" | "created_at" | "updated_at">
   ): Promise<Gallery> {

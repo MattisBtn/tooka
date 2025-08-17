@@ -35,6 +35,32 @@ export interface IGalleryRepository {
   ): Promise<Gallery[]>;
   findById(id: string): Promise<Gallery | null>;
   findByProjectId(projectId: string): Promise<Gallery | null>;
+  findByProjectIdWithDetails(projectId: string): Promise<{
+    gallery: Gallery | null;
+    project: {
+      id: string;
+      title: string;
+      status: "draft" | "in_progress" | "completed";
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+      initial_price: number | null;
+      remaining_amount: number | null;
+    } | null;
+    proposal: {
+      id: string;
+      price: number;
+      deposit_required: boolean;
+      deposit_amount: number | null;
+    } | null;
+    images: Array<{
+      id: string;
+      file_url: string;
+      created_at: string;
+      gallery_id: string;
+    }>;
+  } | null>;
   create(
     data: Omit<Gallery, "id" | "created_at" | "updated_at">
   ): Promise<Gallery>;

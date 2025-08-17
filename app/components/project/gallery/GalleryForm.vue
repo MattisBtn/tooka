@@ -79,8 +79,15 @@
                         </span>
                     </div>
 
-                    <!-- Payment Method - Locked (when deposit already paid) -->
-                    <div v-if="isPaymentMethodLocked" class="space-y-3">
+                    <!-- Payment Method - Selectable -->
+                    <UFormField v-if="showPaymentMethodSelector" label="Méthode de paiement" name="payment_method"
+                        required>
+                        <USelectMenu v-model="paymentMethod" value-key="value" :items="paymentMethodOptions"
+                            placeholder="Choisir la méthode de paiement" icon="i-lucide-credit-card" />
+                    </UFormField>
+
+                    <!-- Payment Method - Display (when already set) -->
+                    <div v-else-if="projectState.payment_method" class="space-y-3">
                         <div
                             class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
                             <div class="flex items-center gap-3">
@@ -90,23 +97,16 @@
                                         {{ paymentMethodInfo?.label || 'Méthode non définie' }}
                                     </p>
                                     <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                                        Définie lors du paiement de l'acompte
+                                        Méthode de paiement définie
                                     </p>
                                 </div>
                             </div>
-                            <UIcon name="i-lucide-lock" class="w-4 h-4 text-neutral-400" />
+                            <UIcon name="i-lucide-check" class="w-4 h-4 text-green-500" />
                         </div>
                     </div>
 
-                    <!-- Payment Method - Selectable (when no deposit paid yet) -->
-                    <UFormField v-else-if="showPaymentMethodSelector" label="Méthode de paiement" name="payment_method"
-                        required>
-                        <USelectMenu v-model="paymentMethod" value-key="value" :items="paymentMethodOptions"
-                            placeholder="Choisir la méthode de paiement" icon="i-lucide-credit-card" />
-                    </UFormField>
-
                     <!-- Bank Transfer Details -->
-                    <div v-if="(projectState.payment_method === 'bank_transfer') || (isPaymentMethodLocked && (props.project?.payment_method === 'bank_transfer' || props.proposalPaymentInfo?.payment_method === 'bank_transfer'))"
+                    <div v-if="projectState.payment_method === 'bank_transfer'"
                         class="space-y-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
                         <div class="flex items-center gap-2 mb-3">
                             <UIcon name="i-lucide-building-2" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
@@ -229,7 +229,7 @@
 
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { galleryFormSchema, type Gallery, type GalleryFormData, type GalleryImage, type GalleryPricing, type ProjectPaymentData } from "~/types/gallery";
+import { galleryFormSchema, type Gallery, type GalleryFormData, type GalleryImage, type ProjectPaymentData } from "~/types/gallery";
 
 interface ProposalPaymentInfo {
     payment_method: 'stripe' | 'bank_transfer' | null;
@@ -241,15 +241,7 @@ interface Props {
     gallery?: Gallery;
     projectId: string;
     existingImages?: GalleryImage[];
-    pricing?: GalleryPricing;
     proposalPaymentInfo?: ProposalPaymentInfo;
-    project?: {
-        id: string;
-        payment_method: 'stripe' | 'bank_transfer' | null;
-        bank_iban: string | null;
-        bank_bic: string | null;
-        bank_beneficiary: string | null;
-    };
 }
 
 interface Emits {
@@ -265,11 +257,13 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 // Use stores
-const projectSetupStore = useProjectSetupStore()
 const galleryStore = useGalleryStore()
 
-// Check if project is free
-const isFree = computed(() => projectSetupStore.isFree)
+// Check if project is free - use galleryStore data instead of projectSetupStore
+const isFree = computed(() => {
+    const basePrice = galleryStore.pricing?.basePrice ?? 0;
+    return basePrice === 0;
+})
 
 // Form state
 const state = reactive<GalleryFormData>({
@@ -278,12 +272,12 @@ const state = reactive<GalleryFormData>({
     status: props.gallery?.status || "draft",
 });
 
-// Project state for payment info
+// Project state for payment info - use galleryStore data
 const projectState = reactive<ProjectPaymentData>({
-    payment_method: props.project?.payment_method || null,
-    bank_iban: props.project?.bank_iban || null,
-    bank_bic: props.project?.bank_bic || null,
-    bank_beneficiary: props.project?.bank_beneficiary || null,
+    payment_method: galleryStore.project?.payment_method || null,
+    bank_iban: galleryStore.project?.bank_iban || null,
+    bank_bic: galleryStore.project?.bank_bic || null,
+    bank_beneficiary: galleryStore.project?.bank_beneficiary || null,
 });
 
 // File upload states
@@ -311,7 +305,7 @@ const totalImageCount = computed(() => images.value.length + selectedFiles.value
 
 // Payment method options for USelectMenu
 const paymentMethodOptions = [
-    { value: "stripe", label: "Stripe (Carte bancaire)", disabled: true },
+    { value: "stripe", label: "Stripe (Carte bancaire)" },
     { value: "bank_transfer", label: "Virement bancaire" },
 ];
 
@@ -323,8 +317,8 @@ const paymentMethod = computed({
     }
 });
 
-// Pricing computed
-const pricing = computed(() => props.pricing);
+// Pricing computed - use galleryStore data
+const pricing = computed(() => galleryStore.pricing);
 const formattedRemainingAmount = computed(() => {
     if (!pricing.value?.remainingAmount) return "Gratuit";
     return new Intl.NumberFormat("fr-FR", {
@@ -342,46 +336,29 @@ const isPaymentInfoRequired = computed(() => {
     return (pricing.value?.remainingAmount ?? 0) > 0;
 });
 
-const isPaymentMethodLocked = computed(() => {
-    // La méthode de paiement est verrouillée si un acompte a déjà été payé
-    return (pricing.value?.depositPaid ?? 0) > 0;
-});
-
 const showPaymentMethodSelector = computed(() => {
-    // Afficher le sélecteur seulement si le paiement est requis mais la méthode n'est pas verrouillée
-    return isPaymentInfoRequired.value && !isPaymentMethodLocked.value;
+    // Afficher le sélecteur si:
+    // 1. Le paiement est requis
+    // 2. Aucune méthode de paiement n'est définie
+    return isPaymentInfoRequired.value && !projectState.payment_method;
 });
 
 const isPaymentInfoMissing = computed(() => {
     if (!isPaymentInfoRequired.value) return false;
 
-    // Si la méthode est verrouillée, on utilise la méthode existante du projet
-    const methodToCheck = isPaymentMethodLocked.value
-        ? (props.project?.payment_method || props.proposalPaymentInfo?.payment_method)
-        : projectState.payment_method;
-
-    if (methodToCheck === 'bank_transfer') {
+    // Si une méthode est définie, vérifier les détails bancaires si nécessaire
+    if (projectState.payment_method === 'bank_transfer') {
         return !projectState.bank_iban || !projectState.bank_bic || !projectState.bank_beneficiary;
     }
 
-    // Pour une méthode verrouillée, pas besoin de vérifier si elle est définie (elle l'est déjà)
-    if (isPaymentMethodLocked.value) return false;
-
+    // Sinon, une méthode est requise
     return !projectState.payment_method;
 });
 
 const paymentMethodInfo = computed(() => {
-    // Pour une méthode verrouillée, utiliser la méthode du projet ou de la proposition
-    const lockedMethod = props.project?.payment_method || props.proposalPaymentInfo?.payment_method;
-    if (isPaymentMethodLocked.value && lockedMethod) {
-        return paymentMethodOptions.find(option => option.value === lockedMethod);
-    }
-
-    // Pour les méthodes non verrouillées, utiliser la méthode sélectionnée
-    if (!isPaymentMethodLocked.value && projectState.payment_method) {
+    if (projectState.payment_method) {
         return paymentMethodOptions.find(option => option.value === projectState.payment_method);
     }
-
     return null;
 });
 

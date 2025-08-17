@@ -234,6 +234,73 @@ export const projectService = {
   },
 
   /**
+   * Get project by ID with proposal data in a single query
+   */
+  async getProjectWithProposal(projectId: string): Promise<{
+    project: {
+      id: string;
+      title: string;
+      status: "draft" | "in_progress" | "completed";
+      payment_method: "stripe" | "bank_transfer" | null;
+      bank_iban: string | null;
+      bank_bic: string | null;
+      bank_beneficiary: string | null;
+      initial_price: number | null;
+      remaining_amount: number | null;
+    } | null;
+    proposal: {
+      id: string;
+      price: number;
+      deposit_required: boolean;
+      deposit_amount: number | null;
+    } | null;
+  } | null> {
+    const supabase = useSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select(
+        `
+        id,
+        title,
+        status,
+        payment_method,
+        bank_iban,
+        bank_bic,
+        bank_beneficiary,
+        initial_price,
+        remaining_amount,
+        proposals(
+          id,
+          price,
+          deposit_required,
+          deposit_amount
+        )
+      `
+      )
+      .eq("id", projectId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Failed to fetch project with proposal: ${error.message}`
+      );
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Extract proposal from the nested data
+    const proposal = data.proposals?.[0] || null;
+
+    return {
+      project: data,
+      proposal: proposal,
+    };
+  },
+
+  /**
    * Create new project
    */
   async createProject(
