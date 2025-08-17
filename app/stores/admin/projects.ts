@@ -175,14 +175,7 @@ export const useProjectsStore = defineStore("projects", () => {
         bank_beneficiary: null,
         bank_bic: null,
         bank_iban: null,
-        bank_transfer_reference: null,
-        payment_completed_at: null,
         payment_method: null,
-        payment_status: null,
-        stripe_payment_intent_id: null,
-        workflow_completed_at: null,
-        workflow_started_at: null,
-        workflow_step: null,
       });
       projects.value = [newProject, ...projects.value];
       closeModal();
