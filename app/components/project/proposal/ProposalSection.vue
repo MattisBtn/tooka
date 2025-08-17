@@ -43,14 +43,14 @@
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix</span>
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ proposalStore.formattedPrice }}
+                                {{ formatPrice(proposalStore.proposal?.price) }}
                             </p>
                         </div>
                         <div v-if="proposalStore.proposal?.deposit_required" class="space-y-1">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ proposalStore.formattedDepositAmount }}
+                                {{ formatPrice(proposalStore.proposal?.deposit_amount) }}
                             </p>
                             <p class="text-xs text-neutral-500 dark:text-neutral-400">
                                 {{ getDepositPercentage() }}% du prix total
@@ -115,19 +115,16 @@
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/proposal/${proposalStore.proposal?.id}`" target="_blank" />
                         </UTooltip>
-                        <UTooltip v-else-if="proposalStore.proposal?.status !== 'draft' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" disabled />
-                        </UTooltip>
 
-                        <!-- Send to Client Action - Only for draft -->
-                        <UTooltip v-if="proposalStore.proposal?.status === 'draft' && !isProjectCompleted"
+                        <!-- Send to Client Action - Available for draft and revision_requested -->
+                        <UTooltip
+                            v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'revision_requested') && !isProjectCompleted"
                             text="Envoyer la proposition au client">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" @click="sendToClient()" />
                         </UTooltip>
-                        <UTooltip v-else-if="proposalStore.proposal?.status === 'draft' && isProjectCompleted"
+                        <UTooltip
+                            v-else-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'revision_requested') && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" disabled />
@@ -137,7 +134,7 @@
                         <UTooltip v-if="proposalStore.proposal?.status === 'payment_pending' && !isProjectCompleted"
                             text="Marquer la proposition comme terminée">
                             <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
-                                label="Marquer comme terminé" @click="markAsCompleted()" />
+                                label="Marquer comme terminé" @click="confirmPayment()" />
                         </UTooltip>
                         <UTooltip v-else-if="proposalStore.proposal?.status === 'payment_pending' && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
@@ -254,9 +251,9 @@
                     <div class="flex-1 p-6 overflow-y-auto">
                         <div class="max-w-4xl mx-auto">
                             <ProjectProposalForm :proposal="proposalStore.proposal || undefined"
-                                :project="projectSetupStore.project || undefined"
-                                :project-id="projectSetupStore.project?.id || ''"
-                                :project-initial-price="projectSetupStore.project?.initial_price || 0"
+                                :project="proposalStore.proposal?.project || projectSetupStore.project || undefined"
+                                :project-id="proposalStore.proposal?.project?.id || projectSetupStore.project?.id || ''"
+                                :project-initial-price="proposalStore.proposal?.project?.initial_price || projectSetupStore.project?.initial_price || 0"
                                 @proposal-saved="handleProposalSaved" @cancel="proposalStore.closeForm()" />
                         </div>
                     </div>
@@ -268,25 +265,39 @@
 
 <script lang="ts" setup>
 
-import { getStatusColor } from "~/utils/formatters";
+import type { Project } from "~/types/project";
+import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
+import { formatPrice, getStatusColor } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
 
-// Use store-level reactive flag
-const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
-
-// Check if project is free
-const isFree = computed(() => projectSetupStore.isFree)
-
-// Avoid deep type instantiation by narrowing proposal type access
-const currentStatus = computed<string>(() => {
-    const p = proposalStore.proposal as unknown as { status?: string } | null
-    return p?.status ?? 'draft'
+// Hybrid computed properties: use proposalStore when available, fallback to projectSetupStore
+const isProjectCompleted = computed(() => {
+    if (proposalStore.proposal?.project) {
+        // Mode modification : utiliser les données de la proposition
+        return (proposalStore.proposal.project as Project).status === 'completed'
+    } else {
+        // Mode création : utiliser les données du projectSetupStore
+        return projectSetupStore.isProjectCompleted
+    }
 })
 
-const statusLabel = computed<string>(() => {
+const isFree = computed(() => {
+    if (proposalStore.proposal?.project) {
+        // Mode modification : utiliser les données de la proposition
+        const price = proposalStore.proposal.project.initial_price as number | undefined
+        return (price || 0) === 0
+    } else {
+        // Mode création : utiliser les données du projectSetupStore
+        return projectSetupStore.isFree
+    }
+})
+
+// Simple status helpers with explicit typing to avoid deep instantiation
+const statusLabel = computed((): string => {
+    const status = proposalStore.proposal?.status as string | undefined
     const map: Record<string, string> = {
         draft: 'Brouillon',
         awaiting_client: 'En attente client',
@@ -294,49 +305,56 @@ const statusLabel = computed<string>(() => {
         completed: 'Acceptée',
         payment_pending: 'Paiement en attente',
     }
-    return map[currentStatus.value] ?? currentStatus.value
+    return map[status || 'draft'] ?? status ?? 'draft'
 })
 
-const statusColor = computed(() => getStatusColor(currentStatus.value))
+const statusColor = computed(() => {
+    const status = proposalStore.proposal?.status as string | undefined
+    return getStatusColor(status || 'draft')
+})
 
-// Initialize proposal store when project is loaded (watch only project id to avoid deep TS inference)
-const projectId = computed(() => projectSetupStore.project?.id || null)
-watch(projectId, async (id) => {
-    if (id) {
+// Load proposal when component is mounted
+onMounted(async () => {
+    const projectId = projectSetupStore.project?.id
+    if (projectId && !proposalStore.exists) {
         try {
-            await proposalStore.loadProposal(id)
+            await proposalStore.loadProposal(projectId)
         } catch (err) {
             console.error('Error loading proposal:', err)
         }
     }
-}, { immediate: true })
+})
 
 // Handle proposal saved
-const handleProposalSaved = async (data: any) => {
+const handleProposalSaved = async (data: {
+    proposal: ProposalFormData;
+    project: ProjectPaymentData;
+    projectUpdated: boolean;
+}) => {
     try {
-        if (proposalStore.exists && proposalStore.proposal) {
+        const isUpdate = proposalStore.exists && proposalStore.proposal;
+
+        if (isUpdate) {
             // Update existing proposal
             await proposalStore.updateProposal(
-                proposalStore.proposal.id,
+                proposalStore.proposal!.id,
                 data.proposal,
-                data.project
+                data.project,
+                isFree.value
             );
         } else {
-            // Create new proposal
+            // Create new proposal - use projectSetupStore data
             await proposalStore.createProposal(
                 projectSetupStore.project!.id,
                 data.proposal,
-                data.project
+                data.project,
+                projectSetupStore.isFree
             );
-        }
-
-        if (data.projectUpdated) {
-            await projectSetupStore.refreshProject()
         }
 
         const toast = useToast();
         toast.add({
-            title: proposalStore.exists ? 'Proposition mise à jour' : 'Proposition créée',
+            title: isUpdate ? 'Proposition mise à jour' : 'Proposition créée',
             description: 'La proposition a été sauvegardée avec succès.',
             icon: 'i-lucide-check-circle',
             color: 'success'
@@ -346,7 +364,7 @@ const handleProposalSaved = async (data: any) => {
         const toast = useToast();
         toast.add({
             title: 'Erreur',
-            description: 'Une erreur est survenue lors de la sauvegarde.',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde.',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         });
@@ -361,14 +379,14 @@ const getDepositPercentage = () => {
 }
 
 const getPaymentMethodColor = () => {
-    const method = projectSetupStore.project?.payment_method;
+    const method = proposalStore.proposal?.project?.payment_method || projectSetupStore.project?.payment_method;
     if (method === 'bank_transfer') return 'info';
     if (method === 'stripe') return 'success';
     return 'neutral';
 }
 
 const getPaymentMethodLabel = () => {
-    const method = projectSetupStore.project?.payment_method;
+    const method = proposalStore.proposal?.project?.payment_method || projectSetupStore.project?.payment_method;
     if (method === 'bank_transfer') return 'Virement bancaire';
     if (method === 'stripe') return 'Carte bancaire';
     return 'Non défini';
@@ -394,11 +412,7 @@ const sendToClient = async () => {
     if (!proposalStore.proposal) return;
 
     try {
-        const result = await proposalStore.sendToClient()
-
-        if (result.projectUpdated) {
-            await projectSetupStore.refreshProject()
-        }
+        await proposalStore.sendToClient()
 
         const toast = useToast();
         toast.add({
@@ -412,19 +426,19 @@ const sendToClient = async () => {
         const toast = useToast();
         toast.add({
             title: 'Erreur',
-            description: 'Une erreur est survenue lors de l\'envoi.',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'envoi.',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         });
     }
 };
 
-const markAsCompleted = async () => {
+const confirmPayment = async () => {
     if (!proposalStore.proposal) return;
 
     try {
-        // Logique pour marquer la proposition comme terminée
-        // Cela pourrait mettre à jour le statut vers 'completed'
+        await proposalStore.confirmPayment();
+
         const toast = useToast();
         toast.add({
             title: 'Proposition terminée',
@@ -433,11 +447,11 @@ const markAsCompleted = async () => {
             color: 'success'
         });
     } catch (err) {
-        console.error('Error marking as completed:', err);
+        console.error('Error confirming payment:', err);
         const toast = useToast();
         toast.add({
             title: 'Erreur',
-            description: 'Une erreur est survenue lors de la mise à jour.',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour.',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         });
@@ -476,9 +490,6 @@ const handleDelete = async () => {
     try {
         await proposalStore.deleteProposal(proposalStore.proposal.id)
 
-        // Refresh project to sync module states
-        await projectSetupStore.refreshProject()
-
         const toast = useToast()
         toast.add({
             title: 'Proposition supprimée',
@@ -486,11 +497,11 @@ const handleDelete = async () => {
             icon: 'i-lucide-check-circle',
             color: 'success'
         })
-    } catch {
+    } catch (err) {
         const toast = useToast()
         toast.add({
             title: 'Erreur',
-            description: 'Une erreur est survenue lors de la suppression.',
+            description: err instanceof Error ? err.message : 'Une erreur est survenue lors de la suppression.',
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })

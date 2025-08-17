@@ -93,7 +93,6 @@ export default defineEventHandler(async (event) => {
     const selectedCount = selectedImages.length;
 
     // Calculate extra cost if selection exceeds max_media_selection
-
     let extraCost = 0;
     if (
       selectedCount > selection.max_media_selection &&
@@ -144,6 +143,7 @@ export default defineEventHandler(async (event) => {
         id: selectionId,
         status: "completed",
         selectedCount: selectedImages.length,
+        extraCost,
       },
     };
   } catch (error) {

@@ -24,10 +24,6 @@ export interface IMoodboardFilters {
 }
 
 export interface IMoodboardRepository {
-  findMany(
-    filters: IMoodboardFilters,
-    pagination: IPagination
-  ): Promise<Moodboard[]>;
   findById(id: string): Promise<Moodboard | null>;
   findByProjectId(projectId: string): Promise<Moodboard | null>;
   create(
@@ -46,20 +42,6 @@ export interface IMoodboardImageRepository {
   delete(id: string): Promise<void>;
   deleteMany(moodboardId: string): Promise<void>;
   getPublicUrl(filePath: string): string;
-}
-
-export interface IPagination {
-  page: number;
-  pageSize: number;
-}
-
-// Moodboard status options for UI
-export interface MoodboardStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
-  label: string;
-  description: string;
-  icon: string;
-  color: string;
 }
 
 // Validation schema for moodboard form
@@ -88,37 +70,9 @@ export type MoodboardFormData = z.infer<typeof moodboardFormSchema>;
 
 // Moodboard with project and images information for display
 export interface MoodboardWithDetails extends Moodboard {
-  project?: {
-    readonly id: string;
-    readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
-  };
+  project?: Tables<"projects">;
   images?: readonly MoodboardImage[];
   imageCount?: number;
-  hasMore?: boolean;
-  currentPage?: number;
-}
-
-// Moodboard with project info for client access
-export interface MoodboardWithProjectDetails extends Moodboard {
-  project: {
-    id: string;
-    title: string;
-    description: string | null;
-    password_hash: string;
-    status: "draft" | "in_progress" | "completed";
-  };
-  images: MoodboardImage[];
-  imageCount: number;
-}
-
-// Image upload data
-export interface ImageUploadData {
-  file: File;
-  preview?: string;
-  uploading?: boolean;
-  uploaded?: boolean;
-  error?: string;
 }
 
 // Client moodboard access types
@@ -141,7 +95,7 @@ export interface MoodboardImageWithInteractions extends MoodboardImage {
   };
   userReaction?: "love" | "like" | "dislike" | null;
   comments?: MoodboardComment[];
-  signed_url?: string | null; // Signed URL for client access
+  signed_url?: string | null;
 }
 
 export interface ClientPasswordVerification {

@@ -133,13 +133,15 @@
                                 disabled />
                         </UTooltip>
 
-                        <!-- Send to Client Action - Only for draft -->
-                        <UTooltip v-if="galleryStore.gallery?.status === 'draft' && !isProjectCompleted"
+                        <!-- Send to Client Action - Available for draft and revision_requested -->
+                        <UTooltip
+                            v-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'revision_requested') && !isProjectCompleted"
                             text="Envoyer la galerie au client">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" :loading="galleryStore.loading" @click="sendToClient()" />
                         </UTooltip>
-                        <UTooltip v-else-if="galleryStore.gallery?.status === 'draft' && isProjectCompleted"
+                        <UTooltip
+                            v-else-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'revision_requested') && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" disabled />
@@ -155,7 +157,7 @@
                         <UTooltip
                             v-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && galleryStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
                             text="Confirmer le paiement reçu">
-                            <UButton icon="i-lucide-check-circle" size="sm" variant="outline" color="success"
+                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
                                 label="Confirmer paiement" :loading="galleryStore.loading"
                                 @click="handleConfirmPayment" />
                         </UTooltip>
@@ -290,9 +292,10 @@ const galleryStore = useGalleryStore()
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
 
 // Check if project is free
-const isFree = computed(() => projectSetupStore.isFree)
-
-
+const isFree = computed(() => {
+    const basePrice = galleryStore.pricing?.basePrice ?? 0;
+    return basePrice === 0;
+})
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
@@ -399,9 +402,6 @@ const handleDelete = async () => {
     try {
         await galleryStore.deleteGallery(galleryStore.gallery.id)
 
-        // Refresh project to sync module states
-        await projectSetupStore.refreshProject()
-
         const toast = useToast()
         toast.add({
             title: 'Galerie supprimée',
@@ -424,11 +424,7 @@ const sendToClient = async () => {
     if (!galleryStore.gallery) return;
 
     try {
-        const result = await galleryStore.sendToClient(galleryStore.gallery.id)
-
-        if (result.projectUpdated) {
-            await projectSetupStore.refreshProject()
-        }
+        await galleryStore.sendToClient(galleryStore.gallery.id)
 
         const toast = useToast();
         toast.add({
@@ -454,7 +450,6 @@ const handleConfirmPayment = async () => {
 
     try {
         await galleryStore.confirmPayment(galleryStore.gallery.id)
-        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

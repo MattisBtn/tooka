@@ -14,8 +14,8 @@ export const useClientSelectionActions = () => {
   const toggleImageSelection = async (imageId: string) => {
     if (!store.canInteract) return;
 
-    // Use the store method that handles the API call
-    await store.toggleImageSelection(imageId);
+    // Use the store method that handles local state only
+    store.toggleImageSelection(imageId);
   };
 
   const validateSelection = async () => {
@@ -24,20 +24,21 @@ export const useClientSelectionActions = () => {
     try {
       validatingSelection.value = true;
 
-      await $fetch(`/api/selection/client/${store.selectionId}/validate`, {
-        method: "POST",
-      });
+      const success = await store.validateSelectionWithImages();
 
-      store.updateSelectionStatus("completed");
-      showValidateDialog.value = false;
+      if (success) {
+        showValidateDialog.value = false;
 
-      const toast = useToast();
-      toast.add({
-        title: "Sélection validée",
-        description: "Votre sélection a été validée avec succès",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      });
+        const toast = useToast();
+        toast.add({
+          title: "Sélection validée",
+          description: "Votre sélection a été validée avec succès",
+          icon: "i-lucide-check-circle",
+          color: "success",
+        });
+      } else {
+        throw new Error("Validation failed");
+      }
     } catch (err) {
       console.error("Error validating selection:", err);
       const toast = useToast();

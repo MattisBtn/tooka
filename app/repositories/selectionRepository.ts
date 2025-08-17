@@ -2,7 +2,6 @@ import type {
   ISelectionRepository,
   Selection,
   SelectionImage,
-  SelectionWithDetails,
 } from "~/types/selection";
 
 export const selectionRepository: ISelectionRepository = {
@@ -14,11 +13,7 @@ export const selectionRepository: ISelectionRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        )
+        project:projects(*)
       `
       )
       .eq("id", id)
@@ -43,11 +38,7 @@ export const selectionRepository: ISelectionRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        ),
+        project:projects(*),
         selection_images(*)
       `
       )
@@ -82,11 +73,7 @@ export const selectionRepository: ISelectionRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        )
+        project:projects(*)
       `
       )
       .single();
@@ -101,7 +88,7 @@ export const selectionRepository: ISelectionRepository = {
   async update(
     id: string,
     selectionData: Partial<Selection>
-  ): Promise<SelectionWithDetails> {
+  ): Promise<Selection> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -111,43 +98,16 @@ export const selectionRepository: ISelectionRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        ),
-        selection_images(
-          id,
-          file_url,
-          is_selected,
-          created_at,
-          conversion_status,
-          requires_conversion,
-          source_file_url,
-          source_filename,
-          source_format,
-          target_format
-        )
+        project:projects(*)
       `
       )
       .single();
 
     if (error) {
-      throw new Error(
-        `Failed to update selection with images: ${error.message}`
-      );
+      throw new Error(`Failed to update selection: ${error.message}`);
     }
 
-    // Transform the data to match SelectionWithDetails interface
-    const images = data.selection_images || [];
-    const selectedCount = images.filter((img) => img.is_selected).length;
-
-    return {
-      ...data,
-      images: images as SelectionImage[],
-      imageCount: images.length,
-      selectedCount,
-    };
+    return data;
   },
 
   async delete(id: string): Promise<void> {

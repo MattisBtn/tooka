@@ -1,39 +1,12 @@
 import type { ProposalComponent } from "~/composables/proposals/useProposalComponentTypes";
 import { proposalRepository } from "~/repositories/proposalRepository";
-import { projectService } from "~/services/projectService";
-import type { Proposal, ProposalStatus } from "~/types/proposal";
+import type { Proposal, ProposalWithProject } from "~/types/proposal";
 
 export const proposalService = {
   /**
-   * Fetch proposals with pagination and filtering
-   */
-  async getProposals(
-    filters: {
-      search?: string;
-      status?: ProposalStatus | null;
-      project_id?: string;
-    } = {},
-    pagination: { page: number; pageSize: number }
-  ): Promise<Proposal[]> {
-    const proposals = await proposalRepository.findMany(filters, pagination);
-
-    // Business logic: sort by status priority
-    return proposals.sort((a: Proposal, b: Proposal) => {
-      const statusOrder: Record<ProposalStatus, number> = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
-      };
-      return statusOrder[a.status] - statusOrder[b.status];
-    });
-  },
-
-  /**
    * Get proposal by ID with validation
    */
-  async getProposalById(id: string): Promise<Proposal> {
+  async getProposalById(id: string): Promise<ProposalWithProject> {
     if (!id?.trim()) {
       throw new Error("Proposal ID is required");
     }
@@ -50,7 +23,9 @@ export const proposalService = {
   /**
    * Get proposal by project ID
    */
-  async getProposalByProjectId(projectId: string): Promise<Proposal | null> {
+  async getProposalByProjectId(
+    projectId: string
+  ): Promise<ProposalWithProject | null> {
     if (!projectId?.trim()) {
       throw new Error("Project ID is required");
     }
@@ -59,113 +34,39 @@ export const proposalService = {
   },
 
   /**
-   * Create new proposal with validation and business rules
+   * Create new proposal - simplified without pre-checks
    */
   async createProposal(
     proposalData: Omit<Proposal, "id" | "created_at" | "updated_at">
-  ): Promise<{ proposal: Proposal; projectUpdated: boolean }> {
+  ): Promise<ProposalWithProject> {
     if (!proposalData.project_id?.trim()) {
       throw new Error("Project ID is required");
     }
 
-    // Verify project exists and belongs to user
-    const _project = await projectService.getProjectById(
-      proposalData.project_id
-    );
-
-    // Check if proposal already exists for this project
-    const existingProposal = await this.getProposalByProjectId(
-      proposalData.project_id
-    );
-    if (existingProposal) {
-      throw new Error("Une proposition existe déjà pour ce projet");
-    }
-
-    // Business rule: validate deposit logic
-    if (
-      proposalData.deposit_required &&
-      (!proposalData.deposit_amount || proposalData.deposit_amount <= 0)
-    ) {
-      throw new Error(
-        "Le montant de l'acompte est requis quand l'acompte est activé"
-      );
-    }
-
-    if (
-      proposalData.deposit_amount &&
-      proposalData.deposit_amount > proposalData.price
-    ) {
-      throw new Error(
-        "Le montant de l'acompte ne peut pas dépasser le prix total"
-      );
-    }
-
-    // Create proposal (always draft)
+    // Create proposal (always draft) - let Supabase handle constraints
     const finalProposalData = {
       ...proposalData,
       status: "draft" as const,
     };
 
-    const proposal = await proposalRepository.create(finalProposalData);
-
-    // Update project status if needed (proposal is draft, so project stays draft)
-    await projectService.updateProjectStatusIfNeeded(proposalData.project_id);
-
-    return { proposal, projectUpdated: false };
+    return await proposalRepository.create(finalProposalData);
   },
 
   /**
-   * Update proposal with business rules
+   * Update proposal - simplified without pre-checks
    */
   async updateProposal(
     id: string,
     updates: Partial<Proposal>
-  ): Promise<{ proposal: Proposal; projectUpdated: boolean }> {
-    const existingProposal = await this.getProposalById(id);
-
-    // Business rule: validate deposit logic if being updated
-    if (
-      updates.deposit_required !== undefined ||
-      updates.deposit_amount !== undefined ||
-      updates.price !== undefined
-    ) {
-      const finalDepositRequired =
-        updates.deposit_required ?? existingProposal.deposit_required;
-      const finalDepositAmount =
-        updates.deposit_amount ?? existingProposal.deposit_amount;
-      const finalPrice = updates.price ?? existingProposal.price;
-
-      if (
-        finalDepositRequired &&
-        (!finalDepositAmount || finalDepositAmount <= 0)
-      ) {
-        throw new Error(
-          "Le montant de l'acompte est requis quand l'acompte est activé"
-        );
-      }
-
-      if (finalDepositAmount && finalDepositAmount > finalPrice) {
-        throw new Error(
-          "Le montant de l'acompte ne peut pas dépasser le prix total"
-        );
-      }
-    }
-
+  ): Promise<ProposalWithProject> {
     // Update proposal (keep current status)
-    const proposal = await proposalRepository.update(id, updates);
-
-    // Update project status if needed (based on new proposal status)
-    await projectService.updateProjectStatusIfNeeded(
-      existingProposal.project_id
-    );
-
-    return { proposal, projectUpdated: false };
+    return await proposalRepository.update(id, updates);
   },
 
   /**
    * Confirm payment and validate proposal (photographe action)
    */
-  async confirmPayment(proposalId: string): Promise<Proposal> {
+  async confirmPayment(proposalId: string): Promise<ProposalWithProject> {
     const proposal = await this.getProposalById(proposalId);
 
     // Verify proposal is in payment_pending status
@@ -187,18 +88,6 @@ export const proposalService = {
    * Delete proposal with dependency checks
    */
   async deleteProposal(id: string): Promise<void> {
-    const proposal = await this.getProposalById(id);
-
-    // Business rule: can't delete proposals that are completed or payment pending
-    if (
-      proposal.status === "completed" ||
-      proposal.status === "payment_pending"
-    ) {
-      throw new Error(
-        "Cannot delete proposals that are payment pending or completed"
-      );
-    }
-
     await proposalRepository.delete(id);
   },
 
@@ -261,73 +150,6 @@ export const proposalService = {
     }
 
     return data.signedUrl;
-  },
-
-  /**
-   * Get public URL for accessing a file (if bucket is public)
-   * Falls back to signed URL if bucket is private
-   */
-  async getPublicUrl(filePath: string): Promise<string> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder au fichier");
-    }
-
-    try {
-      // Try to get public URL first
-      const { data } = supabase.storage
-        .from("documents")
-        .getPublicUrl(filePath);
-
-      if (data.publicUrl) {
-        return data.publicUrl;
-      }
-    } catch {
-      // If public URL fails, fall back to signed URL
-    }
-
-    // Fall back to signed URL for private buckets
-    return await this.getSignedUrl(filePath);
-  },
-
-  /**
-   * Delete file from storage
-   */
-  async deleteFile(filePath: string): Promise<void> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer le fichier");
-    }
-
-    const { error } = await supabase.storage
-      .from("documents")
-      .remove([filePath]);
-
-    if (error) {
-      throw new Error(`Failed to delete file: ${error.message}`);
-    }
-  },
-
-  /**
-   * Delete multiple files from storage (helper)
-   */
-  async deleteFiles(filePaths: string[]): Promise<void> {
-    if (!filePaths.length) return;
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour supprimer les fichiers");
-    }
-    const { error } = await supabase.storage
-      .from("proposals")
-      .remove(filePaths);
-    if (error) {
-      throw new Error(`Failed to delete files: ${error.message}`);
-    }
   },
 
   /**
@@ -405,48 +227,5 @@ export const proposalService = {
     const u8arr = new Uint8Array(n);
     while (n--) u8arr[n] = bstr.charCodeAt(n);
     return new Blob([u8arr], { type: mime });
-  },
-
-  /**
-   * Get proposal status options for UI
-   */
-  getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Proposition en cours de préparation",
-        icon: "i-lucide-file-text",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Proposition envoyée au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "payment_pending" as const,
-        label: "Paiement en attente",
-        description: "En attente de confirmation de paiement",
-        icon: "i-lucide-credit-card",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Acceptée",
-        description: "Proposition acceptée par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
   },
 };

@@ -475,72 +475,46 @@ export const projectService = {
   },
 
   /**
-   * Check if project should be updated to in_progress status
+   * Determine project status based on modules
    */
-  shouldUpdateProjectStatus(project: ProjectWithClient): boolean {
-    if (project.status === "completed") {
-      return false;
-    }
-
-    // Check if any module is not in draft status
-    return !!(
-      (project.proposal && project.proposal.status !== "draft") ||
-      (project.moodboard && project.moodboard.status !== "draft") ||
-      (project.selection && project.selection.status !== "draft") ||
-      (project.gallery && project.gallery.status !== "draft")
-    );
-  },
-
-  /**
-   * Check if project should be updated to completed status
-   */
-  shouldUpdateProjectToCompleted(project: ProjectWithClient): boolean {
-    if (project.status === "completed") {
-      return false;
-    }
-
-    // Project is completed when gallery is completed
-    return !!(project.gallery && project.gallery.status === "completed");
-  },
-
-  /**
-   * Update project status to in_progress if needed (optimized version)
-   */
-  async updateProjectStatusIfNeeded(
-    projectId: string,
-    currentProject: ProjectWithClient
-  ): Promise<string | null> {
-    const supabase = useSupabaseClient();
-
-    // Check if status should be updated to completed first
-    if (this.shouldUpdateProjectToCompleted(currentProject)) {
-      const { error } = await supabase
-        .from("projects")
-        .update({ status: "completed" })
-        .eq("id", projectId);
-
-      if (error) {
-        throw new Error(`Failed to update project status: ${error.message}`);
-      }
+  determineProjectStatus(modules: {
+    proposal?: { status?: string } | null;
+    moodboard?: { status?: string } | null;
+    selection?: { status?: string } | null;
+    gallery?: { status?: string } | null;
+  }): "draft" | "in_progress" | "completed" {
+    // If gallery is completed, project is completed
+    if (modules.gallery?.status === "completed") {
       return "completed";
     }
 
-    // Check if status should be updated to in_progress
-    if (
-      currentProject.status === "draft" &&
-      this.shouldUpdateProjectStatus(currentProject)
-    ) {
-      const { error } = await supabase
-        .from("projects")
-        .update({ status: "in_progress" })
-        .eq("id", projectId);
+    // If any module is not draft, project is in progress
+    const hasNonDraftModule = [
+      modules.proposal?.status,
+      modules.moodboard?.status,
+      modules.selection?.status,
+      modules.gallery?.status,
+    ].some((status) => status && status !== "draft");
 
-      if (error) {
-        throw new Error(`Failed to update project status: ${error.message}`);
-      }
-      return "in_progress";
+    return hasNonDraftModule ? "in_progress" : "draft";
+  },
+
+  /**
+   * Update project status
+   */
+  async updateProjectStatus(
+    projectId: string,
+    status: "draft" | "in_progress" | "completed"
+  ): Promise<void> {
+    const supabase = useSupabaseClient();
+
+    const { error } = await supabase
+      .from("projects")
+      .update({ status })
+      .eq("id", projectId);
+
+    if (error) {
+      throw new Error(`Failed to update project status: ${error.message}`);
     }
-
-    return null; // No status change needed
   },
 };

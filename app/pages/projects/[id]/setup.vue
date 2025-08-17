@@ -118,6 +118,10 @@ onMounted(async () => {
         console.error('Error loading project:', err)
     }
 })
+
+onBeforeUnmount(() => {
+    store.reset()
+})
 </script>
 
 <style scoped>

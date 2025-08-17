@@ -54,7 +54,7 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const selectedCount = computed(() => selectedImages.value.size);
 
   const maxAllowed = computed(() => {
-    return selection.value?.maxAllowed || Infinity;
+    return selection.value?.max_media_selection || Infinity;
   });
 
   const extraCount = computed(() => {
@@ -63,8 +63,8 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   });
 
   const extraPrice = computed(() => {
-    if (!selection.value?.extraImagePrice || extraCount.value === 0) return 0;
-    return extraCount.value * selection.value.extraImagePrice;
+    if (!selection.value?.extra_media_price || extraCount.value === 0) return 0;
+    return extraCount.value * selection.value.extra_media_price;
   });
 
   // Initialize auth when selectionId changes
@@ -209,39 +209,58 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const toggleImageSelection = async (imageId: string) => {
     if (!canInteract.value) return;
 
+    // Toggle selection locally only
+    if (selectedImages.value.has(imageId)) {
+      selectedImages.value.delete(imageId);
+    } else {
+      selectedImages.value.add(imageId);
+    }
+
+    // Update local image state
+    const imageIndex = images.value.findIndex((img) => img.id === imageId);
+    if (imageIndex !== -1 && images.value[imageIndex]) {
+      images.value[imageIndex].userSelected = selectedImages.value.has(imageId);
+      // Trigger reactivity
+      images.value = [...images.value];
+    }
+  };
+
+  const validateSelectionWithImages = async () => {
+    if (!selectionId.value || !canInteract.value) return false;
+
     try {
-      const response = await $fetch<{ selected: boolean }>(
-        `/api/selection/client/${selectionId.value}/toggle-selection`,
+      const selectedImageIds = Array.from(selectedImages.value);
+
+      const response = await $fetch<{ success: boolean; selection: any }>(
+        `/api/selection/client/${selectionId.value}/validate`,
         {
           method: "POST",
-          body: { imageId },
+          body: { selectedImages: selectedImageIds },
         }
       );
 
-      if (response.selected) {
-        selectedImages.value.add(imageId);
-      } else {
-        selectedImages.value.delete(imageId);
+      if (response.success) {
+        // Update selection status to completed
+        updateSelectionStatus("completed");
+
+        // Update images to reflect server state
+        images.value = images.value.map((img) => ({
+          ...img,
+          userSelected: selectedImageIds.includes(img.id),
+        }));
+
+        return true;
       }
 
-      // Update local image state
-      const imageIndex = images.value.findIndex((img) => img.id === imageId);
-      if (imageIndex !== -1) {
-        images.value[imageIndex].userSelected = response.selected;
-        // Trigger reactivity
-        images.value = [...images.value];
-      }
+      return false;
     } catch (err) {
-      console.error("Failed to toggle image selection:", err);
+      console.error("Failed to validate selection:", err);
+      return false;
     }
   };
 
   const updateSelectionStatus = (
-    status:
-      | "draft"
-      | "awaiting_client"
-      | "revision_requested"
-      | "completed"
+    status: "draft" | "awaiting_client" | "revision_requested" | "completed"
   ) => {
     if (selection.value) {
       selection.value.status = status;
@@ -292,6 +311,7 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     loadSelection,
     loadPage,
     toggleImageSelection,
+    validateSelectionWithImages,
     updateSelectionStatus,
     updateSelectionRevisionComment,
     getImageSignedUrl,

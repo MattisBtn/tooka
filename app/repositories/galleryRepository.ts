@@ -1,5 +1,7 @@
+import type { Tables } from "~/types/database.types";
 import type {
   Gallery,
+  GalleryImage,
   IGalleryFilters,
   IGalleryRepository,
   IPagination,
@@ -109,29 +111,9 @@ export const galleryRepository: IGalleryRepository = {
    */
   async findByProjectIdWithDetails(projectId: string): Promise<{
     gallery: Gallery | null;
-    project: {
-      id: string;
-      title: string;
-      status: "draft" | "in_progress" | "completed";
-      payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-      initial_price: number | null;
-      remaining_amount: number | null;
-    } | null;
-    proposal: {
-      id: string;
-      price: number;
-      deposit_required: boolean;
-      deposit_amount: number | null;
-    } | null;
-    images: Array<{
-      id: string;
-      file_url: string;
-      created_at: string;
-      gallery_id: string;
-    }>;
+    project: Tables<"projects"> | null;
+    proposal: Tables<"proposals"> | null;
+    images: GalleryImage[];
   } | null> {
     const supabase = useSupabaseClient();
 
@@ -141,28 +123,10 @@ export const galleryRepository: IGalleryRepository = {
         `
         *,
         project:projects(
-          id,
-          title,
-          status,
-          payment_method,
-          bank_iban,
-          bank_bic,
-          bank_beneficiary,
-          initial_price,
-          remaining_amount,
-          proposals(
-            id,
-            price,
-            deposit_required,
-            deposit_amount
-          )
+          *,
+          proposals(*)
         ),
-        gallery_images(
-          id,
-          file_url,
-          created_at,
-          gallery_id
-        )
+        gallery_images(*)
       `
       )
       .eq("project_id", projectId)

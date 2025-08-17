@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
+import type { Tables } from "~/types/database.types";
 import type {
   Gallery,
   GalleryFormData,
-  GalleryPricing,
   GalleryUploadResult,
   GalleryWithDetails,
   ProjectPaymentData,
@@ -16,17 +16,9 @@ export const useGalleryStore = defineStore("gallery", () => {
   const error = ref<Error | null>(null);
   const isInitialized = ref(false);
 
-  // Pricing State
-  const pricing = ref<GalleryPricing | null>(null);
-
-  // Project State
-  const project = ref<{
-    id: string;
-    payment_method: "stripe" | "bank_transfer" | null;
-    bank_iban: string | null;
-    bank_bic: string | null;
-    bank_beneficiary: string | null;
-  } | null>(null);
+  // Project and Proposal State
+  const project = ref<Partial<Tables<"projects">> | null>(null);
+  const proposal = ref<Partial<Tables<"proposals">> | null>(null);
 
   // Upload State
   const uploadProgress = ref<UploadProgress>({
@@ -64,6 +56,41 @@ export const useGalleryStore = defineStore("gallery", () => {
   const hasImages = computed(() => imageCount.value > 0);
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
+
+  // Pricing computed properties
+  const pricing = computed(() => {
+    if (proposal.value) {
+      const basePrice = proposal.value.price || 0;
+      const depositPaid =
+        proposal.value.deposit_required && proposal.value.deposit_amount
+          ? proposal.value.deposit_amount
+          : 0;
+      const remainingAmount = basePrice - depositPaid;
+
+      return {
+        basePrice,
+        depositPaid,
+        remainingAmount,
+      };
+    } else if (project.value) {
+      const basePrice = project.value.initial_price ?? 0;
+      const remainingAmountRaw = project.value.remaining_amount ?? basePrice;
+      const remainingAmount = Math.max(0, remainingAmountRaw);
+      const depositPaid = Math.max(0, basePrice - remainingAmount);
+
+      return {
+        basePrice,
+        depositPaid,
+        remainingAmount,
+      };
+    } else {
+      return {
+        basePrice: 0,
+        depositPaid: 0,
+        remainingAmount: 0,
+      };
+    }
+  });
 
   const formattedBasePrice = computed(() => {
     if (!pricing.value?.basePrice) return "Non défini";
@@ -158,8 +185,8 @@ export const useGalleryStore = defineStore("gallery", () => {
   // Actions
   const reset = () => {
     gallery.value = null;
-    pricing.value = null;
     project.value = null;
+    proposal.value = null;
     error.value = null;
     isInitialized.value = false;
     resetUploadState();
@@ -182,15 +209,15 @@ export const useGalleryStore = defineStore("gallery", () => {
       if (data) {
         // Gallery exists
         gallery.value = data.gallery;
-        pricing.value = data.pricing;
         project.value = data.project;
+        proposal.value = data.proposal;
       } else {
         // No gallery exists yet, load project data for creation
         const projectData =
           await galleryService.getProjectDataForGalleryCreation(projectId);
         gallery.value = null;
-        pricing.value = projectData.pricing;
         project.value = projectData.project;
+        proposal.value = projectData.proposal;
       }
 
       isInitialized.value = true;
@@ -246,12 +273,12 @@ export const useGalleryStore = defineStore("gallery", () => {
       // Reload data
       await loadGallery(projectId);
 
-      // Check and update project status automatically
+      // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
         "~/stores/admin/projectSetup"
       );
       const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      projectSetupStore.updateProjectModule("gallery", result.gallery);
 
       // Close form after successful creation
       showForm.value = false;
@@ -315,12 +342,12 @@ export const useGalleryStore = defineStore("gallery", () => {
         await loadGallery(gallery.value.project_id);
       }
 
-      // Check and update project status automatically
+      // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
         "~/stores/admin/projectSetup"
       );
       const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      projectSetupStore.updateProjectModule("gallery", result.gallery);
 
       // Close form after successful update
       showForm.value = false;
@@ -365,8 +392,15 @@ export const useGalleryStore = defineStore("gallery", () => {
       }
 
       gallery.value = null;
-      pricing.value = null;
       project.value = null;
+      proposal.value = null;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("gallery", null);
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete gallery");
@@ -405,7 +439,8 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
-      await galleryService.confirmPayment(galleryId);
+      const updatedGallery = await galleryService.confirmPayment(galleryId);
+      gallery.value = updatedGallery;
 
       // Update project remaining_amount to 0 since this is the final payment
       // Only for non-free projects
@@ -422,17 +457,14 @@ export const useGalleryStore = defineStore("gallery", () => {
         }
       }
 
-      // Reload data
-      if (gallery.value?.project_id) {
-        await loadGallery(gallery.value.project_id);
-      }
-
-      // Check and update project status automatically
+      // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
         "~/stores/admin/projectSetup"
       );
       const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.refreshProject();
+      projectSetupStore.updateProjectModule("gallery", updatedGallery);
+
+      return updatedGallery;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to confirm payment");
@@ -454,6 +486,13 @@ export const useGalleryStore = defineStore("gallery", () => {
         true // shouldValidate = true to trigger "send to client" logic
       );
       gallery.value = result.gallery;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("gallery", result.gallery);
 
       return result;
     } catch (err) {
@@ -490,8 +529,8 @@ export const useGalleryStore = defineStore("gallery", () => {
   return {
     // State (readonly for external access)
     gallery: gallery,
-    pricing: pricing,
     project: project,
+    proposal: proposal,
     loading: loading,
     error: error,
     isInitialized: isInitialized,
@@ -515,6 +554,7 @@ export const useGalleryStore = defineStore("gallery", () => {
     hasImages,
     isLoading,
     hasError,
+    pricing,
     formattedBasePrice,
     formattedDepositPaid,
     formattedRemainingAmount,

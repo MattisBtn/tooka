@@ -23,7 +23,7 @@
                     <UButton v-if="hasComments" variant="solid" color="neutral" size="sm" icon="i-lucide-message-circle"
                         class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900"
                         @click.stop="showCommentModal = true">
-                        {{ image.comments?.length }} commentaire{{ (image.comments?.length || 0) > 1 ? 's' : '' }}
+                        {{ image.comments?.length }}
                     </UButton>
                     <UButton v-else-if="canInteract" variant="solid" color="neutral" size="sm"
                         icon="i-lucide-message-circle-plus"

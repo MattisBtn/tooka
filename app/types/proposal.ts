@@ -8,6 +8,11 @@ export type ProposalInsert =
 export type ProposalUpdate =
   Database["public"]["Tables"]["proposals"]["Update"];
 
+// Type pour une proposition avec les données du projet
+export type ProposalWithProject = Proposal & {
+  project: Database["public"]["Tables"]["projects"]["Row"];
+};
+
 // Union type pour tous les statuts possibles
 export type ProposalStatus =
   | "draft"
@@ -15,19 +20,6 @@ export type ProposalStatus =
   | "revision_requested"
   | "completed"
   | "payment_pending";
-
-// Interface étendue avec relations
-export interface ProposalWithProject extends Proposal {
-  project: {
-    id: string;
-    title: string;
-    client_id: string;
-    payment_method: "stripe" | "bank_transfer" | null;
-    bank_iban: string | null;
-    bank_bic: string | null;
-    bank_beneficiary: string | null;
-  };
-}
 
 // Schema de validation pour la création/modification de proposition
 export const proposalFormSchema = z.object({

@@ -9,8 +9,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-solar-gallery-bold" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-solar-gallery-bold" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Configuration de la galerie
@@ -105,35 +105,7 @@
                         </div>
                     </div>
 
-                    <!-- Bank Transfer Details -->
-                    <div v-if="projectState.payment_method === 'bank_transfer'"
-                        class="space-y-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-                        <div class="flex items-center gap-2 mb-3">
-                            <UIcon name="i-lucide-building-2" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                            <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                Coordonnées bancaires
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-4">
-                            <UFormField label="IBAN" name="bank_iban" required>
-                                <UInput v-model="projectState.bank_iban" placeholder="FR76 1234 5678 9012 3456 7890 123"
-                                    icon="i-lucide-credit-card" />
-                            </UFormField>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <UFormField label="BIC/SWIFT" name="bank_bic" required>
-                                    <UInput v-model="projectState.bank_bic" placeholder="EXAMPLEFR1"
-                                        icon="i-lucide-building" />
-                                </UFormField>
-
-                                <UFormField label="Bénéficiaire" name="bank_beneficiary" required>
-                                    <UInput v-model="projectState.bank_beneficiary" placeholder="Votre Entreprise SARL"
-                                        icon="i-lucide-user" />
-                                </UFormField>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Bank Transfer Details removed: now sourced from user profile -->
 
                     <!-- Remaining Amount Info -->
                     <div v-if="pricing && pricing.remainingAmount > 0"
@@ -161,8 +133,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-upload" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-upload" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Images de la galerie</h2>
@@ -259,7 +231,7 @@ const emit = defineEmits<Emits>();
 // Use stores
 const galleryStore = useGalleryStore()
 
-// Check if project is free - use galleryStore data instead of projectSetupStore
+// Check if project is free
 const isFree = computed(() => {
     const basePrice = galleryStore.pricing?.basePrice ?? 0;
     return basePrice === 0;
@@ -346,12 +318,7 @@ const showPaymentMethodSelector = computed(() => {
 const isPaymentInfoMissing = computed(() => {
     if (!isPaymentInfoRequired.value) return false;
 
-    // Si une méthode est définie, vérifier les détails bancaires si nécessaire
-    if (projectState.payment_method === 'bank_transfer') {
-        return !projectState.bank_iban || !projectState.bank_bic || !projectState.bank_beneficiary;
-    }
-
-    // Sinon, une méthode est requise
+    // Une méthode de paiement est requise
     return !projectState.payment_method;
 });
 

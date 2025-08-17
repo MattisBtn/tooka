@@ -120,13 +120,15 @@
                                 disabled />
                         </UTooltip>
 
-                        <!-- Send to Client Action - Only for draft -->
-                        <UTooltip v-if="moodboardStore.moodboard?.status === 'draft' && !isProjectCompleted"
+                        <!-- Send to Client Action - Available for draft and revision_requested -->
+                        <UTooltip
+                            v-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'revision_requested') && !isProjectCompleted"
                             text="Envoyer le moodboard au client">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" :loading="moodboardStore.loading" @click="sendToClient()" />
                         </UTooltip>
-                        <UTooltip v-else-if="moodboardStore.moodboard?.status === 'draft' && isProjectCompleted"
+                        <UTooltip
+                            v-else-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'revision_requested') && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" disabled />
@@ -137,11 +139,6 @@
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/moodboard/${moodboardStore.moodboard?.id}`"
                                 target="_blank" />
-                        </UTooltip>
-                        <UTooltip v-else-if="moodboardStore.moodboard?.status !== 'draft' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" disabled />
                         </UTooltip>
 
                         <!-- Delete Action - Only for draft and awaiting_client -->
@@ -393,11 +390,7 @@ const sendToClient = async () => {
     if (!moodboardStore.moodboard) return;
 
     try {
-        const result = await moodboardStore.sendToClient(moodboardStore.moodboard.id)
-
-        if (result.projectUpdated) {
-            await projectSetupStore.refreshProject()
-        }
+        await moodboardStore.sendToClient(moodboardStore.moodboard.id)
 
         const toast = useToast();
         toast.add({

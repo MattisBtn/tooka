@@ -88,14 +88,14 @@ export const selectionService = {
   async updateSelection(
     id: string,
     updates: Partial<Selection>
-  ): Promise<{ selection: SelectionWithDetails; projectUpdated: boolean }> {
-    // Update selection and get images in a single optimized call
-    const selectionWithDetails = await selectionRepository.update(id, updates);
+  ): Promise<{ selection: Selection; projectUpdated: boolean }> {
+    // Update selection
+    const selection = await selectionRepository.update(id, updates);
 
     // Project is considered updated when selection is sent to client
     const projectUpdated = updates.status === "awaiting_client";
 
-    return { selection: selectionWithDetails, projectUpdated };
+    return { selection, projectUpdated };
   },
 
   /**

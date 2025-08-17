@@ -9,8 +9,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-image" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-image" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations du moodboard
@@ -48,8 +48,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-upload" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-upload" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Images d'inspiration</h2>

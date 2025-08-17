@@ -37,29 +37,9 @@ export interface IGalleryRepository {
   findByProjectId(projectId: string): Promise<Gallery | null>;
   findByProjectIdWithDetails(projectId: string): Promise<{
     gallery: Gallery | null;
-    project: {
-      id: string;
-      title: string;
-      status: "draft" | "in_progress" | "completed";
-      payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-      initial_price: number | null;
-      remaining_amount: number | null;
-    } | null;
-    proposal: {
-      id: string;
-      price: number;
-      deposit_required: boolean;
-      deposit_amount: number | null;
-    } | null;
-    images: Array<{
-      id: string;
-      file_url: string;
-      created_at: string;
-      gallery_id: string;
-    }>;
+    project: Tables<"projects"> | null;
+    proposal: Tables<"proposals"> | null;
+    images: GalleryImage[];
   } | null>;
   create(
     data: Omit<Gallery, "id" | "created_at" | "updated_at">
@@ -137,11 +117,7 @@ export type ProjectPaymentData = z.infer<typeof projectPaymentSchema>;
 
 // Gallery with project and images information for display
 export interface GalleryWithDetails extends Gallery {
-  project?: {
-    readonly id: string;
-    readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
-  };
+  project?: Tables<"projects">;
   images?: readonly GalleryImageWithSignedUrl[];
   imageCount?: number;
   hasMore?: boolean;
@@ -150,13 +126,7 @@ export interface GalleryWithDetails extends Gallery {
 
 // Gallery with project info for client access
 export interface GalleryWithProjectDetails extends Gallery {
-  project: {
-    id: string;
-    title: string;
-    description: string | null;
-    password_hash: string;
-    status: "draft" | "in_progress" | "completed";
-  };
+  project: Tables<"projects">;
   images: GalleryImageWithSignedUrl[];
   imageCount: number;
 }
@@ -168,13 +138,6 @@ export interface ImageUploadData {
   uploading?: boolean;
   uploaded?: boolean;
   error?: string;
-}
-
-// Gallery pricing calculation
-export interface GalleryPricing {
-  basePrice: number;
-  depositPaid: number;
-  remainingAmount: number;
 }
 
 // Client gallery access types

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { projectService } from "~/services/projectService";
-import type { ProjectWithClient } from "~/types/project";
+import type { Project, ProjectWithClient } from "~/types/project";
 import { formatDate, formatPrice, normalizeModule } from "~/utils/formatters";
 
 export const useProjectSetupStore = defineStore("projectSetup", () => {
@@ -47,6 +47,11 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     project.value = null;
     loading.value = false;
     error.value = null;
+
+    useProposalStore().reset();
+    useMoodboardStore().reset();
+    useSelectionStore().reset();
+    useGalleryStore().reset();
   };
 
   const fetchProject = async (projectId: string) => {
@@ -97,25 +102,51 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     }
   };
 
-  // Check and update project status automatically
-  const checkAndUpdateProjectStatus = async () => {
-    if (!project.value?.id) return;
+  // Optimistic update for project data
+  const updateProject = (updates: Partial<Project>) => {
+    if (!project.value) return;
 
-    try {
-      const updatedStatus = await projectService.updateProjectStatusIfNeeded(
-        project.value.id,
-        project.value
-      );
+    project.value = {
+      ...project.value,
+      ...updates,
+    };
+  };
 
-      // Update project status locally if it changed
-      if (updatedStatus && project.value) {
+  // Optimistic update for project modules (proposal, moodboard, selection, gallery)
+  const updateProjectModule = async (
+    moduleKey: "proposal" | "moodboard" | "selection" | "gallery",
+    moduleData: unknown
+  ) => {
+    if (!project.value) return;
+
+    // Create new project object with updated module
+    const updatedProject = {
+      ...project.value,
+      [moduleKey]: moduleData,
+    };
+
+    // Update project reference
+    project.value = updatedProject;
+
+    // Determine new project status
+    const newStatus = projectService.determineProjectStatus({
+      proposal: updatedProject.proposal,
+      moodboard: updatedProject.moodboard,
+      selection: updatedProject.selection,
+      gallery: updatedProject.gallery,
+    });
+
+    // Update project status if it changed
+    if (newStatus !== updatedProject.status) {
+      try {
+        await projectService.updateProjectStatus(updatedProject.id, newStatus);
         project.value = {
-          ...project.value,
-          status: updatedStatus as "draft" | "completed" | "in_progress",
+          ...updatedProject,
+          status: newStatus,
         };
+      } catch (err) {
+        console.error("Error updating project status:", err);
       }
-    } catch (err) {
-      console.error("Error updating project status:", err);
     }
   };
 
@@ -135,6 +166,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     reset,
     fetchProject,
     refreshProject,
-    checkAndUpdateProjectStatus,
+    updateProject,
+    updateProjectModule,
   };
 });

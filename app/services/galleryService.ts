@@ -2,10 +2,10 @@ import { galleryImageRepository } from "~/repositories/galleryImageRepository";
 import { galleryRepository } from "~/repositories/galleryRepository";
 import { projectService } from "~/services/projectService";
 import { proposalService } from "~/services/proposalService";
+import type { Tables } from "~/types/database.types";
 import type {
   Gallery,
   GalleryImage,
-  GalleryPricing,
   GalleryUploadResult,
   GalleryWithDetails,
 } from "~/types/gallery";
@@ -60,18 +60,13 @@ export const galleryService = {
   },
 
   /**
-   * Get gallery by project ID with all related data and pricing in a single query
+   * Get gallery by project ID with all related data in a single query
    */
   async getGalleryByProjectIdWithDetails(projectId: string): Promise<{
     gallery: GalleryWithDetails | null;
-    pricing: GalleryPricing;
-    project: {
-      id: string;
-      payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-    } | null;
+    project: Partial<Tables<"projects">> | null;
+    proposal: Partial<Tables<"proposals">> | null;
+    images: GalleryImage[];
   } | null> {
     if (!projectId?.trim()) {
       throw new Error("Project ID is required");
@@ -83,9 +78,6 @@ export const galleryService = {
       return null;
     }
 
-    // Calculate pricing from the joined data
-    const pricing = this.calculatePricingFromData(data.proposal, data.project);
-
     // Format gallery with images
     const gallery: GalleryWithDetails | null = data.gallery
       ? {
@@ -95,37 +87,21 @@ export const galleryService = {
         }
       : null;
 
-    // Format project data
-    const project = data.project
-      ? {
-          id: data.project.id,
-          payment_method: data.project.payment_method,
-          bank_iban: data.project.bank_iban,
-          bank_bic: data.project.bank_bic,
-          bank_beneficiary: data.project.bank_beneficiary,
-        }
-      : null;
-
     return {
       gallery,
-      pricing,
-      project,
+      project: data.project,
+      proposal: data.proposal,
+      images: data.images,
     };
   },
 
   /**
-   * Get project data with pricing for gallery creation (when no gallery exists yet)
+   * Get project data for gallery creation (when no gallery exists yet)
    */
   async getProjectDataForGalleryCreation(projectId: string): Promise<{
     gallery: null;
-    pricing: GalleryPricing;
-    project: {
-      id: string;
-      payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-    } | null;
+    project: Partial<Tables<"projects">> | null;
+    proposal: Partial<Tables<"proposals">> | null;
   }> {
     if (!projectId?.trim()) {
       throw new Error("Project ID is required");
@@ -137,87 +113,21 @@ export const galleryService = {
       throw new Error("Project not found");
     }
 
-    // Calculate pricing from the joined data
-    const pricing = this.calculatePricingFromData(data.proposal, data.project);
-
-    // Format project data
-    const projectData = {
-      id: data.project.id,
-      payment_method: data.project.payment_method,
-      bank_iban: data.project.bank_iban,
-      bank_bic: data.project.bank_bic,
-      bank_beneficiary: data.project.bank_beneficiary,
-    };
-
     return {
       gallery: null,
-      pricing,
-      project: projectData,
+      project: data.project,
+      proposal: data.proposal,
     };
-  },
-
-  /**
-   * Calculate pricing from proposal or project data
-   */
-  calculatePricingFromData(
-    proposal: {
-      id: string;
-      price: number;
-      deposit_required: boolean;
-      deposit_amount: number | null;
-    } | null,
-    project: {
-      id: string;
-      title: string;
-      status: "draft" | "in_progress" | "completed";
-      payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
-      initial_price: number | null;
-      remaining_amount: number | null;
-    } | null
-  ): GalleryPricing {
-    if (proposal) {
-      // Use proposal data if available
-      const basePrice = proposal.price;
-      const depositPaid =
-        proposal.deposit_required && proposal.deposit_amount
-          ? proposal.deposit_amount
-          : 0;
-      const remainingAmount = basePrice - depositPaid;
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    } else if (project) {
-      // Use project data when no proposal exists
-      const basePrice = project.initial_price ?? 0;
-      // If remaining_amount is null/undefined (not yet tracked), treat it as full amount remaining
-      const remainingAmountRaw = project.remaining_amount ?? basePrice;
-      const remainingAmount = Math.max(0, remainingAmountRaw);
-      const depositPaid = Math.max(0, basePrice - remainingAmount);
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    } else {
-      return {
-        basePrice: 0,
-        depositPaid: 0,
-        remainingAmount: 0,
-      };
-    }
   },
 
   /**
    * Calculate gallery pricing based on proposal or project data
    */
-  async calculateGalleryPricing(projectId: string): Promise<GalleryPricing> {
+  async calculateGalleryPricing(projectId: string): Promise<{
+    basePrice: number;
+    depositPaid: number;
+    remainingAmount: number;
+  }> {
     const proposal = await proposalService.getProposalByProjectId(projectId);
 
     if (proposal) {
@@ -336,20 +246,6 @@ export const galleryService = {
 
     // Update gallery
     const gallery = await galleryRepository.update(id, finalUpdates);
-
-    // Check if project should be updated to completed status after gallery update
-    if (gallery.status === "completed") {
-      const { projectService } = await import("~/services/projectService");
-      const project = await projectService.getProjectById(
-        existingGallery.project_id
-      );
-      if (project && projectService.shouldUpdateProjectToCompleted(project)) {
-        await projectService.updateProject(existingGallery.project_id, {
-          status: "completed",
-        });
-        projectUpdated = true;
-      }
-    }
 
     return { gallery, projectUpdated };
   },

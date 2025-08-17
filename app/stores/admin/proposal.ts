@@ -2,14 +2,12 @@ import { defineStore } from "pinia";
 import { proposalService } from "~/services/proposalService";
 import type {
   ProjectPaymentData,
-  Proposal,
   ProposalFormData,
+  ProposalWithProject,
 } from "~/types/proposal";
-import { formatPrice } from "~/utils/formatters";
-//
 
 export const useProposalStore = defineStore("proposal", () => {
-  const proposal = ref<Proposal | null>(null);
+  const proposal = ref<ProposalWithProject | null>(null);
   const loading = ref(false);
   const error = ref<Error | null>(null);
   const showForm = ref(false);
@@ -23,10 +21,6 @@ export const useProposalStore = defineStore("proposal", () => {
     () =>
       proposal.value?.status === "draft" ||
       proposal.value?.status === "revision_requested"
-  );
-  const formattedPrice = computed(() => formatPrice(proposal.value?.price));
-  const formattedDepositAmount = computed(() =>
-    formatPrice(proposal.value?.deposit_amount)
   );
 
   // Actions
@@ -64,7 +58,8 @@ export const useProposalStore = defineStore("proposal", () => {
   const createProposal = async (
     projectId: string,
     proposalData: ProposalFormData,
-    projectData: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    isProjectFree: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
@@ -78,18 +73,15 @@ export const useProposalStore = defineStore("proposal", () => {
         );
       }
 
-      // For free projects, force payment settings to be free
-      const { projectService } = await import("~/services/projectService");
-      const project = await projectService.getProjectById(projectId);
-      const isFree = !project?.initial_price || project.initial_price === 0;
-
       const data = {
         project_id: projectId,
         content_json: proposalData.content_json,
         content_html: proposalData.content_html,
-        price: isFree ? 0 : proposalData.price,
-        deposit_required: isFree ? false : proposalData.deposit_required,
-        deposit_amount: isFree ? null : proposalData.deposit_amount || null,
+        price: isProjectFree ? 0 : proposalData.price,
+        deposit_required: isProjectFree ? false : proposalData.deposit_required,
+        deposit_amount: isProjectFree
+          ? null
+          : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
         status: "draft" as const,
@@ -97,28 +89,61 @@ export const useProposalStore = defineStore("proposal", () => {
       };
 
       const result = await proposalService.createProposal(data);
-      proposal.value = result.proposal;
+      proposal.value = result;
 
       // Update project payment method if deposit is required and method is selected
       if (
-        !isFree &&
+        !isProjectFree &&
         proposalData.deposit_required &&
         projectData.payment_method
       ) {
+        // Import at the top level to avoid deep instantiation
+        const projectService = await import("~/services/projectService").then(
+          (m) => m.projectService
+        );
         await projectService.updateProject(projectId, {
           payment_method: projectData.payment_method,
+          bank_iban: projectData.bank_iban,
+          bank_bic: projectData.bank_bic,
+          bank_beneficiary: projectData.bank_beneficiary,
         });
 
-        // Refresh project setup store
-        const { useProjectSetupStore } = await import(
-          "~/stores/admin/projectSetup"
-        );
-        const projectSetupStore = useProjectSetupStore();
-        await projectSetupStore.refreshProject();
+        // Update local project state for reactivity
+        if (proposal.value?.project) {
+          proposal.value.project.payment_method = projectData.payment_method;
+          proposal.value.project.bank_iban = projectData.bank_iban;
+          proposal.value.project.bank_bic = projectData.bank_bic;
+          proposal.value.project.bank_beneficiary =
+            projectData.bank_beneficiary;
+        }
       }
 
       showForm.value = false;
-      return result.proposal;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+
+      // Update proposal module optimistically
+      projectSetupStore.updateProjectModule("proposal", result);
+
+      // Update payment method if deposit is required
+      if (
+        !isProjectFree &&
+        proposalData.deposit_required &&
+        projectData.payment_method
+      ) {
+        projectSetupStore.updateProject({
+          payment_method: projectData.payment_method,
+          bank_iban: projectData.bank_iban,
+          bank_bic: projectData.bank_bic,
+          bank_beneficiary: projectData.bank_beneficiary,
+        });
+      }
+
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to create proposal");
@@ -131,38 +156,13 @@ export const useProposalStore = defineStore("proposal", () => {
   const updateProposal = async (
     proposalId: string,
     proposalData: ProposalFormData,
-    projectData: ProjectPaymentData
+    projectData: ProjectPaymentData,
+    isProjectFree: boolean
   ) => {
     formLoading.value = true;
     error.value = null;
 
     try {
-      // Collect previously stored portfolio image paths to detect removals
-      type PortfolioItemLike = { path?: string | null };
-      type ComponentWithItems = {
-        type?: string;
-        items?: PortfolioItemLike[] | null;
-      };
-
-      const extractPortfolioPaths = (content: unknown): string[] => {
-        if (!Array.isArray(content)) return [];
-        const arr = content as ComponentWithItems[];
-        const collected: string[] = [];
-        for (const c of arr) {
-          if (c?.type === "portfolio" && Array.isArray(c.items)) {
-            for (const it of c.items) {
-              if (it?.path) collected.push(it.path);
-            }
-          }
-        }
-        return collected;
-      };
-
-      const prevJson: unknown =
-        (proposal.value as unknown as { content_json?: unknown } | null)
-          ?.content_json ?? [];
-      const previousPaths = extractPortfolioPaths(prevJson);
-
       // Upload portfolio images before updating proposal
       if (proposalData.content_json) {
         await proposalService.uploadPortfolioImages(
@@ -171,65 +171,76 @@ export const useProposalStore = defineStore("proposal", () => {
         );
       }
 
-      // Compute current paths after potential uploads (new items now have path)
-      const currJson: unknown =
-        (proposalData as unknown as { content_json?: unknown }).content_json ??
-        [];
-      const currentPaths = extractPortfolioPaths(currJson);
-      const currentSet = new Set(currentPaths);
-      const removedPaths = previousPaths.filter((p) => !currentSet.has(p));
-
-      // For free projects, force payment settings to be free
-      const { projectService } = await import("~/services/projectService");
-      const project = await projectService.getProjectById(
-        proposal.value!.project_id
-      );
-      const isFree = !project?.initial_price || project.initial_price === 0;
-
       const data = {
         project_id: proposal.value!.project_id,
         content_json: proposalData.content_json,
         content_html: proposalData.content_html,
-        price: isFree ? 0 : proposalData.price,
-        deposit_required: isFree ? false : proposalData.deposit_required,
-        deposit_amount: isFree ? null : proposalData.deposit_amount || null,
+        price: isProjectFree ? 0 : proposalData.price,
+        deposit_required: isProjectFree ? false : proposalData.deposit_required,
+        deposit_amount: isProjectFree
+          ? null
+          : proposalData.deposit_amount || null,
         contract_url: proposalData.contract_url || null,
         quote_url: proposalData.quote_url || null,
         revision_last_comment: null,
       };
 
       const result = await proposalService.updateProposal(proposalId, data);
-      proposal.value = result.proposal;
-
-      // Delete removed portfolio images after successful update to avoid orphan files
-      if (removedPaths.length > 0) {
-        try {
-          await proposalService.deleteFiles(removedPaths);
-        } catch {
-          // Silently ignore cleanup failures to not block the user flow
-        }
-      }
+      proposal.value = result;
 
       // Update project payment method if deposit is required and method is selected
       if (
-        !isFree &&
+        !isProjectFree &&
         proposalData.deposit_required &&
         projectData.payment_method
       ) {
+        // Import at the top level to avoid deep instantiation
+        const projectService = await import("~/services/projectService").then(
+          (m) => m.projectService
+        );
         await projectService.updateProject(proposal.value!.project_id, {
           payment_method: projectData.payment_method,
+          bank_iban: projectData.bank_iban,
+          bank_bic: projectData.bank_bic,
+          bank_beneficiary: projectData.bank_beneficiary,
         });
 
-        // Refresh project setup store
-        const { useProjectSetupStore } = await import(
-          "~/stores/admin/projectSetup"
-        );
-        const projectSetupStore = useProjectSetupStore();
-        await projectSetupStore.refreshProject();
+        // Update local project state for reactivity
+        if (proposal.value?.project) {
+          proposal.value.project.payment_method = projectData.payment_method;
+          proposal.value.project.bank_iban = projectData.bank_iban;
+          proposal.value.project.bank_bic = projectData.bank_bic;
+          proposal.value.project.bank_beneficiary =
+            projectData.bank_beneficiary;
+        }
       }
 
       showForm.value = false;
-      return result.proposal;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+
+      // Update proposal module optimistically
+      projectSetupStore.updateProjectModule("proposal", result);
+
+      // Update payment method if deposit is required
+      if (
+        !isProjectFree &&
+        proposalData.deposit_required &&
+        projectData.payment_method
+      ) {
+        projectSetupStore.updateProject({
+          payment_method: projectData.payment_method,
+          bank_iban: projectData.bank_iban,
+          bank_bic: projectData.bank_bic,
+          bank_beneficiary: projectData.bank_beneficiary,
+        });
+      }
+
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to update proposal");
@@ -244,8 +255,40 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
+      // Get project ID before deleting proposal
+      const projectId = proposal.value?.project_id;
+
       await proposalService.deleteProposal(proposalId);
+
+      // Clean up project payment_method if no gallery exists
+      if (projectId) {
+        const projectService = await import("~/services/projectService").then(
+          (m) => m.projectService
+        );
+
+        // Check if gallery exists for this project
+        const { galleryService } = await import("~/services/galleryService");
+        const gallery = await galleryService.getGalleryByProjectId(projectId);
+
+        if (!gallery) {
+          // No gallery exists, clean up payment_method from project
+          await projectService.updateProject(projectId, {
+            payment_method: null,
+            bank_iban: null,
+            bank_bic: null,
+            bank_beneficiary: null,
+          });
+        }
+      }
+
       proposal.value = null;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("proposal", null);
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete proposal");
@@ -262,8 +305,6 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
-      const { projectService } = await import("~/services/projectService");
-
       const updatedProposal = await proposalService.confirmPayment(
         proposal.value.id
       );
@@ -271,6 +312,9 @@ export const useProposalStore = defineStore("proposal", () => {
 
       // Update project remaining_amount by subtracting deposit amount
       if (proposal.value.deposit_amount && proposal.value.deposit_amount > 0) {
+        const projectService = await import("~/services/projectService").then(
+          (m) => m.projectService
+        );
         const project = await projectService.getProjectById(
           proposal.value.project_id
         );
@@ -288,14 +332,15 @@ export const useProposalStore = defineStore("proposal", () => {
           await projectService.updateProject(proposal.value.project_id, {
             remaining_amount: newRemainingAmount,
           });
-
-          const { useProjectSetupStore } = await import(
-            "~/stores/admin/projectSetup"
-          );
-          const projectSetupStore = useProjectSetupStore();
-          await projectSetupStore.refreshProject();
         }
       }
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("proposal", updatedProposal);
 
       return updatedProposal;
     } catch (err) {
@@ -308,7 +353,7 @@ export const useProposalStore = defineStore("proposal", () => {
   };
 
   const sendToClient = async () => {
-    if (!proposal.value) return { proposal: null, projectUpdated: false };
+    if (!proposal.value) return;
 
     loading.value = true;
     error.value = null;
@@ -317,7 +362,15 @@ export const useProposalStore = defineStore("proposal", () => {
       const result = await proposalService.updateProposal(proposal.value.id, {
         status: "awaiting_client",
       });
-      proposal.value = result.proposal;
+      proposal.value = result;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("proposal", result);
+
       return result;
     } catch (err) {
       error.value =
@@ -326,6 +379,41 @@ export const useProposalStore = defineStore("proposal", () => {
     } finally {
       loading.value = false;
     }
+  };
+
+  const uploadFiles = async (
+    projectId: string,
+    contractFile?: File,
+    quoteFile?: File
+  ): Promise<{ contract_url?: string; quote_url?: string }> => {
+    const urls: { contract_url?: string; quote_url?: string } = {};
+
+    if (contractFile) {
+      urls.contract_url = await proposalService.uploadFile(
+        contractFile,
+        projectId,
+        "contract"
+      );
+    }
+    if (quoteFile) {
+      urls.quote_url = await proposalService.uploadFile(
+        quoteFile,
+        projectId,
+        "quote"
+      );
+    }
+
+    // Update local state to maintain consistency
+    if (proposal.value) {
+      if (urls.contract_url) {
+        proposal.value.contract_url = urls.contract_url;
+      }
+      if (urls.quote_url) {
+        proposal.value.quote_url = urls.quote_url;
+      }
+    }
+
+    return urls;
   };
 
   return {
@@ -338,8 +426,6 @@ export const useProposalStore = defineStore("proposal", () => {
     hasError,
     exists,
     canEdit,
-    formattedPrice,
-    formattedDepositAmount,
     reset,
     loadProposal,
     createProposal,
@@ -347,6 +433,7 @@ export const useProposalStore = defineStore("proposal", () => {
     deleteProposal,
     confirmPayment,
     sendToClient,
+    uploadFiles,
     openForm: () => (showForm.value = true),
     closeForm: () => (showForm.value = false),
   };

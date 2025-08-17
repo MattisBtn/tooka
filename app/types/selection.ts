@@ -5,17 +5,6 @@ export type Selection = Tables<"selections">;
 export type SelectionImage = Tables<"selection_images">;
 export type SelectionComment = Tables<"selection_comments">;
 
-export interface ISelectionFilters {
-  search?: string;
-  status?:
-    | "draft"
-    | "awaiting_client"
-    | "revision_requested"
-    | "completed"
-    | null;
-  project_id?: string;
-}
-
 export interface ISelectionRepository {
   findById(id: string): Promise<Selection | null>;
   findByProjectId(projectId: string): Promise<{
@@ -25,45 +14,21 @@ export interface ISelectionRepository {
   create(
     data: Omit<Selection, "id" | "created_at" | "updated_at">
   ): Promise<Selection>;
-  update(id: string, data: Partial<Selection>): Promise<SelectionWithDetails>;
+  update(id: string, data: Partial<Selection>): Promise<Selection>;
   delete(id: string): Promise<void>;
 }
 
 export interface ISelectionImageRepository {
-  findBySelectionId(selectionId: string): Promise<SelectionImage[]>;
   create(
     data: Omit<SelectionImage, "id" | "created_at">
   ): Promise<SelectionImage>;
   update(id: string, data: Partial<SelectionImage>): Promise<SelectionImage>;
   delete(id: string): Promise<void>;
-  getPublicUrl(filePath: string): string;
   getSignedUrl(filePath: string, expiresIn?: number): Promise<string>;
   downloadImageBlob(
     filePath: string,
     options?: ImageDownloadOptions
   ): Promise<Blob>;
-}
-
-export interface IPagination {
-  page: number;
-  pageSize: number;
-}
-
-// Selection status options for UI
-export interface SelectionStatusItem {
-  value: "draft" | "awaiting_client" | "revision_requested" | "completed";
-  label: string;
-  description: string;
-  icon: string;
-  color: string;
-}
-
-// Selection limit options for UI
-export interface SelectionLimitOption {
-  value: number;
-  label: string;
-  description: string;
-  icon: string;
 }
 
 // Validation schema for selection form
@@ -90,11 +55,7 @@ export type SelectionFormData = z.infer<typeof selectionFormSchema>;
 
 // Selection with project and images information for display
 export interface SelectionWithDetails extends Selection {
-  project?: {
-    readonly id: string;
-    readonly title: string;
-    readonly status: "draft" | "in_progress" | "completed";
-  };
+  project?: Partial<Tables<"projects">>;
   images?: readonly SelectionImage[];
   imageCount?: number;
   selectedCount?: number;
@@ -115,15 +76,6 @@ export interface SelectionWithProjectDetails extends Selection {
   images: SelectionImage[];
   imageCount: number;
   selectedCount: number;
-}
-
-// Image upload data
-export interface ImageUploadData {
-  file: File;
-  preview?: string;
-  uploading?: boolean;
-  uploaded?: boolean;
-  error?: string;
 }
 
 // Client-side types for selection access
@@ -185,32 +137,6 @@ export const clientCommentSchema = z.object({
 });
 
 export type ClientCommentFormData = z.infer<typeof clientCommentSchema>;
-
-// Selection image toggle request
-export interface ImageSelectionRequest {
-  imageId: string;
-  selected: boolean;
-}
-
-export interface ImageSelectionResponse {
-  success: boolean;
-  selected: boolean;
-  selectedCount: number;
-  maxReached: boolean;
-}
-
-// Realtime types for selection images
-export interface SelectionImageRealtimePayload {
-  eventType: "INSERT" | "UPDATE" | "DELETE";
-  new: SelectionImage;
-  old: SelectionImage;
-}
-
-export interface SelectionRealtimeSubscription {
-  subscribe: () => Promise<void>;
-  unsubscribe: () => Promise<void>;
-  isSubscribed: () => boolean;
-}
 
 // Image download types
 export interface ImageDownloadOptions {

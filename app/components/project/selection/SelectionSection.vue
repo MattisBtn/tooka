@@ -122,13 +122,15 @@
                                 disabled />
                         </UTooltip>
 
-                        <!-- Send to Client Action - Only for draft -->
-                        <UTooltip v-if="selectionStore.selection?.status === 'draft' && !isProjectCompleted"
+                        <!-- Send to Client Action - Available for draft and revision_requested -->
+                        <UTooltip
+                            v-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'revision_requested') && !isProjectCompleted"
                             text="Envoyer la sélection au client">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" :loading="selectionStore.loading" @click="sendToClient()" />
                         </UTooltip>
-                        <UTooltip v-else-if="selectionStore.selection?.status === 'draft' && isProjectCompleted"
+                        <UTooltip
+                            v-else-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'revision_requested') && isProjectCompleted"
                             text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
                             <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
                                 label="Envoyer au client" disabled />
@@ -139,11 +141,6 @@
                             <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
                                 label="Aperçu client" :to="`/selection/${selectionStore.selection?.id}`"
                                 target="_blank" />
-                        </UTooltip>
-                        <UTooltip v-else-if="selectionStore.selection?.status !== 'draft' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" disabled />
                         </UTooltip>
 
                         <!-- Delete Action - Only for draft and awaiting_client -->
@@ -388,9 +385,6 @@ const handleDelete = async () => {
 
     try {
         await selectionStore.deleteSelection(selectionStore.selection.id)
-
-        // Refresh project to sync module states
-        await projectSetupStore.refreshProject()
 
         const toast = useToast()
         toast.add({

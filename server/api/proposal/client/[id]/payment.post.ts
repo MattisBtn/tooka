@@ -60,7 +60,6 @@ export default defineEventHandler(async (event) => {
           user_id,
           initial_price,
           remaining_amount,
-          payment_status,
           payment_method,
           client:clients(
             id,
@@ -78,7 +77,7 @@ export default defineEventHandler(async (event) => {
     if (proposalError || !proposalData) {
       throw createError({
         statusCode: 404,
-        message: "Proposition non trouvée",
+        message: proposalError.message,
       });
     }
 

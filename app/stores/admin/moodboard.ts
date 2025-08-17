@@ -178,7 +178,12 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         imageCount: uploadedImages.length,
       };
 
-      // Project status will be updated automatically when needed
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("moodboard", result.moodboard);
 
       showForm.value = false;
       return result.moodboard;
@@ -228,7 +233,12 @@ export const useMoodboardStore = defineStore("moodboard", () => {
           (result.moodboard.images?.length || 0) + uploadedImages.length,
       };
 
-      // Project status will be updated automatically when needed
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("moodboard", result.moodboard);
 
       showForm.value = false;
       return result.moodboard;
@@ -248,6 +258,13 @@ export const useMoodboardStore = defineStore("moodboard", () => {
     try {
       await moodboardService.deleteMoodboard(moodboardId);
       moodboard.value = null;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("moodboard", null);
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete moodboard");
@@ -321,6 +338,13 @@ export const useMoodboardStore = defineStore("moodboard", () => {
         status: "awaiting_client",
       });
       moodboard.value = result.moodboard;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("moodboard", result.moodboard);
 
       return result;
     } catch (err) {

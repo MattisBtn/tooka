@@ -4,8 +4,8 @@
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
                 <div
-                    class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-file-check" class="w-4 h-4 text-white" />
+                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <UIcon name="i-lucide-file-check" class="w-4 h-4 text-white dark:text-black" />
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Informations de la
@@ -39,7 +39,9 @@
         <!-- Documents Section -->
         <ProjectProposalDocumentsSection :contract-file="contractFile" :quote-file="quoteFile"
             :existing-contract-url="proposalState.contract_url" :existing-quote-url="proposalState.quote_url"
-            @update:contract-file="contractFile = $event" @update:quote-file="quoteFile = $event" />
+            @update:contract-file="contractFile = $event" @update:quote-file="quoteFile = $event"
+            @update:existing-contract-url="proposalState.contract_url = $event"
+            @update:existing-quote-url="proposalState.quote_url = $event" />
 
         <!-- Form Actions -->
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
@@ -53,8 +55,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
 import type { ProposalComponent } from "~/composables/proposals/useProposalComponentTypes";
-import { useProposalForm } from "~/composables/proposals/useProposalForm";
-import type { ProjectPaymentData, Proposal, ProposalFormData } from "~/types/proposal";
+import { proposalFormSchema, type ProjectPaymentData, type Proposal, type ProposalFormData } from "~/types/proposal";
 
 interface Props {
     proposal?: Proposal;
@@ -84,39 +85,76 @@ const emit = defineEmits<Emits>();
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
+const proposalStore = useProposalStore()
 
 // Check if project is free
 const isFree = computed(() => projectSetupStore.isFree)
 
-const {
-    proposalState,
-    projectState,
-    proposalSchema,
-    contractFile,
-    quoteFile,
-    depositPercentage,
-    quickDepositOptions,
-    uploadFiles,
-    setDepositFromPercentage,
-    price,
-    depositRequired,
-    depositAmount,
-} = useProposalForm(
-    props.proposal ? {
-        content_json: props.proposal.content_json as unknown as ProposalComponent[],
-        content_html: props.proposal.content_html,
-        price: props.proposal.price,
-        deposit_required: props.proposal.deposit_required,
-        deposit_amount: props.proposal.deposit_amount,
-        contract_url: props.proposal.contract_url || undefined,
-        quote_url: props.proposal.quote_url || undefined,
-    } : undefined,
-    props.project,
-    props.projectInitialPrice
-);
+// Simple form state - no complex composable needed
+const proposalState = reactive<ProposalFormData>({
+    content_json: (props.proposal?.content_json as unknown as ProposalComponent[]) || [],
+    content_html: props.proposal?.content_html || "",
+    price: props.proposal?.price || props.project?.price || props.projectInitialPrice || 0,
+    deposit_required: isFree.value ? false : (props.proposal?.deposit_required || false),
+    deposit_amount: isFree.value ? null : (props.proposal?.deposit_amount || null),
+    contract_url: props.proposal?.contract_url || null,
+    quote_url: props.proposal?.quote_url || null,
+});
 
-// Local loading state for better UX
+const projectState = reactive<ProjectPaymentData>({
+    payment_method: props.project?.payment_method || null,
+    bank_iban: props.project?.bank_iban || null,
+    bank_bic: props.project?.bank_bic || null,
+    bank_beneficiary: props.project?.bank_beneficiary || null,
+});
+
+// File upload state
+const contractFile = ref<File | null>(null);
+const quoteFile = ref<File | null>(null);
 const isSubmitting = ref(false);
+
+// Computed properties for pricing
+const price = computed({
+    get: () => proposalState.price,
+    set: (value) => proposalState.price = value
+});
+
+const depositRequired = computed({
+    get: () => proposalState.deposit_required,
+    set: (value) => proposalState.deposit_required = value
+});
+
+const depositAmount = computed({
+    get: () => proposalState.deposit_amount,
+    set: (value) => proposalState.deposit_amount = value
+});
+
+const depositPercentage = computed(() => {
+    if (!proposalState.deposit_amount || !proposalState.price) return 0;
+    return Math.round((proposalState.deposit_amount / proposalState.price) * 100);
+});
+
+const quickDepositOptions = computed(() => [
+    { label: '20%', value: Math.round(proposalState.price * 0.2) },
+    { label: '30%', value: Math.round(proposalState.price * 0.3) },
+    { label: '50%', value: Math.round(proposalState.price * 0.5) },
+]);
+
+// Helper function to set deposit from percentage
+const setDepositFromPercentage = (percentage: number) => {
+    depositAmount.value = Math.round(proposalState.price * (percentage / 100));
+};
+
+// File upload function using store
+const uploadFiles = async (projectId: string) => {
+    const urls = await proposalStore.uploadFiles(projectId, contractFile.value || undefined, quoteFile.value || undefined);
+    if (urls.contract_url) {
+        proposalState.contract_url = urls.contract_url;
+    }
+    if (urls.quote_url) {
+        proposalState.quote_url = urls.quote_url;
+    }
+};
 
 // Handle form submission
 const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
@@ -138,7 +176,7 @@ const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
     }
 };
 
-// Local handlers to correctly mutate reactive state
+// Local handlers for component events
 const onUpdateDepositRequired = (value: boolean) => {
     depositRequired.value = value;
 };
@@ -150,6 +188,9 @@ const onUpdateDepositAmount = (value: number | null) => {
 const onUpdateProjectPayment = (value: ProjectPaymentData) => {
     Object.assign(projectState, value);
 };
+
+// Schema
+const proposalSchema = proposalFormSchema;
 </script>
 
 <style scoped>

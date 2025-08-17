@@ -38,8 +38,21 @@ export const moodboardService = {
       throw new Error("Project ID is required");
     }
 
-    // Use optimized single query with join instead of 2 separate calls
-    return await moodboardRepository.findByProjectId(projectId);
+    const data = await moodboardRepository.findByProjectId(projectId);
+
+    if (!data) {
+      return null;
+    }
+
+    // Transform data for store usage
+    const images =
+      (data as Moodboard & { moodboard_images?: MoodboardImage[] })
+        .moodboard_images || [];
+    return {
+      ...data,
+      images: images,
+      imageCount: images.length,
+    };
   },
 
   /**
@@ -114,17 +127,6 @@ export const moodboardService = {
   },
 
   /**
-   * Upload multiple images to moodboard (legacy method for backward compatibility)
-   */
-  async uploadImages(
-    moodboardId: string,
-    files: File[]
-  ): Promise<MoodboardImage[]> {
-    const result = await this.uploadImagesWithProgress(moodboardId, files);
-    return result.uploadedImages;
-  },
-
-  /**
    * Upload multiple images with detailed progress tracking and parallel processing
    */
   async uploadImagesWithProgress(
@@ -146,31 +148,6 @@ export const moodboardService = {
   },
 
   /**
-   * Get signed URL for moodboard image
-   */
-  async getImageSignedUrl(
-    filePath: string,
-    expiresIn: number = 3600
-  ): Promise<string> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à l'image");
-    }
-
-    const { data, error } = await supabase.storage
-      .from("moodboard-images")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      throw new Error(`Failed to generate signed URL: ${error.message}`);
-    }
-
-    return data.signedUrl;
-  },
-
-  /**
    * Delete image from moodboard
    */
   async deleteImage(imageId: string): Promise<void> {
@@ -182,48 +159,5 @@ export const moodboardService = {
    */
   async deleteAllImages(moodboardId: string): Promise<void> {
     await moodboardImageRepository.deleteMany(moodboardId);
-  },
-
-  /**
-   * Get moodboard status options for UI
-   */
-  getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Moodboard en cours de préparation",
-        icon: "i-lucide-palette",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Moodboard envoyé au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "payment_pending" as const,
-        label: "Paiement en attente",
-        description: "En attente de confirmation de paiement",
-        icon: "i-lucide-credit-card",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Accepté",
-        description: "Moodboard accepté par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
   },
 };

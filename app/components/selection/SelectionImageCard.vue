@@ -72,7 +72,7 @@ const emit = defineEmits<Emits>()
 const store = useClientSelectionStore()
 
 // Computed for selection state
-const isSelected = computed(() => store.isImageSelected(props.image.id))
+const isSelected = computed(() => store.selectedImages.has(props.image.id))
 
 // Handle image click for selection
 const handleImageClick = () => {

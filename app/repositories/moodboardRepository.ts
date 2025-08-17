@@ -1,60 +1,6 @@
-import type {
-  IMoodboardFilters,
-  IMoodboardRepository,
-  IPagination,
-  Moodboard,
-  MoodboardImage,
-  MoodboardWithDetails,
-} from "~/types/moodboard";
+import type { IMoodboardRepository, Moodboard } from "~/types/moodboard";
 
 export const moodboardRepository: IMoodboardRepository = {
-  async findMany(
-    filters: IMoodboardFilters,
-    pagination: IPagination
-  ): Promise<Moodboard[]> {
-    const supabase = useSupabaseClient();
-
-    let query = supabase
-      .from("moodboards")
-      .select(
-        `
-        *,
-        project:projects(
-          id,
-          title,
-          status
-        )
-      `
-      )
-      .order("created_at", { ascending: false })
-      .range(
-        (pagination.page - 1) * pagination.pageSize,
-        pagination.page * pagination.pageSize - 1
-      );
-
-    if (filters.status) {
-      query = query.eq("status", filters.status);
-    }
-
-    if (filters.project_id) {
-      query = query.eq("project_id", filters.project_id);
-    }
-
-    if (filters.search) {
-      query = query.or(
-        `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-      );
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch moodboards: ${error.message}`);
-    }
-
-    return data || [];
-  },
-
   async findById(id: string): Promise<Moodboard | null> {
     const supabase = useSupabaseClient();
 
@@ -63,11 +9,7 @@ export const moodboardRepository: IMoodboardRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        )
+        project:projects(*)
       `
       )
       .eq("id", id)
@@ -81,9 +23,7 @@ export const moodboardRepository: IMoodboardRepository = {
     return data;
   },
 
-  async findByProjectId(
-    projectId: string
-  ): Promise<MoodboardWithDetails | null> {
+  async findByProjectId(projectId: string): Promise<Moodboard | null> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -91,16 +31,8 @@ export const moodboardRepository: IMoodboardRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        ),
-        moodboard_images(
-          id,
-          file_url,
-          created_at
-        )
+        project:projects(*),
+        moodboard_images(*)
       `
       )
       .eq("project_id", projectId)
@@ -112,17 +44,7 @@ export const moodboardRepository: IMoodboardRepository = {
       );
     }
 
-    if (!data) {
-      return null;
-    }
-
-    // Transform the data to match MoodboardWithDetails interface
-    const images = data.moodboard_images || [];
-    return {
-      ...data,
-      images: images as MoodboardImage[],
-      imageCount: images.length,
-    };
+    return data;
   },
 
   async create(
@@ -136,11 +58,7 @@ export const moodboardRepository: IMoodboardRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        )
+        project:projects(*)
       `
       )
       .single();
@@ -155,7 +73,7 @@ export const moodboardRepository: IMoodboardRepository = {
   async update(
     id: string,
     moodboardData: Partial<Moodboard>
-  ): Promise<MoodboardWithDetails> {
+  ): Promise<Moodboard> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -165,16 +83,8 @@ export const moodboardRepository: IMoodboardRepository = {
       .select(
         `
         *,
-        project:projects(
-          id,
-          title,
-          status
-        ),
-        moodboard_images(
-          id,
-          file_url,
-          created_at
-        )
+        project:projects(*),
+        moodboard_images(*)
       `
       )
       .single();
@@ -185,13 +95,7 @@ export const moodboardRepository: IMoodboardRepository = {
       );
     }
 
-    // Transform the data to match MoodboardWithDetails interface
-    const images = data.moodboard_images || [];
-    return {
-      ...data,
-      images: images as MoodboardImage[],
-      imageCount: images.length,
-    };
+    return data;
   },
 
   async delete(id: string): Promise<void> {

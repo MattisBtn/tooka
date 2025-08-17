@@ -4,22 +4,6 @@ import type {
 } from "~/types/selection";
 
 export const selectionImageRepository: ISelectionImageRepository = {
-  async findBySelectionId(selectionId: string): Promise<SelectionImage[]> {
-    const supabase = useSupabaseClient();
-
-    const { data, error } = await supabase
-      .from("selection_images")
-      .select("*")
-      .eq("selection_id", selectionId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      throw new Error(`Failed to fetch selection images: ${error.message}`);
-    }
-
-    return data || [];
-  },
-
   async create(
     imageData: Omit<SelectionImage, "id" | "created_at">
   ): Promise<SelectionImage> {
@@ -70,19 +54,6 @@ export const selectionImageRepository: ISelectionImageRepository = {
     if (error) {
       throw new Error(`Failed to delete selection image: ${error.message}`);
     }
-  },
-
-  /**
-   * Get public URL for selection image (since bucket is public)
-   */
-  getPublicUrl(filePath: string): string {
-    const supabase = useSupabaseClient();
-
-    const { data } = supabase.storage
-      .from("selection-images")
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
   },
 
   /**

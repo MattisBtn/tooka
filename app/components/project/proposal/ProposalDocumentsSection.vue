@@ -1,9 +1,8 @@
 <template>
     <div class="space-y-4">
         <div class="flex items-center gap-3 mb-6">
-            <div
-                class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <UIcon name="i-lucide-file-text" class="w-4 h-4 text-white" />
+            <div class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                <UIcon name="i-lucide-file-text" class="w-4 h-4 text-white dark:text-black" />
             </div>
             <div>
                 <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Documents</h2>
@@ -93,6 +92,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
     'update:contractFile': [value: File | null];
     'update:quoteFile': [value: File | null];
+    'update:existingContractUrl': [value: string | null];
+    'update:existingQuoteUrl': [value: string | null];
 }>();
 
 // Local state for file uploads
@@ -146,11 +147,11 @@ const handleUploadError = (error: { message?: string }) => {
 
 // Remove existing files
 const removeExistingContract = () => {
-    emit('update:contractFile', null);
+    emit('update:existingContractUrl', null);
 };
 
 const removeExistingQuote = () => {
-    emit('update:quoteFile', null);
+    emit('update:existingQuoteUrl', null);
 };
 
 // Open document in new tab

@@ -289,12 +289,12 @@ export const useSelectionStore = defineStore("selection", () => {
         await handleBackgroundUpload(result.selection.id, selectedFiles);
       }
 
-      // Check and update project status automatically
+      // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
         "~/stores/admin/projectSetup"
       );
       const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      projectSetupStore.updateProjectModule("selection", result.selection);
 
       showForm.value = false;
       return result.selection;
@@ -333,12 +333,12 @@ export const useSelectionStore = defineStore("selection", () => {
         await handleBackgroundUpload(result.selection.id, selectedFiles);
       }
 
-      // Check and update project status automatically
+      // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
         "~/stores/admin/projectSetup"
       );
       const projectSetupStore = useProjectSetupStore();
-      await projectSetupStore.checkAndUpdateProjectStatus();
+      projectSetupStore.updateProjectModule("selection", result.selection);
 
       showForm.value = false;
       return result.selection;
@@ -410,6 +410,13 @@ export const useSelectionStore = defineStore("selection", () => {
     try {
       await selectionService.deleteSelection(selectionId);
       selection.value = null;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("selection", null);
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to delete selection");
@@ -501,6 +508,13 @@ export const useSelectionStore = defineStore("selection", () => {
         status: "awaiting_client",
       });
       selection.value = result.selection;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("selection", result.selection);
 
       return result;
     } catch (err) {
