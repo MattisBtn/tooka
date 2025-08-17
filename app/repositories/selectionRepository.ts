@@ -1,57 +1,11 @@
 import type {
-  IPagination,
-  ISelectionFilters,
   ISelectionRepository,
   Selection,
+  SelectionImage,
+  SelectionWithDetails,
 } from "~/types/selection";
 
 export const selectionRepository: ISelectionRepository = {
-  async findMany(
-    filters: ISelectionFilters,
-    pagination: IPagination
-  ): Promise<Selection[]> {
-    const supabase = useSupabaseClient();
-
-    let query = supabase
-      .from("selections")
-      .select(
-        `
-        *,
-        project:projects(
-          id,
-          title,
-          status
-        )
-      `
-      )
-      .order("created_at", { ascending: false })
-      .range(
-        (pagination.page - 1) * pagination.pageSize,
-        pagination.page * pagination.pageSize - 1
-      );
-
-    if (filters.status) {
-      query = query.eq("status", filters.status);
-    }
-
-    if (filters.project_id) {
-      query = query.eq("project_id", filters.project_id);
-    }
-
-    if (filters.search) {
-      // For selections, we can search by project title
-      query = query.or(`project.title.ilike.%${filters.search}%`);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch selections: ${error.message}`);
-    }
-
-    return data || [];
-  },
-
   async findById(id: string): Promise<Selection | null> {
     const supabase = useSupabaseClient();
 
@@ -78,7 +32,10 @@ export const selectionRepository: ISelectionRepository = {
     return data;
   },
 
-  async findByProjectId(projectId: string): Promise<Selection | null> {
+  async findByProjectId(projectId: string): Promise<{
+    selection: Selection | null;
+    images: SelectionImage[];
+  }> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -90,17 +47,28 @@ export const selectionRepository: ISelectionRepository = {
           id,
           title,
           status
-        )
+        ),
+        selection_images(*)
       `
       )
       .eq("project_id", projectId)
       .maybeSingle();
 
     if (error) {
-      throw new Error(`Failed to fetch selection: ${error.message}`);
+      throw new Error(
+        `Failed to fetch selection with images: ${error.message}`
+      );
     }
 
-    return data;
+    if (!data) {
+      return { selection: null, images: [] };
+    }
+
+    const { selection_images, ...selection } = data;
+    return {
+      selection,
+      images: selection_images || [],
+    };
   },
 
   async create(
@@ -133,7 +101,7 @@ export const selectionRepository: ISelectionRepository = {
   async update(
     id: string,
     selectionData: Partial<Selection>
-  ): Promise<Selection> {
+  ): Promise<SelectionWithDetails> {
     const supabase = useSupabaseClient();
 
     const { data, error } = await supabase
@@ -147,16 +115,39 @@ export const selectionRepository: ISelectionRepository = {
           id,
           title,
           status
+        ),
+        selection_images(
+          id,
+          file_url,
+          is_selected,
+          created_at,
+          conversion_status,
+          requires_conversion,
+          source_file_url,
+          source_filename,
+          source_format,
+          target_format
         )
       `
       )
       .single();
 
     if (error) {
-      throw new Error(`Failed to update selection: ${error.message}`);
+      throw new Error(
+        `Failed to update selection with images: ${error.message}`
+      );
     }
 
-    return data;
+    // Transform the data to match SelectionWithDetails interface
+    const images = data.selection_images || [];
+    const selectedCount = images.filter((img) => img.is_selected).length;
+
+    return {
+      ...data,
+      images: images as SelectionImage[],
+      imageCount: images.length,
+      selectedCount,
+    };
   },
 
   async delete(id: string): Promise<void> {

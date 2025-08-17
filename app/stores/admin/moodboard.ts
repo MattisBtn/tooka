@@ -322,10 +322,7 @@ export const useMoodboardStore = defineStore("moodboard", () => {
       });
       moodboard.value = result.moodboard;
 
-      return {
-        moodboard: result.moodboard,
-        projectUpdated: result.projectUpdated,
-      };
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to send to client");

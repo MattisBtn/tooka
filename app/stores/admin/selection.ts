@@ -111,17 +111,6 @@ export const useSelectionStore = defineStore("selection", () => {
     return useConversionSummary(Array.from(selection.value.images));
   });
 
-  const hasConversionsInProgress = computed(() => {
-    return (
-      conversionSummary.value.processing > 0 ||
-      conversionSummary.value.pending > 0
-    );
-  });
-
-  const canPerformActions = computed(() => {
-    return !loading.value && !hasConversionsInProgress.value;
-  });
-
   // Upload progress computed
   const uploadProgressPercentage = computed(() => {
     if (!uploadProgress.value.isActive || uploadProgress.value.totalFiles === 0)
@@ -242,7 +231,6 @@ export const useSelectionStore = defineStore("selection", () => {
     isDownloadingZip.value = true;
 
     try {
-      const { selectionService } = await import("~/services/selectionService");
       await selectionService.downloadSelectedImagesAsZip(selection.value.id);
     } catch (error) {
       console.error("ZIP download failed:", error);
@@ -298,7 +286,7 @@ export const useSelectionStore = defineStore("selection", () => {
       // Upload images if provided
       if (selectedFiles && selectedFiles.length > 0) {
         initializeUploadProgress(selectedFiles);
-        handleBackgroundUpload(result.selection.id, selectedFiles);
+        await handleBackgroundUpload(result.selection.id, selectedFiles);
       }
 
       // Check and update project status automatically
@@ -342,7 +330,7 @@ export const useSelectionStore = defineStore("selection", () => {
       // Upload images if provided
       if (selectedFiles && selectedFiles.length > 0) {
         initializeUploadProgress(selectedFiles);
-        handleBackgroundUpload(result.selection.id, selectedFiles);
+        await handleBackgroundUpload(result.selection.id, selectedFiles);
       }
 
       // Check and update project status automatically
@@ -367,13 +355,33 @@ export const useSelectionStore = defineStore("selection", () => {
     backgroundUploading.value = true;
 
     try {
-      for (const file of files) {
-        updateFileProgress(file.name, "uploading");
-      }
+      // Progress callbacks
+      const onProgress = (
+        filename: string,
+        status: "uploading" | "uploaded" | "converting" | "converted" | "failed"
+      ) => {
+        updateFileProgress(filename, status);
+      };
+
+      const onCount = (type: string) => {
+        switch (type) {
+          case "upload":
+            incrementUploadCount();
+            break;
+          case "converted":
+            incrementConvertedCount();
+            break;
+          case "failed":
+            incrementFailedCount();
+            break;
+        }
+      };
 
       const uploadedImages = await selectionService.uploadImages(
         selectionId,
-        files
+        files,
+        onProgress,
+        onCount
       );
 
       // Mettre à jour la sélection avec les nouvelles images
@@ -494,10 +502,7 @@ export const useSelectionStore = defineStore("selection", () => {
       });
       selection.value = result.selection;
 
-      return {
-        selection: result.selection,
-        projectUpdated: result.projectUpdated,
-      };
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to send to client");
@@ -524,8 +529,6 @@ export const useSelectionStore = defineStore("selection", () => {
     formattedSelectionLimit,
     hasUnlimitedSelection,
     conversionSummary,
-    hasConversionsInProgress,
-    canPerformActions,
     reset,
     loadSelection,
     createSelection,
@@ -543,12 +546,6 @@ export const useSelectionStore = defineStore("selection", () => {
     uploadProgressPercentage,
     uploadProgressSteps,
     currentProgressStep,
-    initializeUploadProgress,
-    updateFileProgress,
-    incrementUploadCount,
-    incrementConvertedCount,
-    incrementFailedCount,
     downloadSelectedImagesAsZip,
-    handleBackgroundUpload,
   };
 });

@@ -23,8 +23,7 @@ export const uploadConfig = {
     ), // 100MB en bytes
     acceptedFormats: process.env.NUXT_ACCEPTED_IMAGE_FORMATS || "image/*",
     rawFormats:
-      process.env.NUXT_ACCEPTED_RAW_FORMATS ||
-      ".nef,.dng,.raw,.cr2,.arw,.raf,.orf,.rw2,.crw,.pef,.srw,.x3f",
+      process.env.NUXT_ACCEPTED_RAW_FORMATS || ".nef,.dng,.raw,.cr2,.arw",
     description:
       "Formats supportés: JPG, PNG, WebP, ARW, CR2, DNG, NEF, RAW • Max 200 images • 100 MB par image",
   },

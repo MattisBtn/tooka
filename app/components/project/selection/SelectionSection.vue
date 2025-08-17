@@ -338,7 +338,6 @@ const sendToClient = async () => {
 
     try {
         await selectionStore.sendToClient(selectionStore.selection.id)
-        await projectSetupStore.refreshProject()
 
         const toast = useToast();
         toast.add({
@@ -357,7 +356,7 @@ const sendToClient = async () => {
             color: 'error'
         });
     }
-}
+};
 
 const handleDeleteImage = async (imageId: string) => {
     const confirmed = confirm('Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.')

@@ -435,18 +435,14 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
-      // The service will determine the final status based on requires_client_validation
-      const updatedGallery = await galleryService.updateGallery(
+      const result = await galleryService.updateGallery(
         galleryId,
         {},
         true // shouldValidate = true to trigger "send to client" logic
       );
-      gallery.value = updatedGallery.gallery;
+      gallery.value = result.gallery;
 
-      return {
-        gallery: updatedGallery.gallery,
-        projectUpdated: updatedGallery.projectUpdated,
-      };
+      return result;
     } catch (err) {
       error.value =
         err instanceof Error ? err : new Error("Failed to send to client");

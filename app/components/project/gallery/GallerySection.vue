@@ -450,8 +450,11 @@ const sendToClient = async () => {
     if (!galleryStore.gallery) return;
 
     try {
-        await galleryStore.sendToClient(galleryStore.gallery.id)
-        await projectSetupStore.refreshProject()
+        const result = await galleryStore.sendToClient(galleryStore.gallery.id)
+
+        if (result.projectUpdated) {
+            await projectSetupStore.refreshProject()
+        }
 
         const toast = useToast();
         toast.add({
@@ -470,7 +473,7 @@ const sendToClient = async () => {
             color: 'error'
         });
     }
-}
+};
 
 const handleConfirmPayment = async () => {
     if (!galleryStore.gallery || projectSetupStore.project?.payment_method !== 'bank_transfer' || isFree.value) return

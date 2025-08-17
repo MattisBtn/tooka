@@ -394,8 +394,9 @@ const sendToClient = async () => {
     if (!proposalStore.proposal) return;
 
     try {
-        const { projectUpdated } = await proposalStore.sendToClient()
-        if (projectUpdated) {
+        const result = await proposalStore.sendToClient()
+
+        if (result.projectUpdated) {
             await projectSetupStore.refreshProject()
         }
 
@@ -416,7 +417,7 @@ const sendToClient = async () => {
             color: 'error'
         });
     }
-}
+};
 
 const markAsCompleted = async () => {
     if (!proposalStore.proposal) return;

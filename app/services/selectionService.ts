@@ -1,88 +1,33 @@
 import { selectionImageRepository } from "~/repositories/selectionImageRepository";
 import { selectionRepository } from "~/repositories/selectionRepository";
 import type {
-  IPagination,
-  ISelectionFilters,
   Selection,
   SelectionImage,
   SelectionWithDetails,
 } from "~/types/selection";
+import { uploadConfig } from "~/utils/uploadConfig";
 
-// Simple cache to avoid redundant API calls
-const selectionCache = new Map<
-  string,
-  { data: SelectionWithDetails | null; timestamp: number }
->();
-const CACHE_DURATION = 5000; // 5 seconds cache
+// Types for progress callbacks
+type ProgressCallback = (
+  filename: string,
+  status: "uploading" | "uploaded" | "converting" | "converted" | "failed"
+) => void;
+type CountCallback = (type: "upload" | "converted" | "failed") => void;
 
 export const selectionService = {
   /**
-   * Fetch selections with pagination and filtering
-   */
-  async getSelections(
-    filters: ISelectionFilters = {},
-    pagination: IPagination
-  ): Promise<Selection[]> {
-    const selections = await selectionRepository.findMany(filters, pagination);
-
-    // Business logic: sort by status priority
-    return selections.sort((a, b) => {
-      const statusOrder = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
-      };
-      return statusOrder[a.status] - statusOrder[b.status];
-    });
-  },
-
-  /**
-   * Get selection by ID with validation
-   */
-  async getSelectionById(id: string): Promise<Selection> {
-    if (!id?.trim()) {
-      throw new Error("Selection ID is required");
-    }
-
-    const selection = await selectionRepository.findById(id);
-
-    if (!selection) {
-      throw new Error("Selection not found");
-    }
-
-    return selection;
-  },
-
-  /**
-   * Get selection by project ID with images - with simple caching
+   * Get selection by project ID with images
    */
   async getSelectionByProjectId(
     projectId: string
   ): Promise<SelectionWithDetails | null> {
-    if (!projectId?.trim()) {
-      throw new Error("Project ID is required");
-    }
-
-    // Check cache first
-    const cached = selectionCache.get(projectId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
-    }
-
-    const selection = await selectionRepository.findByProjectId(projectId);
+    const { selection, images } = await selectionRepository.findByProjectId(
+      projectId
+    );
 
     if (!selection) {
-      // Cache the null result
-      selectionCache.set(projectId, { data: null, timestamp: Date.now() });
       return null;
     }
-
-    // Get images
-    const images = await selectionImageRepository.findBySelectionId(
-      selection.id
-    );
 
     // Count selected images
     const selectedCount = images.filter((img) => img.is_selected).length;
@@ -94,9 +39,6 @@ export const selectionService = {
       selectedCount,
     };
 
-    // Cache the result
-    selectionCache.set(projectId, { data: result, timestamp: Date.now() });
-
     return result;
   },
 
@@ -106,10 +48,6 @@ export const selectionService = {
   async createSelection(
     selectionData: Omit<Selection, "id" | "created_at" | "updated_at">
   ): Promise<{ selection: Selection; projectUpdated: boolean }> {
-    if (!selectionData.project_id?.trim()) {
-      throw new Error("Project ID is required");
-    }
-
     if (
       selectionData.max_media_selection === undefined ||
       selectionData.max_media_selection === null ||
@@ -138,9 +76,6 @@ export const selectionService = {
     // Create selection
     const selection = await selectionRepository.create(finalSelectionData);
 
-    // Clear cache for this project
-    selectionCache.delete(selectionData.project_id);
-
     // For creation, project is never updated automatically
     const projectUpdated = false;
 
@@ -154,68 +89,11 @@ export const selectionService = {
     id: string,
     updates: Partial<Selection>
   ): Promise<{ selection: SelectionWithDetails; projectUpdated: boolean }> {
-    const existingSelection = await this.getSelectionById(id);
-
-    // Apply updates as-is
-    const finalUpdates = { ...updates };
-
-    // Business rules for status transitions
-    if (finalUpdates.status) {
-      const currentStatus = existingSelection.status;
-      const newStatus = finalUpdates.status;
-
-      // Allow logical transitions:
-      // - draft -> awaiting_client (send to client)
-      // - awaiting_client -> draft (back to draft)
-      // - revision_requested -> draft (back to draft)
-      // - revision_requested -> awaiting_client (send updated version to client)
-
-      const allowedTransitions: Record<string, string[]> = {
-        draft: ["awaiting_client"],
-        awaiting_client: ["draft", "revision_requested"],
-        revision_requested: ["draft", "awaiting_client"],
-        completed: [], // completed selections cannot be modified
-      };
-
-      if (currentStatus === "completed" && newStatus !== "completed") {
-        throw new Error(
-          "Les sélections validées par le client ne peuvent plus être modifiées"
-        );
-      }
-
-      // Allow same status (no change)
-      if (
-        currentStatus !== newStatus &&
-        !allowedTransitions[currentStatus]?.includes(newStatus)
-      ) {
-        throw new Error(
-          `Transition de statut non autorisée: ${currentStatus} -> ${newStatus}`
-        );
-      }
-    }
-
-    // Update selection
-    const selection = await selectionRepository.update(id, finalUpdates);
-
-    // Get images for the updated selection
-    const images = await selectionImageRepository.findBySelectionId(id);
-
-    // Count selected images
-    const selectedCount = images.filter((img) => img.is_selected).length;
-
-    // Return selection with details
-    const selectionWithDetails: SelectionWithDetails = {
-      ...selection,
-      images,
-      imageCount: images.length,
-      selectedCount,
-    };
-
-    // Clear cache for this project
-    selectionCache.delete(existingSelection.project_id);
+    // Update selection and get images in a single optimized call
+    const selectionWithDetails = await selectionRepository.update(id, updates);
 
     // Project is considered updated when selection is sent to client
-    const projectUpdated = finalUpdates.status === "awaiting_client";
+    const projectUpdated = updates.status === "awaiting_client";
 
     return { selection: selectionWithDetails, projectUpdated };
   },
@@ -224,7 +102,10 @@ export const selectionService = {
    * Delete selection with dependency checks
    */
   async deleteSelection(id: string): Promise<void> {
-    const selection = await this.getSelectionById(id);
+    const selection = await selectionRepository.findById(id);
+    if (!selection) {
+      throw new Error("Selection not found");
+    }
 
     // Business rule: can only delete selections that are not completed or payment pending
     if (
@@ -238,9 +119,6 @@ export const selectionService = {
 
     // Delete selection
     await selectionRepository.delete(id);
-
-    // Clear cache for this project
-    selectionCache.delete(selection.project_id);
   },
 
   /**
@@ -248,7 +126,9 @@ export const selectionService = {
    */
   async uploadImages(
     selectionId: string,
-    files: File[]
+    files: File[],
+    onProgress?: ProgressCallback,
+    onCount?: CountCallback
   ): Promise<SelectionImage[]> {
     const supabase = useSupabaseClient();
     const user = useSupabaseUser();
@@ -256,28 +136,27 @@ export const selectionService = {
     const uploadedImages: SelectionImage[] = [];
     const errors: string[] = [];
 
-    // Import store for progress tracking
-    const { useSelectionStore } = await import("~/stores/admin/selection");
-    const selectionStore = useSelectionStore();
-
     for (const file of files) {
       try {
         // Update progress: start uploading this file
-        selectionStore.updateFileProgress(file.name, "uploading");
+        onProgress?.(file.name, "uploading");
 
         // Validate file type
         if (!file.type.startsWith("image/") && !this.isRawFormat(file.name)) {
           errors.push(`${file.name}: Type de fichier non supporté`);
-          selectionStore.updateFileProgress(file.name, "failed");
-          selectionStore.incrementFailedCount();
+          onProgress?.(file.name, "failed");
+          onCount?.("failed");
           continue;
         }
 
-        // Validate file size (max 100MB)
-        if (file.size > 100 * 1024 * 1024) {
-          errors.push(`${file.name}: Fichier trop volumineux (max 100MB)`);
-          selectionStore.updateFileProgress(file.name, "failed");
-          selectionStore.incrementFailedCount();
+        // Validate file size using config
+        if (file.size > uploadConfig.selection.maxFileSize) {
+          const maxSizeMB = uploadConfig.selection.maxFileSize / (1024 * 1024);
+          errors.push(
+            `${file.name}: Fichier trop volumineux (max ${maxSizeMB}MB)`
+          );
+          onProgress?.(file.name, "failed");
+          onCount?.("failed");
           continue;
         }
 
@@ -300,14 +179,14 @@ export const selectionService = {
 
         if (uploadError) {
           errors.push(`${file.name}: ${uploadError.message}`);
-          selectionStore.updateFileProgress(file.name, "failed");
-          selectionStore.incrementFailedCount();
+          onProgress?.(file.name, "failed");
+          onCount?.("failed");
           continue;
         }
 
         // Mark as uploaded
-        selectionStore.updateFileProgress(file.name, "uploaded");
-        selectionStore.incrementUploadCount();
+        onProgress?.(file.name, "uploaded");
+        onCount?.("upload");
 
         // Check if file is RAW format
         const isRawFormat = this.isRawFormat(file.name);
@@ -332,7 +211,7 @@ export const selectionService = {
         if (isRawFormat) {
           try {
             // Mark as converting
-            selectionStore.updateFileProgress(file.name, "converting");
+            onProgress?.(file.name, "converting");
 
             // Generate signed URL for the RAW file
             const { data: signedUrlData } = await supabase.storage
@@ -370,8 +249,8 @@ export const selectionService = {
               }
 
               // Mark as converted
-              selectionStore.updateFileProgress(file.name, "converted");
-              selectionStore.incrementConvertedCount();
+              onProgress?.(file.name, "converted");
+              onCount?.("converted");
             }
           } catch (conversionError) {
             console.error(
@@ -382,20 +261,20 @@ export const selectionService = {
             errors.push(
               `${file.name}: Conversion échouée (fichier RAW conservé)`
             );
-            selectionStore.updateFileProgress(file.name, "failed");
-            selectionStore.incrementFailedCount();
+            onProgress?.(file.name, "failed");
+            onCount?.("failed");
           }
         } else {
           // For non-RAW files, mark as converted immediately
-          selectionStore.updateFileProgress(file.name, "converted");
-          selectionStore.incrementConvertedCount();
+          onProgress?.(file.name, "converted");
+          onCount?.("converted");
         }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Erreur inconnue";
         errors.push(`${file.name}: ${errorMessage}`);
-        selectionStore.updateFileProgress(file.name, "failed");
-        selectionStore.incrementFailedCount();
+        onProgress?.(file.name, "failed");
+        onCount?.("failed");
       }
     }
 
@@ -408,10 +287,12 @@ export const selectionService = {
   },
 
   /**
-   * Check if file is RAW format
+   * Check if file is RAW format using config
    */
   isRawFormat(filename: string): boolean {
-    const rawFormats = ["nef", "dng", "raw", "cr2", "arw"];
+    const rawFormats = uploadConfig.selection.rawFormats
+      .split(",")
+      .map((format) => format.trim().replace(".", "").toLowerCase());
     const fileExt = filename.split(".").pop()?.toLowerCase() || "";
     return rawFormats.includes(fileExt);
   },
@@ -442,16 +323,6 @@ export const selectionService = {
   },
 
   /**
-   * Get signed URL for selection image
-   */
-  async getImageSignedUrl(
-    filePath: string,
-    expiresIn: number = 3600
-  ): Promise<string> {
-    return await selectionImageRepository.getSignedUrl(filePath, expiresIn);
-  },
-
-  /**
    * Download image with proper browser download behavior
    */
   async downloadImage(
@@ -479,7 +350,10 @@ export const selectionService = {
         URL.revokeObjectURL(url);
       } else {
         // Use signed URL for preview/navigation
-        const signedUrl = await this.getImageSignedUrl(filePath);
+        const signedUrl = await selectionImageRepository.getSignedUrl(
+          filePath,
+          3600
+        );
         window.open(signedUrl, "_blank");
       }
     } catch (error) {
@@ -499,84 +373,16 @@ export const selectionService = {
   },
 
   /**
-   * Download selected images in original format as ZIP
-   */
-  async downloadSelectedImages(selectionId: string): Promise<void> {
-    const selectionWithImages = await this.getSelectionByProjectId(
-      // We need to get project ID from selection ID
-      (
-        await this.getSelectionById(selectionId)
-      ).project_id
-    );
-
-    if (!selectionWithImages) {
-      throw new Error("Sélection non trouvée");
-    }
-
-    // Filter only selected images
-    const selectedImages = (selectionWithImages.images || []).filter(
-      (img) => img.is_selected
-    );
-
-    if (selectedImages.length === 0) {
-      throw new Error("Aucune image sélectionnée par le client");
-    }
-
-    // For now, download images one by one
-    // In the future, we could implement a ZIP download service
-    const toast = useToast();
-    let downloadCount = 0;
-    let errorCount = 0;
-
-    toast.add({
-      title: "Téléchargement en cours",
-      description: `Téléchargement de ${selectedImages.length} image(s) sélectionnée(s)...`,
-      icon: "i-lucide-download",
-      color: "info",
-    });
-
-    for (const image of selectedImages) {
-      try {
-        // Use source file for original format, fallback to converted file
-        const fileUrl = image.source_file_url || image.file_url;
-        const filename =
-          image.source_filename ||
-          `selection_${image.id}.${image.source_format || "jpg"}`;
-
-        await this.downloadImage(fileUrl, filename, true);
-        downloadCount++;
-      } catch (error) {
-        console.error(`Failed to download image ${image.id}:`, error);
-        errorCount++;
-      }
-    }
-
-    // Show final result
-    if (errorCount === 0) {
-      toast.add({
-        title: "Téléchargement terminé",
-        description: `${downloadCount} image(s) téléchargée(s) avec succès`,
-        icon: "i-lucide-check-circle",
-        color: "success",
-      });
-    } else {
-      toast.add({
-        title: "Téléchargement partiellement réussi",
-        description: `${downloadCount} réussie(s), ${errorCount} échouée(s)`,
-        icon: "i-lucide-alert-triangle",
-        color: "warning",
-      });
-    }
-  },
-
-  /**
    * Download selected images from selection as ZIP file
    */
   async downloadSelectedImagesAsZip(selectionId: string): Promise<void> {
+    const selection = await selectionRepository.findById(selectionId);
+    if (!selection) {
+      throw new Error("Sélection non trouvée");
+    }
+
     const selectionWithImages = await this.getSelectionByProjectId(
-      (
-        await this.getSelectionById(selectionId)
-      ).project_id
+      selection.project_id
     );
 
     if (!selectionWithImages) {
@@ -711,106 +517,6 @@ export const selectionService = {
     // Ensure unique filename with proper extension
     const extension = format.toLowerCase();
     return `${cleanName || `image_${imageId}`}.${extension}`;
-  },
-
-  // toggleImageSelection removed - selections are now handled client-side until validation
-
-  /**
-   * Get selection status options for UI
-   */
-  getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Sélection en cours de préparation",
-        icon: "i-lucide-mouse-pointer-click",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Sélection envoyée au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Validé",
-        description: "Sélection validée par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
-  },
-
-  /**
-   * Get selection limit options for UI
-   */
-  getSelectionLimitOptions() {
-    return [
-      {
-        value: -1,
-        label: "Illimité",
-        description: "Aucune limite",
-        icon: "i-lucide-infinity",
-      },
-      {
-        value: 5,
-        label: "5 images",
-        description: "Sélection limitée à 5 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 10,
-        label: "10 images",
-        description: "Sélection limitée à 10 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 15,
-        label: "15 images",
-        description: "Sélection limitée à 15 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 20,
-        label: "20 images",
-        description: "Sélection limitée à 20 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 25,
-        label: "25 images",
-        description: "Sélection limitée à 25 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 30,
-        label: "30 images",
-        description: "Sélection limitée à 30 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 50,
-        label: "50 images",
-        description: "Sélection limitée à 50 images",
-        icon: "i-lucide-hash",
-      },
-      {
-        value: 100,
-        label: "100 images",
-        description: "Sélection limitée à 100 images",
-        icon: "i-lucide-hash",
-      },
-    ];
   },
 
   /**

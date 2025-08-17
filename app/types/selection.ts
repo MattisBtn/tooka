@@ -17,16 +17,15 @@ export interface ISelectionFilters {
 }
 
 export interface ISelectionRepository {
-  findMany(
-    filters: ISelectionFilters,
-    pagination: IPagination
-  ): Promise<Selection[]>;
   findById(id: string): Promise<Selection | null>;
-  findByProjectId(projectId: string): Promise<Selection | null>;
+  findByProjectId(projectId: string): Promise<{
+    selection: Selection | null;
+    images: SelectionImage[];
+  }>;
   create(
     data: Omit<Selection, "id" | "created_at" | "updated_at">
   ): Promise<Selection>;
-  update(id: string, data: Partial<Selection>): Promise<Selection>;
+  update(id: string, data: Partial<Selection>): Promise<SelectionWithDetails>;
   delete(id: string): Promise<void>;
 }
 

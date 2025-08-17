@@ -393,7 +393,11 @@ const sendToClient = async () => {
     if (!moodboardStore.moodboard) return;
 
     try {
-        await moodboardStore.sendToClient(moodboardStore.moodboard.id)
+        const result = await moodboardStore.sendToClient(moodboardStore.moodboard.id)
+
+        if (result.projectUpdated) {
+            await projectSetupStore.refreshProject()
+        }
 
         const toast = useToast();
         toast.add({
@@ -412,7 +416,7 @@ const sendToClient = async () => {
             color: 'error'
         });
     }
-}
+};
 
 const handleUploadCompleted = async () => {
     // Reset upload state and close form
