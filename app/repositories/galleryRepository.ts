@@ -85,6 +85,12 @@ export const galleryRepository: IGalleryRepository = {
           id,
           title,
           status
+        ),
+        gallery_images(
+          id,
+          file_url,
+          created_at,
+          gallery_id
         )
       `
       )

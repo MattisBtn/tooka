@@ -8,36 +8,12 @@ import type {
   GalleryPricing,
   GalleryUploadResult,
   GalleryWithDetails,
-  IGalleryFilters,
-  IPagination,
 } from "~/types/gallery";
 import type { UploadOptions } from "~/types/upload";
 import { GALLERY_UPLOAD_CONFIG } from "~/types/upload";
 import { uploadImagesWithProgress } from "~/utils/uploadService";
 
 export const galleryService = {
-  /**
-   * Fetch galleries with pagination and filtering
-   */
-  async getGalleries(
-    filters: IGalleryFilters = {},
-    pagination: IPagination
-  ): Promise<Gallery[]> {
-    const galleries = await galleryRepository.findMany(filters, pagination);
-
-    // Business logic: sort by status priority
-    return galleries.sort((a, b) => {
-      const statusOrder = {
-        draft: 0,
-        awaiting_client: 1,
-        revision_requested: 2,
-        payment_pending: 3,
-        completed: 4,
-      };
-      return statusOrder[a.status] - statusOrder[b.status];
-    });
-  },
-
   /**
    * Get gallery by ID with validation
    */
@@ -71,13 +47,15 @@ export const galleryService = {
       return null;
     }
 
-    // Get images count
-    const images = await galleryImageRepository.findByGalleryId(gallery.id);
-
     return {
       ...gallery,
-      images,
-      imageCount: images.length,
+      images:
+        (gallery as Gallery & { gallery_images?: GalleryImage[] })
+          .gallery_images || [],
+      imageCount: (
+        (gallery as Gallery & { gallery_images?: GalleryImage[] })
+          .gallery_images || []
+      ).length,
     };
   },
 
@@ -135,14 +113,6 @@ export const galleryService = {
   ): Promise<{ gallery: Gallery; projectUpdated: boolean }> {
     if (!galleryData.project_id?.trim()) {
       throw new Error("Project ID is required");
-    }
-
-    // Check if gallery already exists for this project
-    const existingGallery = await this.getGalleryByProjectId(
-      galleryData.project_id
-    );
-    if (existingGallery) {
-      throw new Error("Une galerie existe déjà pour ce projet");
     }
 
     // For creation, always start as draft
@@ -254,32 +224,7 @@ export const galleryService = {
    * Delete gallery with dependency checks
    */
   async deleteGallery(id: string): Promise<void> {
-    const gallery = await this.getGalleryById(id);
-
-    // Business rule: can't delete galleries that are completed or payment pending
-    if (
-      gallery.status === "completed" ||
-      gallery.status === "payment_pending"
-    ) {
-      throw new Error(
-        "Cannot delete galleries that are payment pending or completed"
-      );
-    }
-
-    // Delete gallery
     await galleryRepository.delete(id);
-  },
-
-  /**
-   * Upload multiple images to gallery with progress tracking
-   */
-  async uploadImages(
-    galleryId: string,
-    files: File[]
-  ): Promise<GalleryImage[]> {
-    // Legacy method for backward compatibility
-    const result = await this.uploadImagesWithProgress(galleryId, files);
-    return result.uploadedImages;
   },
 
   /**
@@ -307,77 +252,9 @@ export const galleryService = {
   },
 
   /**
-   * Get signed URL for gallery image
-   */
-  async getImageSignedUrl(
-    filePath: string,
-    expiresIn: number = 3600
-  ): Promise<string> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour accéder à l'image");
-    }
-
-    const { data, error } = await supabase.storage
-      .from("gallery-images")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      throw new Error(`Failed to generate signed URL: ${error.message}`);
-    }
-
-    return data.signedUrl;
-  },
-
-  /**
    * Delete image from gallery
    */
   async deleteImage(imageId: string): Promise<void> {
     await galleryImageRepository.delete(imageId);
-  },
-
-  /**
-   * Get gallery status options for UI
-   */
-  getStatusOptions() {
-    return [
-      {
-        value: "draft" as const,
-        label: "Brouillon",
-        description: "Galerie en cours de préparation",
-        icon: "i-lucide-images",
-        color: "neutral",
-      },
-      {
-        value: "awaiting_client" as const,
-        label: "En attente client",
-        description: "Galerie envoyée au client",
-        icon: "i-lucide-clock",
-        color: "warning",
-      },
-      {
-        value: "revision_requested" as const,
-        label: "Révision demandée",
-        description: "Le client demande des modifications",
-        icon: "i-lucide-edit",
-        color: "info",
-      },
-      {
-        value: "payment_pending" as const,
-        label: "Paiement en attente",
-        description: "En attente de confirmation de paiement",
-        icon: "i-lucide-credit-card",
-        color: "info",
-      },
-      {
-        value: "completed" as const,
-        label: "Acceptée",
-        description: "Galerie acceptée par le client",
-        icon: "i-lucide-check-circle",
-        color: "success",
-      },
-    ];
   },
 };
