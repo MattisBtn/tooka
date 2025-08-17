@@ -80,9 +80,16 @@
                         </div>
                     </UFormField>
 
-                    <UFormField label="Prix d'un média supplémentaire (€)" name="extra_media_price" class="w-full">
+                    <UFormField v-if="!hasSelectionLimit" label="Prix d'un média supplémentaire (€)"
+                        name="extra_media_price" class="w-full">
                         <UInput v-model="state.extra_media_price" type="number" :min="0" step="0.01"
                             placeholder="Ex: 15.00" :disabled="isFormDisabled" class="w-full" />
+                        <template #help>
+                            <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                                Prix par image sélectionnée au-delà de la limite de {{ state.max_media_selection }}
+                                images
+                            </p>
+                        </template>
                     </UFormField>
                 </div>
             </div>
@@ -285,7 +292,7 @@ const schema = selectionFormSchema;
 const isSubmitting = ref(false);
 
 // Computed
-const isEditMode = computed(() => !!props.selection);
+const _isEditMode = computed(() => !!props.selection);
 const hasSelectedFiles = computed(() => selectedFiles.value.length > 0);
 const hasExistingImages = computed(() => images.value.length > 0);
 const totalImageCount = computed(() => images.value.length + selectedFiles.value.length);

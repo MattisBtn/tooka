@@ -102,23 +102,11 @@ export default defineEventHandler(async (event) => {
       extraCost = excessImages * selection.extra_media_price;
     }
 
-    // Update project remaining_amount if there's extra cost
+    // remaining_amount is now automatically calculated by Supabase triggers
     if (extraCost > 0) {
-      const { error: projectUpdateError } = await supabase
-        .from("projects")
-        .update({
-          remaining_amount:
-            (selection.project.remaining_amount || 0) + extraCost,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selection.project_id);
-
-      if (projectUpdateError) {
-        console.error("❌ Error updating project:", projectUpdateError);
-        throw new Error(
-          `Failed to update project remaining amount: ${projectUpdateError.message}`
-        );
-      }
+      console.log(
+        `Project ${selection.project_id} remaining_amount automatically updated after selection validation (extra cost: ${extraCost})`
+      );
     }
 
     // Update selection status to completed

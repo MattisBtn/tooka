@@ -87,7 +87,7 @@
                     </UFormField>
 
                     <!-- Payment Method - Display (when already set) -->
-                    <div v-else-if="projectState.payment_method" class="space-y-3">
+                    <div v-else-if="galleryStore.project?.payment_method" class="space-y-3">
                         <div
                             class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
                             <div class="flex items-center gap-3">
@@ -116,13 +116,6 @@
                                 formattedRemainingAmount }}</span>
                         </div>
                     </div>
-
-                    <!-- Payment Info Missing Alert -->
-                    <UAlert v-if="isPaymentInfoMissing" color="warning" variant="soft" icon="i-lucide-alert-triangle">
-                        <template #description>
-                            Les informations de paiement sont requises pour que le client puisse effectuer le paiement.
-                        </template>
-                    </UAlert>
                 </div>
             </div>
         </div>
@@ -157,7 +150,7 @@
                     </h3>
                 </div>
 
-                <ProjectGalleryImageGrid :images="Array.from(images)" :can-delete="true" :is-editing="true"
+                <ProjectGalleryImageGrid :images="images" :can-delete="true"
                     @delete-image="handleDeleteExistingImage" />
 
                 <USeparator />
@@ -246,14 +239,6 @@ const state = reactive<GalleryFormData>({
     status: props.gallery?.status || "draft",
 });
 
-// Project state for payment info - use galleryStore data
-const projectState = reactive<ProjectPaymentData>({
-    payment_method: galleryStore.project?.payment_method || null,
-    bank_iban: galleryStore.project?.bank_iban || null,
-    bank_bic: galleryStore.project?.bank_bic || null,
-    bank_beneficiary: galleryStore.project?.bank_beneficiary || null,
-});
-
 // File upload states
 const selectedFiles = ref<File[]>([]);
 
@@ -285,9 +270,11 @@ const paymentMethodOptions = [
 
 // Computed for payment method to handle null/undefined conversion for USelectMenu
 const paymentMethod = computed({
-    get: () => projectState.payment_method || undefined,
+    get: () => galleryStore.project?.payment_method || undefined,
     set: (value: 'stripe' | 'bank_transfer' | undefined) => {
-        projectState.payment_method = value || null;
+        if (galleryStore.project) {
+            galleryStore.project.payment_method = value || null;
+        }
     }
 });
 
@@ -313,20 +300,13 @@ const isPaymentInfoRequired = computed(() => {
 const showPaymentMethodSelector = computed(() => {
     // Afficher le sélecteur si:
     // 1. Le paiement est requis
-    // 2. Aucune méthode de paiement n'est définie
-    return isPaymentInfoRequired.value && !projectState.payment_method;
+    return isPaymentInfoRequired.value;
 });
 
-const isPaymentInfoMissing = computed(() => {
-    if (!isPaymentInfoRequired.value) return false;
-
-    // Une méthode de paiement est requise
-    return !projectState.payment_method;
-});
 
 const paymentMethodInfo = computed(() => {
-    if (projectState.payment_method) {
-        return paymentMethodOptions.find(option => option.value === projectState.payment_method);
+    if (galleryStore.project?.payment_method) {
+        return paymentMethodOptions.find(option => option.value === galleryStore.project?.payment_method);
     }
     return null;
 });
@@ -376,7 +356,9 @@ const handleSubmit = async (_event: FormSubmitEvent<GalleryFormData>) => {
                 ...state,
                 status: finalStatus,
             },
-            project: projectState,
+            project: {
+                payment_method: galleryStore.project?.payment_method || null,
+            },
             selectedFiles: hasSelectedFiles.value ? selectedFiles.value : undefined
         });
     } finally {

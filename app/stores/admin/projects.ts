@@ -171,10 +171,8 @@ export const useProjectsStore = defineStore("projects", () => {
         status: projectData.status,
         initial_price: projectData.initial_price || null,
         require_password: projectData.require_password,
-        remaining_amount: projectData.initial_price || null,
-        bank_beneficiary: null,
-        bank_bic: null,
-        bank_iban: null,
+        completed_at: null,
+        remaining_amount: null,
         payment_method: null,
       });
       projects.value = [newProject, ...projects.value];

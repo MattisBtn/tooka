@@ -35,9 +35,6 @@ export const proposalFormSchema = z.object({
 // Schema de validation pour le projet avec paiement
 export const projectPaymentSchema = z.object({
   payment_method: z.enum(["stripe", "bank_transfer"]).nullable(),
-  bank_iban: z.string().nullable(),
-  bank_bic: z.string().nullable(),
-  bank_beneficiary: z.string().nullable(),
 });
 
 // Types pour l'accès client

@@ -188,6 +188,7 @@ export const galleryService = {
     const finalGalleryData = {
       ...galleryData,
       status: finalStatus,
+      completed_at: null,
     };
 
     // Create gallery
@@ -204,7 +205,6 @@ export const galleryService = {
     updates: Partial<Gallery>,
     shouldValidate?: boolean
   ): Promise<{ gallery: Gallery; projectUpdated: boolean }> {
-    const existingGallery = await this.getGalleryById(id);
     let projectUpdated = false;
 
     // Handle validation status change
@@ -214,25 +214,10 @@ export const galleryService = {
     if (shouldValidate !== undefined) {
       if (shouldValidate) {
         // Check if direct delivery mode is enabled
-        if (
-          existingGallery.requires_client_validation === false ||
-          finalUpdates.requires_client_validation === false
-        ) {
+        if (finalUpdates.requires_client_validation === false) {
           // Direct delivery mode: set to completed immediately
           finalUpdates.status = "completed";
-
-          // For direct delivery with remaining amount, set remaining_amount to 0
-          const pricing = await this.calculateGalleryPricing(
-            existingGallery.project_id
-          );
-          const { projectService } = await import("~/services/projectService");
-
-          if (pricing.remainingAmount > 0) {
-            await projectService.updateProject(existingGallery.project_id, {
-              remaining_amount: 0,
-            });
-            projectUpdated = true;
-          }
+          projectUpdated = true;
         } else {
           // Standard validation flow: send to client
           finalUpdates.status = "awaiting_client";
@@ -242,7 +227,6 @@ export const galleryService = {
         finalUpdates.status = "draft";
       }
     }
-    // If shouldValidate is not provided, keep current status (normal form save)
 
     // Update gallery
     const gallery = await galleryRepository.update(id, finalUpdates);

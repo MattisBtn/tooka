@@ -63,9 +63,6 @@ interface Props {
     project?: {
         id: string;
         payment_method: 'stripe' | 'bank_transfer' | null;
-        bank_iban: string | null;
-        bank_bic: string | null;
-        bank_beneficiary: string | null;
         price?: number;
     };
     projectId: string;
@@ -104,9 +101,6 @@ const proposalState = reactive<ProposalFormData>({
 
 const projectState = reactive<ProjectPaymentData>({
     payment_method: props.project?.payment_method || null,
-    bank_iban: props.project?.bank_iban || null,
-    bank_bic: props.project?.bank_bic || null,
-    bank_beneficiary: props.project?.bank_beneficiary || null,
 });
 
 // File upload state
@@ -136,9 +130,9 @@ const depositPercentage = computed(() => {
 });
 
 const quickDepositOptions = computed(() => [
-    { label: '20%', value: Math.round(proposalState.price * 0.2) },
-    { label: '30%', value: Math.round(proposalState.price * 0.3) },
-    { label: '50%', value: Math.round(proposalState.price * 0.5) },
+    { label: '20%', value: 20 },
+    { label: '30%', value: 30 },
+    { label: '50%', value: 50 },
 ]);
 
 // Helper function to set deposit from percentage

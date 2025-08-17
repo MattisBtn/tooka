@@ -314,11 +314,40 @@ export type Database = {
           },
         ]
       }
+      project_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          project_id: string
+          reference_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          project_id: string
+          reference_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          reference_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
-          bank_beneficiary: string | null
-          bank_bic: string | null
-          bank_iban: string | null
           client_id: string
           completed_at: string | null
           created_at: string
@@ -336,9 +365,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          bank_beneficiary?: string | null
-          bank_bic?: string | null
-          bank_iban?: string | null
           client_id: string
           completed_at?: string | null
           created_at?: string
@@ -356,9 +382,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          bank_beneficiary?: string | null
-          bank_bic?: string | null
-          bank_iban?: string | null
           client_id?: string
           completed_at?: string | null
           created_at?: string
@@ -736,6 +759,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_project_remaining_amount: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      calculate_project_total_price: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
       delete_storage_object: {
         Args: { bucket: string; object: string }
         Returns: Record<string, unknown>

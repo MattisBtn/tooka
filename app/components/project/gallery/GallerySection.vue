@@ -54,7 +54,7 @@
                     </div>
 
                     <!-- Pricing Information -->
-                    <div v-if="!isFree && galleryStore.pricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div v-if="shouldShowPricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div class="space-y-1">
                             <span
                                 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix
@@ -79,6 +79,25 @@
                             <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
                                 {{ galleryStore.formattedRemainingAmount }}
                             </p>
+                        </div>
+                    </div>
+
+                    <!-- Completion Message for completed galleries -->
+                    <div v-if="galleryStore.gallery?.status === 'completed'" class="grid grid-cols-1 gap-4">
+                        <div
+                            class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                            <div class="flex items-center gap-3">
+                                <UIcon name="i-lucide-check-circle"
+                                    class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                <div>
+                                    <p class="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                                        Galerie livrée et payée
+                                    </p>
+                                    <p class="text-xs text-emerald-700 dark:text-emerald-300">
+                                        Le client a validé et payé la galerie
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -114,9 +133,8 @@
                                 des
                                 images</span>
                         </div>
-                        <ProjectGalleryImageGrid :images="Array.from(galleryStore.gallery?.images || [])"
-                            :can-delete="false" :is-editing="false" :max-preview="6"
-                            @delete-image="handleDeleteImage" />
+                        <ProjectGalleryImageGrid :images="galleryStore.gallery?.images || []" :can-delete="false"
+                            :max-preview="6" @delete-image="handleDeleteImage" />
                     </div>
 
                     <!-- Contextual Actions -->
@@ -289,6 +307,13 @@ const isFree = computed(() => {
     return basePrice === 0;
 })
 
+// Check if pricing should be displayed
+const shouldShowPricing = computed(() => {
+    return !isFree.value &&
+        galleryStore.pricing &&
+        galleryStore.gallery?.status !== 'completed';
+})
+
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {
     if (!galleryStore.pricing) return undefined;
@@ -300,16 +325,17 @@ const proposalPaymentInfo = computed(() => {
     };
 });
 
-// Initialize stores when project is loaded
-watch(() => projectSetupStore.project, async (project) => {
-    if (project?.id) {
+// Load gallery when component is mounted
+onMounted(async () => {
+    const projectId = projectSetupStore.project?.id
+    if (projectId && !galleryStore.exists) {
         try {
-            await galleryStore.loadGallery(project.id)
+            await galleryStore.loadGallery(projectId)
         } catch (err) {
-            console.error('Error loading project data:', err)
+            console.error('Error loading gallery:', err)
         }
     }
-}, { immediate: true })
+})
 
 // Handle gallery saved
 const handleGallerySaved = async (data: {
@@ -465,10 +491,5 @@ const handleUploadCompleted = async () => {
     // Reset upload state and close form
     galleryStore.resetUploadState()
     galleryStore.closeForm()
-
-    // Reload gallery data to get the updated images
-    if (projectSetupStore.project?.id) {
-        await galleryStore.loadGallery(projectSetupStore.project.id)
-    }
 }
 </script>

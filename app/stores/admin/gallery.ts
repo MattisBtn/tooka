@@ -3,6 +3,7 @@ import type { Tables } from "~/types/database.types";
 import type {
   Gallery,
   GalleryFormData,
+  GalleryImage,
   GalleryUploadResult,
   GalleryWithDetails,
   ProjectPaymentData,
@@ -57,39 +58,28 @@ export const useGalleryStore = defineStore("gallery", () => {
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
 
-  // Pricing computed properties
+  // Pricing computed properties - use Supabase calculated values
   const pricing = computed(() => {
-    if (proposal.value) {
-      const basePrice = proposal.value.price || 0;
-      const depositPaid =
-        proposal.value.deposit_required && proposal.value.deposit_amount
-          ? proposal.value.deposit_amount
-          : 0;
-      const remainingAmount = basePrice - depositPaid;
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    } else if (project.value) {
-      const basePrice = project.value.initial_price ?? 0;
-      const remainingAmountRaw = project.value.remaining_amount ?? basePrice;
-      const remainingAmount = Math.max(0, remainingAmountRaw);
-      const depositPaid = Math.max(0, basePrice - remainingAmount);
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    } else {
+    if (!project.value) {
       return {
         basePrice: 0,
         depositPaid: 0,
         remainingAmount: 0,
       };
     }
+
+    // Always use the project's remaining_amount calculated by Supabase
+    const basePrice = project.value.initial_price ?? 0;
+    const remainingAmount = project.value.remaining_amount ?? basePrice;
+
+    // Calculate deposit paid based on the actual remaining amount
+    const depositPaid = Math.max(0, basePrice - remainingAmount);
+
+    return {
+      basePrice,
+      depositPaid,
+      remainingAmount: Math.max(0, remainingAmount),
+    };
   });
 
   const formattedBasePrice = computed(() => {
@@ -244,8 +234,9 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
-      const project = await projectService.getProjectById(projectId);
-      const isFree = !project?.initial_price || project.initial_price === 0;
+      // Use local state for project info
+      const isFree =
+        !project.value?.initial_price || project.value.initial_price === 0;
 
       const data = {
         project_id: projectId,
@@ -253,6 +244,7 @@ export const useGalleryStore = defineStore("gallery", () => {
         requires_client_validation: galleryData.requires_client_validation,
         status: galleryData.status,
         revision_last_comment: null,
+        completed_at: null,
       };
 
       const result = await galleryService.createGallery(
@@ -260,18 +252,32 @@ export const useGalleryStore = defineStore("gallery", () => {
         galleryData.status === "awaiting_client"
       );
 
-      // Update project if needed (only for non-free projects)
-      if (!isFree && projectData) {
-        await projectService.updateProject(projectId, projectData);
+      // Update project payment_method if needed (only for non-free projects)
+      if (!isFree && projectData?.payment_method && project.value) {
+        await projectService.updateProject(projectId, {
+          payment_method: projectData.payment_method,
+        });
+
+        // Update local state
+        project.value.payment_method = projectData.payment_method;
       }
 
       // Upload images if provided with progress tracking
+      let uploadedImages: GalleryImage[] = [];
       if (files && files.length > 0) {
-        await uploadImagesWithProgress(result.gallery.id, files);
+        const uploadResult = await uploadImagesWithProgress(
+          result.gallery.id,
+          files
+        );
+        uploadedImages = uploadResult.uploadedImages;
       }
 
-      // Reload data
-      await loadGallery(projectId);
+      // Update gallery state directly with images instead of reloading
+      gallery.value = {
+        ...result.gallery,
+        images: uploadedImages,
+        imageCount: uploadedImages.length,
+      };
 
       // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
@@ -306,10 +312,9 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const { projectService } = await import("~/services/projectService");
 
-      const project = await projectService.getProjectById(
-        gallery.value!.project_id
-      );
-      const isFree = !project?.initial_price || project.initial_price === 0;
+      // Use local state for project info
+      const isFree =
+        !project.value?.initial_price || project.value.initial_price === 0;
 
       const data = {
         selection_id: galleryData.selection_id || null,
@@ -324,22 +329,36 @@ export const useGalleryStore = defineStore("gallery", () => {
         galleryData.status === "awaiting_client"
       );
 
-      // Update project if needed (only for non-free projects)
-      if (!isFree && projectData && gallery.value?.project_id) {
-        await projectService.updateProject(
-          gallery.value.project_id,
-          projectData
-        );
+      // Update project payment_method if needed (only for non-free projects)
+      if (
+        !isFree &&
+        projectData?.payment_method &&
+        gallery.value?.project_id &&
+        project.value
+      ) {
+        await projectService.updateProject(gallery.value.project_id, {
+          payment_method: projectData.payment_method,
+        });
+
+        // Update local state
+        project.value.payment_method = projectData.payment_method;
       }
 
       // Upload images if provided with progress tracking
+      let uploadedImages: GalleryImage[] = [];
       if (files && files.length > 0) {
-        await uploadImagesWithProgress(galleryId, files);
+        const uploadResult = await uploadImagesWithProgress(galleryId, files);
+        uploadedImages = uploadResult.uploadedImages;
       }
 
-      // Reload data
-      if (gallery.value?.project_id) {
-        await loadGallery(gallery.value.project_id);
+      // Update gallery state directly with new images
+      if (gallery.value) {
+        const existingImages = gallery.value.images || [];
+        gallery.value = {
+          ...result.gallery,
+          images: [...existingImages, ...uploadedImages],
+          imageCount: existingImages.length + uploadedImages.length,
+        };
       }
 
       // Update project data optimistically in projectSetup store
@@ -384,13 +403,11 @@ export const useGalleryStore = defineStore("gallery", () => {
           // No proposal exists, clean up payment_method from project
           await projectService.updateProject(projectId, {
             payment_method: null,
-            bank_iban: null,
-            bank_bic: null,
-            bank_beneficiary: null,
           });
         }
       }
 
+      // Clear local state
       gallery.value = null;
       project.value = null;
       proposal.value = null;
@@ -418,9 +435,16 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       await galleryService.deleteImage(imageId);
 
-      // Reload data
-      if (gallery.value?.project_id) {
-        await loadGallery(gallery.value.project_id);
+      // Update gallery directly instead of reloading
+      if (gallery.value) {
+        const updatedImages = (gallery.value.images || []).filter(
+          (img) => img.id !== imageId
+        );
+        gallery.value = {
+          ...gallery.value,
+          images: updatedImages,
+          imageCount: updatedImages.length,
+        };
       }
     } catch (err) {
       error.value =
@@ -437,24 +461,15 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
-      const { projectService } = await import("~/services/projectService");
 
       const updatedGallery = await galleryService.confirmPayment(galleryId);
-      gallery.value = updatedGallery;
 
-      // Update project remaining_amount to 0 since this is the final payment
-      // Only for non-free projects
-      if (gallery.value?.project_id) {
-        const project = await projectService.getProjectById(
-          gallery.value.project_id
-        );
-        const isFree = !project?.initial_price || project.initial_price === 0;
-
-        if (!isFree) {
-          await projectService.updateProject(gallery.value.project_id, {
-            remaining_amount: 0,
-          });
-        }
+      // Update local state
+      if (gallery.value) {
+        gallery.value = {
+          ...gallery.value,
+          ...updatedGallery,
+        };
       }
 
       // Update project data optimistically in projectSetup store
@@ -485,7 +500,14 @@ export const useGalleryStore = defineStore("gallery", () => {
         {},
         true // shouldValidate = true to trigger "send to client" logic
       );
-      gallery.value = result.gallery;
+
+      // Update local state
+      if (gallery.value) {
+        gallery.value = {
+          ...gallery.value,
+          ...result.gallery,
+        };
+      }
 
       // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(

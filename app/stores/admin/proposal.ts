@@ -86,6 +86,7 @@ export const useProposalStore = defineStore("proposal", () => {
         quote_url: proposalData.quote_url || null,
         status: "draft" as const,
         revision_last_comment: null,
+        completed_at: null,
       };
 
       const result = await proposalService.createProposal(data);
@@ -103,18 +104,11 @@ export const useProposalStore = defineStore("proposal", () => {
         );
         await projectService.updateProject(projectId, {
           payment_method: projectData.payment_method,
-          bank_iban: projectData.bank_iban,
-          bank_bic: projectData.bank_bic,
-          bank_beneficiary: projectData.bank_beneficiary,
         });
 
         // Update local project state for reactivity
         if (proposal.value?.project) {
           proposal.value.project.payment_method = projectData.payment_method;
-          proposal.value.project.bank_iban = projectData.bank_iban;
-          proposal.value.project.bank_bic = projectData.bank_bic;
-          proposal.value.project.bank_beneficiary =
-            projectData.bank_beneficiary;
         }
       }
 
@@ -137,9 +131,6 @@ export const useProposalStore = defineStore("proposal", () => {
       ) {
         projectSetupStore.updateProject({
           payment_method: projectData.payment_method,
-          bank_iban: projectData.bank_iban,
-          bank_bic: projectData.bank_bic,
-          bank_beneficiary: projectData.bank_beneficiary,
         });
       }
 
@@ -200,18 +191,11 @@ export const useProposalStore = defineStore("proposal", () => {
         );
         await projectService.updateProject(proposal.value!.project_id, {
           payment_method: projectData.payment_method,
-          bank_iban: projectData.bank_iban,
-          bank_bic: projectData.bank_bic,
-          bank_beneficiary: projectData.bank_beneficiary,
         });
 
         // Update local project state for reactivity
         if (proposal.value?.project) {
           proposal.value.project.payment_method = projectData.payment_method;
-          proposal.value.project.bank_iban = projectData.bank_iban;
-          proposal.value.project.bank_bic = projectData.bank_bic;
-          proposal.value.project.bank_beneficiary =
-            projectData.bank_beneficiary;
         }
       }
 
@@ -234,9 +218,6 @@ export const useProposalStore = defineStore("proposal", () => {
       ) {
         projectSetupStore.updateProject({
           payment_method: projectData.payment_method,
-          bank_iban: projectData.bank_iban,
-          bank_bic: projectData.bank_bic,
-          bank_beneficiary: projectData.bank_beneficiary,
         });
       }
 
@@ -274,9 +255,6 @@ export const useProposalStore = defineStore("proposal", () => {
           // No gallery exists, clean up payment_method from project
           await projectService.updateProject(projectId, {
             payment_method: null,
-            bank_iban: null,
-            bank_bic: null,
-            bank_beneficiary: null,
           });
         }
       }
@@ -309,31 +287,6 @@ export const useProposalStore = defineStore("proposal", () => {
         proposal.value.id
       );
       proposal.value = updatedProposal;
-
-      // Update project remaining_amount by subtracting deposit amount
-      if (proposal.value.deposit_amount && proposal.value.deposit_amount > 0) {
-        const projectService = await import("~/services/projectService").then(
-          (m) => m.projectService
-        );
-        const project = await projectService.getProjectById(
-          proposal.value.project_id
-        );
-
-        if (
-          project &&
-          project.remaining_amount &&
-          project.remaining_amount > 0
-        ) {
-          const newRemainingAmount = Math.max(
-            0,
-            project.remaining_amount - proposal.value.deposit_amount
-          );
-
-          await projectService.updateProject(proposal.value.project_id, {
-            remaining_amount: newRemainingAmount,
-          });
-        }
-      }
 
       // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(

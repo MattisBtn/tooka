@@ -242,9 +242,6 @@ export const projectService = {
       title: string;
       status: "draft" | "in_progress" | "completed";
       payment_method: "stripe" | "bank_transfer" | null;
-      bank_iban: string | null;
-      bank_bic: string | null;
-      bank_beneficiary: string | null;
       initial_price: number | null;
       remaining_amount: number | null;
     } | null;
@@ -265,9 +262,6 @@ export const projectService = {
         title,
         status,
         payment_method,
-        bank_iban,
-        bank_bic,
-        bank_beneficiary,
         initial_price,
         remaining_amount,
         proposals(
@@ -292,7 +286,9 @@ export const projectService = {
     }
 
     // Extract proposal from the nested data
-    const proposal = data.proposals?.[0] || null;
+    const proposal = Array.isArray(data.proposals)
+      ? data.proposals[0] || null
+      : data.proposals || null;
 
     return {
       project: data,
