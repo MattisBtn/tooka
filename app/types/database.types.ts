@@ -73,6 +73,7 @@ export type Database = {
       }
       galleries: {
         Row: {
+          completed_at: string | null
           created_at: string
           id: string
           project_id: string
@@ -83,6 +84,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           id?: string
           project_id: string
@@ -93,6 +95,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           id?: string
           project_id?: string
@@ -269,6 +272,7 @@ export type Database = {
       }
       moodboards: {
         Row: {
+          completed_at: string | null
           created_at: string
           description: string | null
           id: string
@@ -279,6 +283,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -289,6 +294,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -302,7 +308,7 @@ export type Database = {
           {
             foreignKeyName: "moodboards_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -314,6 +320,7 @@ export type Database = {
           bank_bic: string | null
           bank_iban: string | null
           client_id: string
+          completed_at: string | null
           created_at: string
           description: string | null
           id: string
@@ -333,6 +340,7 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           client_id: string
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -352,6 +360,7 @@ export type Database = {
           bank_bic?: string | null
           bank_iban?: string | null
           client_id?: string
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -378,6 +387,7 @@ export type Database = {
       }
       proposals: {
         Row: {
+          completed_at: string | null
           content_html: string
           content_json: Json
           contract_url: string | null
@@ -393,6 +403,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           content_html: string
           content_json: Json
           contract_url?: string | null
@@ -408,6 +419,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           content_html?: string
           content_json?: Json
           contract_url?: string | null
@@ -426,7 +438,7 @@ export type Database = {
           {
             foreignKeyName: "proposals_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -519,6 +531,7 @@ export type Database = {
       }
       selections: {
         Row: {
+          completed_at: string | null
           created_at: string
           extra_media_price: number | null
           id: string
@@ -529,6 +542,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           extra_media_price?: number | null
           id?: string
@@ -539,6 +553,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           extra_media_price?: number | null
           id?: string
@@ -721,7 +736,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_storage_object: {
+        Args: { bucket: string; object: string }
+        Returns: Record<string, unknown>
+      }
     }
     Enums: {
       client_type: "individual" | "company"
