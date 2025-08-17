@@ -104,22 +104,12 @@
                     </span>
                 </div>
             </div>
-
-            <!-- Tips for inspiration images -->
-            <UAlert color="success" variant="soft" icon="i-lucide-lightbulb" title="Conseils pour vos images">
-                <template #description>
-                    <ul class="text-sm space-y-1 mt-2">
-                        <li>• Choisissez des images qui représentent l'ambiance souhaitée</li>
-                        <li>• Variez les cadrages : plans larges, portraits, détails</li>
-                        <li>• Incluez des références de couleurs et de lumière</li>
-                        <li>• Ajoutez des légendes pour expliquer vos choix</li>
-                    </ul>
-                </template>
-            </UAlert>
         </div>
 
+        <USeparator />
+
         <!-- Form Actions -->
-        <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
             <UButton label="Annuler" color="neutral" variant="ghost" :disabled="isFormDisabled"
                 @click="emit('cancel')" />
 

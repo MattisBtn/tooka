@@ -11,14 +11,6 @@
             </div>
         </div>
 
-        <!-- Warning for completed selections -->
-        <UAlert v-if="!canEditSelection" color="error" variant="soft" icon="i-lucide-lock" title="Sélection verrouillée"
-            class="mb-6">
-            <template #description>
-                Cette sélection a été validée par le client et ne peut plus être modifiée.
-            </template>
-        </UAlert>
-
         <!-- Selection Configuration -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
@@ -94,14 +86,6 @@
                     </UFormField>
                 </div>
             </div>
-
-            <!-- Selection Purpose Info -->
-            <UAlert color="info" variant="soft" icon="i-lucide-mouse-pointer-click" title="Objectif de la sélection">
-                <template #description>
-                    La sélection permet au client de choisir ses médias préférés parmi ceux que vous proposez.
-                    Définissez un nombre maximum et un prix pour les médias supplémentaires si souhaité.
-                </template>
-            </UAlert>
         </div>
 
         <USeparator />
@@ -207,56 +191,20 @@
                     </span>
                 </div>
             </div>
-
-            <!-- Tips for selection images -->
-            <UAlert color="success" variant="soft" icon="i-lucide-lightbulb" title="Conseils pour vos images">
-                <template #description>
-                    <ul class="text-sm space-y-1 mt-2">
-                        <li>• Proposez plus d'images que le nombre maximum sélectionnable</li>
-                        <li>• Variez les cadrages et les moments pour donner le choix au client</li>
-                        <li>• <strong>Sélection :</strong> Seul le client peut sélectionner ses images préférées</li>
-                        <li>• <strong>Votre rôle :</strong> Fournir un choix varié et de qualité pour faciliter la
-                            sélection</li>
-                        <li>• <strong>Formats RAW :</strong> Les fichiers RAW (NEF, DNG, CR2, ARW) seront
-                            automatiquement convertis en JPEG</li>
-                    </ul>
-                </template>
-            </UAlert>
         </div>
 
         <USeparator />
 
         <!-- Action Buttons -->
-        <div class="flex items-center justify-between pt-6 border-t border-neutral-200 dark:border-neutral-700">
-            <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                <UIcon name="i-lucide-info" class="w-4 h-4" />
-                <span v-if="isEditMode && props.selection?.status === 'revision_requested'">
-                    Le client a demandé des révisions - vous pouvez modifier la sélection et la renvoyer ou la repasser
-                    en
-                    brouillon
-                </span>
-                <span v-else-if="isEditMode && props.selection?.status === 'awaiting_client'">
-                    Sélection envoyée au client - vous pouvez continuer à la modifier ou la repasser en brouillon
-                </span>
-                <span v-else-if="isEditMode && props.selection?.status === 'draft'">
-                    Sélection en brouillon - vous pouvez la modifier librement et l'envoyer au client quand elle sera
-                    prête
-                </span>
-                <span v-else>
-                    La sélection reste modifiable jusqu'à validation par le client
-                </span>
-            </div>
+        <div class="flex items-center justify-between">
+            <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting || uploading"
+                @click="$emit('cancel')" />
 
-            <div class="flex items-center gap-3">
-                <UButton color="neutral" variant="ghost" label="Annuler" :disabled="isSubmitting || uploading"
-                    @click="$emit('cancel')" />
-
-                <!-- Bouton de sauvegarde simplifié -->
-                <template v-if="canEditSelection">
-                    <UButton type="submit" color="primary" :loading="isSubmitting || uploading"
-                        :disabled="isSubmitting || uploading" label="Sauvegarder" />
-                </template>
-            </div>
+            <!-- Bouton de sauvegarde simplifié -->
+            <template v-if="canEditSelection">
+                <UButton type="submit" color="primary" :loading="isSubmitting || uploading"
+                    :disabled="isSubmitting || uploading" label="Sauvegarder" />
+            </template>
         </div>
     </UForm>
 </template>

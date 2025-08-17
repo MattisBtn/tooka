@@ -237,43 +237,30 @@
     </div>
 
     <!-- Gallery Form Modal -->
-    <UModal v-model:open="galleryStore.showForm" :fullscreen="true" :transition="true"
-        :prevent-close="galleryStore.uploadProgress.isUploading">
-        <template #content>
-            <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                <!-- Form Content -->
-                <div class="flex-1 flex flex-col">
-                    <!-- Modal Header -->
-                    <div class="p-6 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <UIcon name="i-solar-gallery-bold" class="w-6 h-6 text-violet-600" />
-                                <div>
-                                    <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                                        {{ galleryStore.exists ? 'Modifier la galerie' : 'Créer une galerie' }}
-                                    </h2>
-                                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Configurez les détails de votre galerie
-                                    </p>
-                                </div>
-                            </div>
-                            <UButton v-if="!galleryStore.uploadProgress.isUploading" icon="i-lucide-x" size="sm"
-                                variant="ghost" color="neutral" @click="galleryStore.closeForm()" />
-                        </div>
-                    </div>
-
-                    <!-- Form Content -->
-                    <div class="flex-1 p-6 overflow-y-auto">
-                        <div class="max-w-4xl mx-auto">
-                            <ProjectGalleryForm :gallery="galleryStore.gallery || undefined"
-                                :project-id="projectSetupStore.project?.id || ''"
-                                :existing-images="galleryStore.gallery?.images ? Array.from(galleryStore.gallery.images) : undefined"
-                                :proposal-payment-info="proposalPaymentInfo" @gallery-saved="handleGallerySaved"
-                                @cancel="galleryStore.closeForm()" @upload-completed="handleUploadCompleted" />
-                        </div>
-                    </div>
+    <UModal v-model:open="galleryStore.showForm" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }"
+        :ui="{ content: 'w-[calc(100vw-2rem)] max-w-4xl' }" :prevent-close="galleryStore.uploadProgress.isUploading">
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <UIcon name="i-solar-gallery-bold" class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-highlighted">{{ modalTitle }}</h3>
+                    <p class="text-sm text-muted">
+                        {{ galleryStore.exists ?
+                            'Modifiez les détails de votre galerie' :
+                            'Créez une galerie pour livrer les images finales' }}
+                    </p>
                 </div>
             </div>
+        </template>
+
+        <template #body>
+            <ProjectGalleryForm :gallery="galleryStore.gallery || undefined"
+                :project-id="projectSetupStore.project?.id || ''"
+                :existing-images="galleryStore.gallery?.images ? Array.from(galleryStore.gallery.images) : undefined"
+                :proposal-payment-info="proposalPaymentInfo" @gallery-saved="handleGallerySaved"
+                @cancel="galleryStore.closeForm()" @upload-completed="handleUploadCompleted" />
         </template>
     </UModal>
 
@@ -290,6 +277,11 @@ const galleryStore = useGalleryStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Modal title
+const modalTitle = computed(() =>
+    galleryStore.exists ? 'Modifier la galerie' : 'Créer une galerie'
+)
 
 // Check if project is free
 const isFree = computed(() => {

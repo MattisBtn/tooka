@@ -43,8 +43,9 @@
             @update:existing-contract-url="proposalState.contract_url = $event"
             @update:existing-quote-url="proposalState.quote_url = $event" />
 
+        <USeparator />
         <!-- Form Actions -->
-        <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
             <UButton label="Annuler" color="neutral" variant="ghost" @click="emit('cancel')" />
 
             <UButton type="submit" label="Sauvegarder" color="primary" :loading="isSubmitting" />

@@ -225,43 +225,30 @@
     </div>
 
     <!-- Moodboard Form Modal -->
-    <UModal v-model:open="moodboardStore.showForm" :fullscreen="true" :transition="true"
-        :prevent-close="moodboardStore.uploadProgress.isUploading">
-        <template #content>
-            <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                <!-- Form Content -->
-                <div class="flex-1 flex flex-col">
-                    <!-- Modal Header -->
-                    <div class="p-6 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <UIcon name="i-lucide-image" class="w-6 h-6 text-pink-600" />
-                                <div>
-                                    <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                                        {{ moodboardStore.exists ? 'Modifier le moodboard' : 'Créer un moodboard' }}
-                                    </h2>
-                                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Configurez les détails de votre moodboard
-                                    </p>
-                                </div>
-                            </div>
-                            <UButton v-if="!moodboardStore.uploadProgress.isUploading" icon="i-lucide-x" size="sm"
-                                variant="ghost" color="neutral" @click="moodboardStore.closeForm()" />
-                        </div>
-                    </div>
-
-                    <!-- Form Content -->
-                    <div class="flex-1 p-6 overflow-y-auto">
-                        <div class="max-w-4xl mx-auto">
-                            <ProjectMoodboardForm :moodboard="moodboardStore.moodboard || undefined"
-                                :project-id="projectSetupStore.project?.id || ''"
-                                :existing-images="moodboardStore.moodboard?.images ? Array.from(moodboardStore.moodboard.images) : undefined"
-                                @moodboard-saved="handleMoodboardSaved" @cancel="moodboardStore.closeForm()"
-                                @upload-completed="handleUploadCompleted" />
-                        </div>
-                    </div>
+    <UModal v-model:open="moodboardStore.showForm" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }"
+        :ui="{ content: 'w-[calc(100vw-2rem)] max-w-4xl' }" :prevent-close="moodboardStore.uploadProgress.isUploading">
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <UIcon name="i-lucide-image" class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-highlighted">{{ modalTitle }}</h3>
+                    <p class="text-sm text-muted">
+                        {{ moodboardStore.exists ?
+                            'Modifiez les détails de votre moodboard' :
+                            'Créez un moodboard pour partager votre vision artistique' }}
+                    </p>
                 </div>
             </div>
+        </template>
+
+        <template #body>
+            <ProjectMoodboardForm :moodboard="moodboardStore.moodboard || undefined"
+                :project-id="projectSetupStore.project?.id || ''"
+                :existing-images="moodboardStore.moodboard?.images ? Array.from(moodboardStore.moodboard.images) : undefined"
+                @moodboard-saved="handleMoodboardSaved" @cancel="moodboardStore.closeForm()"
+                @upload-completed="handleUploadCompleted" />
         </template>
     </UModal>
 </template>
@@ -276,6 +263,11 @@ const moodboardStore = useMoodboardStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Modal title
+const modalTitle = computed(() =>
+    moodboardStore.exists ? 'Modifier le moodboard' : 'Créer un moodboard'
+)
 
 // Initialize moodboard store when project is loaded
 watch(() => projectSetupStore.project, async (project) => {

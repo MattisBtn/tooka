@@ -223,42 +223,30 @@
     </div>
 
     <!-- Proposal Form Modal -->
-    <UModal v-model:open="proposalStore.showForm" :fullscreen="true" :transition="true">
-        <template #content>
-            <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                <!-- Form Content -->
-                <div class="flex-1 flex flex-col">
-                    <!-- Modal Header -->
-                    <div class="p-6 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <UIcon name="i-lucide-file-check" class="w-6 h-6 text-emerald-600" />
-                                <div>
-                                    <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                                        {{ proposalStore.exists ? 'Modifier la proposition' : 'Créer une proposition' }}
-                                    </h2>
-                                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Configurez les détails de votre proposition
-                                    </p>
-                                </div>
-                            </div>
-                            <UButton icon="i-lucide-x" size="sm" variant="ghost" color="neutral"
-                                @click="proposalStore.closeForm()" />
-                        </div>
-                    </div>
-
-                    <!-- Form Content -->
-                    <div class="flex-1 p-6 overflow-y-auto">
-                        <div class="max-w-4xl mx-auto">
-                            <ProjectProposalForm :proposal="proposalStore.proposal || undefined"
-                                :project="proposalStore.proposal?.project || projectSetupStore.project || undefined"
-                                :project-id="proposalStore.proposal?.project?.id || projectSetupStore.project?.id || ''"
-                                :project-initial-price="proposalStore.proposal?.project?.initial_price || projectSetupStore.project?.initial_price || 0"
-                                @proposal-saved="handleProposalSaved" @cancel="proposalStore.closeForm()" />
-                        </div>
-                    </div>
+    <UModal v-model:open="proposalStore.showForm" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }"
+        :ui="{ content: 'w-[calc(100vw-2rem)] max-w-4xl' }">
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <UIcon name="i-lucide-file-check" class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-highlighted">{{ modalTitle }}</h3>
+                    <p class="text-sm text-muted">
+                        {{ proposalStore.exists ?
+                            'Modifiez les détails de votre proposition' :
+                            'Créez une proposition avec devis et contrat' }}
+                    </p>
                 </div>
             </div>
+        </template>
+
+        <template #body>
+            <ProjectProposalForm :proposal="proposalStore.proposal || undefined"
+                :project="proposalStore.proposal?.project || projectSetupStore.project || undefined"
+                :project-id="proposalStore.proposal?.project?.id || projectSetupStore.project?.id || ''"
+                :project-initial-price="proposalStore.proposal?.project?.initial_price || projectSetupStore.project?.initial_price || 0"
+                @proposal-saved="handleProposalSaved" @cancel="proposalStore.closeForm()" />
         </template>
     </UModal>
 </template>
@@ -294,6 +282,11 @@ const isFree = computed(() => {
         return projectSetupStore.isFree
     }
 })
+
+// Modal title
+const modalTitle = computed(() =>
+    proposalStore.exists ? 'Modifier la proposition' : 'Créer une proposition'
+)
 
 // Simple status helpers with explicit typing to avoid deep instantiation
 const statusLabel = computed((): string => {

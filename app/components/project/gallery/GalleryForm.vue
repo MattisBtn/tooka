@@ -188,8 +188,10 @@
             </div>
         </div>
 
+        <USeparator />
+
         <!-- Form Actions -->
-        <div class="flex items-center justify-end gap-3 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
             <UButton label="Annuler" color="neutral" variant="ghost" :disabled="isFormDisabled"
                 @click="emit('cancel')" />
 

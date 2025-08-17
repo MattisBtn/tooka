@@ -225,41 +225,29 @@
     </div>
 
     <!-- Selection Form Modal -->
-    <UModal v-model:open="selectionStore.showForm" :fullscreen="true" :transition="true">
-        <template #content>
-            <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                <!-- Form Content -->
-                <div class="flex-1 flex flex-col">
-                    <!-- Modal Header -->
-                    <div class="p-6 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <UIcon name="i-lucide-mouse-pointer-click" class="w-6 h-6 text-orange-600" />
-                                <div>
-                                    <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                                        {{ selectionStore.exists ? 'Modifier la sélection' : 'Créer une sélection' }}
-                                    </h2>
-                                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Configurez les détails de votre sélection
-                                    </p>
-                                </div>
-                            </div>
-                            <UButton icon="i-lucide-x" size="sm" variant="ghost" color="neutral"
-                                @click="selectionStore.closeForm()" />
-                        </div>
-                    </div>
-
-                    <!-- Form Content -->
-                    <div class="flex-1 p-6 overflow-y-auto">
-                        <div class="max-w-4xl mx-auto">
-                            <ProjectSelectionForm :selection="selectionStore.selection || undefined"
-                                :project-id="projectSetupStore.project?.id || ''"
-                                :existing-images="selectionStore.selection?.images ? Array.from(selectionStore.selection.images) : undefined"
-                                @selection-saved="handleSelectionSaved" @cancel="selectionStore.closeForm()" />
-                        </div>
-                    </div>
+    <UModal v-model:open="selectionStore.showForm" :title="modalTitle" :close="{ color: 'neutral', variant: 'ghost' }"
+        :ui="{ content: 'w-[calc(100vw-2rem)] max-w-4xl' }">
+        <template #header>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                    <UIcon name="i-lucide-mouse-pointer-click" class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-highlighted">{{ modalTitle }}</h3>
+                    <p class="text-sm text-muted">
+                        {{ selectionStore.exists ?
+                            'Modifiez les détails de votre sélection' :
+                            'Créez une sélection pour permettre au client de choisir ses images' }}
+                    </p>
                 </div>
             </div>
+        </template>
+
+        <template #body>
+            <ProjectSelectionForm :selection="selectionStore.selection || undefined"
+                :project-id="projectSetupStore.project?.id || ''"
+                :existing-images="selectionStore.selection?.images ? Array.from(selectionStore.selection.images) : undefined"
+                @selection-saved="handleSelectionSaved" @cancel="selectionStore.closeForm()" />
         </template>
     </UModal>
 </template>
@@ -274,6 +262,11 @@ const selectionStore = useSelectionStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Modal title
+const modalTitle = computed(() =>
+    selectionStore.exists ? 'Modifier la sélection' : 'Créer une sélection'
+)
 
 // Initialize selection store when project is loaded
 watch(() => projectSetupStore.project, async (project) => {
