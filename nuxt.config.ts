@@ -4,17 +4,17 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
-  modules: [
-    "@nuxt/ui",
-    "@nuxt/eslint",
-    "@nuxt/image",
-    "@vueuse/nuxt",
-    "@nuxtjs/supabase",
-    "@pinia/nuxt",
-    "@nuxtjs/device",
-  ],
+  modules: ["@nuxt/ui", "@nuxt/eslint", "@nuxt/image", "@vueuse/nuxt", "@nuxtjs/supabase", "@pinia/nuxt", "@nuxtjs/device", "@nuxtjs/seo"],
 
   css: ["~/assets/css/main.css"],
+
+  site: {
+    url: "https://app.tooka.io",
+    name: "Tooka",
+    description:
+      "La plateforme qui accompagne les créatifs du brief initial à la livraison finale. Gérez vos projets clients sans stress, avec style.",
+    defaultLocale: "fr",
+  },
 
   future: {
     compatibilityVersion: 4,

@@ -243,11 +243,6 @@ const handlePortalAccess = async () => {
         console.error('Failed to access portal:', error)
     }
 }
-
-useSeoMeta({
-    title: 'Mon Profil',
-    description: 'Gérez vos paramètres de profil et de compte'
-})
 </script>
 
 <template>

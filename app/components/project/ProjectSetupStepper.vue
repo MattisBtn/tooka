@@ -178,6 +178,23 @@ const getStepTooltip = (stepNumber: WorkflowStep) => {
     }
 
     if (status?.status === 'locked') {
+        // Vérifier si des steps ultérieurs sont déjà avancés
+        const hasAdvancedSteps = (() => {
+            if (!projectSetupStore.project) return false
+
+            for (let i = stepNumber + 1; i <= 4; i++) {
+                const futureStepStatus = getStepDisplayStatus(i as WorkflowStep)
+                if (futureStepStatus?.moduleExists || futureStepStatus?.moduleStatus === 'completed') {
+                    return true
+                }
+            }
+            return false
+        })()
+
+        if (hasAdvancedSteps) {
+            return `${stepName} : Ce module ne peut plus être modifié car le workflow a avancé.`
+        }
+
         return `${stepName} : Ce module sera accessible après avoir terminé les étapes précédentes.`
     }
 
