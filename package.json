@@ -29,6 +29,7 @@
     "maska": "^3.2.0",
     "nuxt": "^3.17.3",
     "nuxt-charts": "^0.2.3",
+    "nuxt-posthog": "^1.6.3",
     "pinia": "^3.0.3",
     "stripe": "^18.3.0",
     "supabase": "^2.22.12",

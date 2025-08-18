@@ -15,6 +15,7 @@ export default defineNuxtConfig({
     "@nuxtjs/seo",
     "nuxt-charts",
     "@nuxt/scripts",
+    "nuxt-posthog",
   ],
 
   css: ["~/assets/css/main.css"],
