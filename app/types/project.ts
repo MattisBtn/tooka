@@ -123,3 +123,20 @@ export interface StepInfo {
   moduleExists: boolean;
   moduleStatus?: string;
 }
+
+// Workflow status types for table display
+export type WorkflowStageStatus = "not_started" | "in_progress" | "completed";
+
+export interface WorkflowStage {
+  name: "Proposition" | "Moodboard" | "Sélection" | "Galerie";
+  key: "proposal" | "moodboard" | "selection" | "gallery";
+  status: WorkflowStageStatus;
+  icon: string;
+  color: string;
+}
+
+export interface ProjectWorkflowStatus {
+  currentStage: WorkflowStage | null;
+  stages: WorkflowStage[];
+  overallProgress: number; // Percentage 0-100
+}

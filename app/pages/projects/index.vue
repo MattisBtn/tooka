@@ -83,12 +83,15 @@
 <script lang="ts" setup>
 import type { TableColumn } from '@nuxt/ui'
 import { h, resolveComponent } from 'vue'
+import { projectService } from '~/services/projectService'
 import type { ProjectWithClient } from '~/types/project'
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 const UDropdown = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
+const UIcon = resolveComponent('UIcon')
+const UTooltip = resolveComponent('UTooltip')
 
 // Store
 const store = useProjectsStore()
@@ -174,7 +177,7 @@ const currentStatusFilterLabel = computed(() => {
 // Computed properties for bulk actions
 const selectedProjectsCount = computed(() => Object.keys(rowSelection.value).length)
 
-const selectedProjects = computed(() => {
+const selectedProjects = computed((): ProjectWithClient[] => {
   const selectedIds = Object.keys(rowSelection.value)
   return store.projects.filter(project => selectedIds.includes(project.id))
 })
@@ -220,6 +223,38 @@ const columns: TableColumn<ProjectWithClient>[] = [
       return client.type === 'individual'
         ? `${client.first_name || ''} ${client.last_name || ''}`.trim()
         : client.company_name || ''
+    }
+  },
+  {
+    accessorKey: 'workflow',
+    header: 'Workflow',
+    cell: ({ row }) => {
+      const project = row.original
+      const workflow = projectService.getProjectWorkflowStatus({
+        proposal: project.proposal,
+        moodboard: project.moodboard,
+        selection: project.selection,
+        gallery: project.gallery
+      })
+
+      return h('div', { class: 'flex items-center gap-1' },
+        workflow.stages.map((stage) =>
+          h(UTooltip, {
+            text: `${stage.name}: ${stage.status === 'completed' ? 'Terminé' : stage.status === 'in_progress' ? 'En cours' : 'Non démarré'}`,
+            key: stage.key
+          }, {
+            default: () => h(UIcon, {
+              name: stage.icon,
+              class: `w-4 h-4 ${stage.status === 'completed'
+                ? 'text-green-500'
+                : stage.status === 'in_progress'
+                  ? 'text-blue-500'
+                  : 'text-gray-300'
+                }`
+            })
+          })
+        )
+      )
     }
   },
   {

@@ -70,6 +70,22 @@ export const projectService = {
           last_name,
           company_name,
           billing_email
+        ),
+        proposal:proposals!project_id(
+          id,
+          status
+        ),
+        moodboard:moodboards!project_id(
+          id,
+          status
+        ),
+        selection:selections!project_id(
+          id,
+          status
+        ),
+        gallery:galleries!project_id(
+          id,
+          status
         )
       `
     );
@@ -145,8 +161,26 @@ export const projectService = {
       throw new Error(`Failed to fetch projects: ${error.message}`);
     }
 
+    // Process the data to extract single items from arrays (since relations return arrays)
+    const processedData =
+      data?.map((project) => ({
+        ...project,
+        proposal: Array.isArray(project.proposal)
+          ? project.proposal[0] || null
+          : project.proposal,
+        moodboard: Array.isArray(project.moodboard)
+          ? project.moodboard[0] || null
+          : project.moodboard,
+        selection: Array.isArray(project.selection)
+          ? project.selection[0] || null
+          : project.selection,
+        gallery: Array.isArray(project.gallery)
+          ? project.gallery[0] || null
+          : project.gallery,
+      })) || [];
+
     return {
-      data: data as ProjectWithClient[],
+      data: processedData as ProjectWithClient[],
       total: count || 0,
     };
   },
@@ -511,6 +545,99 @@ export const projectService = {
 
     if (error) {
       throw new Error(`Failed to update project status: ${error.message}`);
+    }
+  },
+
+  /**
+   * Calculate workflow status for a project
+   */
+  getProjectWorkflowStatus(project: {
+    proposal?: { status?: string } | null;
+    moodboard?: { status?: string } | null;
+    selection?: { status?: string } | null;
+    gallery?: { status?: string } | null;
+  }): import("~/types/project").ProjectWorkflowStatus {
+    const stages: import("~/types/project").WorkflowStage[] = [
+      {
+        name: "Proposition",
+        key: "proposal",
+        status: this.getStageStatus(project.proposal?.status),
+        icon: "i-lucide-file-text",
+        color: this.getStageColor(
+          this.getStageStatus(project.proposal?.status)
+        ),
+      },
+      {
+        name: "Moodboard",
+        key: "moodboard",
+        status: this.getStageStatus(project.moodboard?.status),
+        icon: "i-lucide-image",
+        color: this.getStageColor(
+          this.getStageStatus(project.moodboard?.status)
+        ),
+      },
+      {
+        name: "Sélection",
+        key: "selection",
+        status: this.getStageStatus(project.selection?.status),
+        icon: "i-lucide-check-square",
+        color: this.getStageColor(
+          this.getStageStatus(project.selection?.status)
+        ),
+      },
+      {
+        name: "Galerie",
+        key: "gallery",
+        status: this.getStageStatus(project.gallery?.status),
+        icon: "i-lucide-images",
+        color: this.getStageColor(this.getStageStatus(project.gallery?.status)),
+      },
+    ];
+
+    // Find current stage (first non-completed stage or last completed)
+    const currentStage =
+      stages.find((stage) => stage.status === "in_progress") ||
+      stages.filter((stage) => stage.status === "completed").pop() ||
+      stages[0] ||
+      null;
+
+    // Calculate overall progress
+    const completedStages = stages.filter(
+      (stage) => stage.status === "completed"
+    ).length;
+    const overallProgress = (completedStages / stages.length) * 100;
+
+    return {
+      currentStage,
+      stages,
+      overallProgress,
+    };
+  },
+
+  /**
+   * Get stage status based on module status
+   */
+  getStageStatus(
+    moduleStatus?: string
+  ): import("~/types/project").WorkflowStageStatus {
+    if (!moduleStatus || moduleStatus === "draft") return "not_started";
+    if (moduleStatus === "completed") return "completed";
+    return "in_progress";
+  },
+
+  /**
+   * Get color for stage status
+   */
+  getStageColor(status: import("~/types/project").WorkflowStageStatus): string {
+    switch (status) {
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "info";
+      case "not_started":
+        return "neutral";
+      default:
+        return "neutral";
     }
   },
 };
