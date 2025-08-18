@@ -14,14 +14,14 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div v-for="item in clientTypeItems" :key="item.value" :class="[
-                    'group relative cursor-pointer rounded-lg p-4 transition-colors duration-200 border-2',
+                    'group relative cursor-pointer rounded-lg p-4 transition-all duration-200 border-2',
                     state.type === item.value
-                        ? 'border-primary bg-primary-50 dark:bg-primary-950'
-                        : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
+                        ? 'border-primary bg-primary-50 dark:bg-primary-950 shadow-sm'
+                        : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600 hover:shadow-sm'
                 ]" @click="changeClientType(item.value as 'individual' | 'company')">
                     <!-- Selection indicator -->
                     <div v-if="state.type === item.value" class="absolute -top-1 -right-1">
-                        <div class="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                        <div class="w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm">
                             <UIcon name="i-heroicons-check" class="w-2.5 h-2.5 text-white" />
                         </div>
                     </div>
@@ -29,10 +29,10 @@
                     <div class="flex items-center gap-3">
                         <!-- Icon -->
                         <div :class="[
-                            'w-10 h-10 rounded-lg flex items-ceprimaryy-center transition-colors',
+                            'w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200',
                             state.type === item.value
-                                ? 'text-white bg-black dark:bg-primary-600 dark:text-white'
-                                : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                                ? 'text-white bg-primary shadow-sm'
+                                : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700'
                         ]">
                             <UIcon :name="item.icon" class="w-5 h-5" />
                         </div>
@@ -40,17 +40,17 @@
                         <!-- Content -->
                         <div class="flex-1 min-w-0">
                             <h3 :class="[
-                                'font-semibold text-sm transition-colors',
+                                'font-semibold text-sm transition-colors duration-200',
                                 state.type === item.value
-                                    ? 'text-primary dark:text-primary'
+                                    ? 'text-primary'
                                     : 'text-neutral-900 dark:text-neutral-100'
                             ]">
                                 {{ item.label }}
                             </h3>
                             <p :class="[
-                                'text-xs text-neutral-600 dark:text-neutral-400 transition-colors',
+                                'text-xs transition-colors duration-200',
                                 state.type === item.value
-                                    ? 'text-primary dark:text-primary'
+                                    ? 'text-primary-600 dark:text-primary-400'
                                     : 'text-neutral-600 dark:text-neutral-400'
                             ]">
                                 {{ item.description }}
@@ -79,11 +79,11 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <UFormField label="Prénom" name="first_name" required>
-                    <UInput v-model="state.first_name" placeholder="Jean" icon="i-heroicons-user" />
+                    <UInput v-model="state.first_name" placeholder="Jean" icon="i-heroicons-user" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Nom" name="last_name" required>
-                    <UInput v-model="state.last_name" placeholder="Dupont" icon="i-heroicons-user" />
+                    <UInput v-model="state.last_name" placeholder="Dupont" icon="i-heroicons-user" class="w-full" />
                 </UFormField>
             </div>
         </div>
@@ -103,17 +103,19 @@
             </div>
 
             <UFormField label="Nom de l'entreprise" name="company_name" required>
-                <UInput v-model="state.company_name" placeholder="ACME Corporation"
-                    icon="i-heroicons-building-office" />
+                <UInput v-model="state.company_name" placeholder="ACME Corporation" icon="i-heroicons-building-office"
+                    class="w-full" />
             </UFormField>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UFormField label="SIRET" name="siret">
-                    <UInput v-model="state.siret" placeholder="12345678901234" icon="i-heroicons-document-text" />
+                <UFormField label="SIRET" name="siret" hint="optional">
+                    <UInput v-model="state.siret" placeholder="12345678901234" icon="i-heroicons-document-text"
+                        class="w-full" />
                 </UFormField>
 
-                <UFormField label="Numéro TVA" name="tax_id">
-                    <UInput v-model="state.tax_id" placeholder="FR12345678901" icon="i-heroicons-receipt-percent" />
+                <UFormField label="Numéro TVA" name="tax_id" hint="optional">
+                    <UInput v-model="state.tax_id" placeholder="FR12345678901" icon="i-heroicons-receipt-percent"
+                        class="w-full" />
                 </UFormField>
             </div>
         </div>
@@ -135,14 +137,15 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UFormField label="Email de facturation" name="billing_email">
+                <UFormField label="Email de facturation" name="billing_email" required
+                    help="Utilisé pour notifier le client de l'avancement de son projet et envoyer les factures">
                     <UInput v-model="state.billing_email" placeholder="contact@exemple.com" type="email"
-                        icon="i-heroicons-envelope" />
+                        icon="i-heroicons-envelope" class="w-full" />
                 </UFormField>
 
-                <UFormField label="Téléphone" name="billing_phone">
+                <UFormField label="Téléphone" name="billing_phone" hint="optional">
                     <UInput v-model="state.billing_phone" placeholder="+33 1 23 45 67 89" type="tel"
-                        icon="i-heroicons-phone" />
+                        icon="i-heroicons-phone" class="w-full" />
                 </UFormField>
             </div>
         </div>
@@ -162,22 +165,25 @@
                 </div>
             </div>
 
-            <UFormField class="w-full" label="Adresse" name="billing_address">
+            <UFormField class="w-full" label="Adresse" name="billing_address" hint="optional">
                 <UInput v-model="state.billing_address" placeholder="123 Rue de la Paix" icon="i-heroicons-home"
                     class="w-full" />
             </UFormField>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <UFormField label="Ville" name="billing_city">
-                    <UInput v-model="state.billing_city" placeholder="Paris" icon="i-heroicons-building-office-2" />
+                <UFormField label="Ville" name="billing_city" hint="optional">
+                    <UInput v-model="state.billing_city" placeholder="Paris" icon="i-heroicons-building-office-2"
+                        class="w-full" />
                 </UFormField>
 
-                <UFormField label="Code postal" name="billing_postal">
-                    <UInput v-model="state.billing_postal" placeholder="75001" icon="i-heroicons-hashtag" />
+                <UFormField label="Code postal" name="billing_postal" hint="optional">
+                    <UInput v-model="state.billing_postal" placeholder="75001" icon="i-heroicons-hashtag"
+                        class="w-full" />
                 </UFormField>
 
-                <UFormField label="Pays" name="billing_country">
-                    <UInput v-model="state.billing_country" placeholder="France" icon="i-heroicons-globe-alt" />
+                <UFormField label="Pays" name="billing_country" hint="optional">
+                    <UInput v-model="state.billing_country" placeholder="France" icon="i-heroicons-globe-alt"
+                        class="w-full" />
                 </UFormField>
             </div>
         </div>
@@ -193,12 +199,12 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Notes</h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Informations complémentaires (optionnel)
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Informations complémentaires
                     </p>
                 </div>
             </div>
 
-            <UFormField label="Commentaires" name="notes" class="w-full">
+            <UFormField label="Commentaires" name="notes" class="w-full" hint="optional">
                 <UTextarea v-model="state.notes" placeholder="Ajoutez des informations complémentaires sur ce client..."
                     :rows="3" class="w-full" />
             </UFormField>

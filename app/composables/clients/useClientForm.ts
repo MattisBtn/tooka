@@ -27,6 +27,11 @@ export const useClientForm = (initialClient?: Client) => {
   const isCompany = computed(() => state.type === "company");
   const isEditMode = computed(() => !!initialClient);
 
+  // Dynamic schema based on current type
+  const currentSchema = computed(() => {
+    return clientFormSchema;
+  });
+
   // Reset form state
   const resetForm = () => {
     Object.assign(state, {
@@ -46,16 +51,18 @@ export const useClientForm = (initialClient?: Client) => {
     });
   };
 
-  // Handle type change
+  // Handle type change with proper field clearing
   const changeClientType = (newType: "individual" | "company") => {
+    const oldType = state.type;
     state.type = newType;
 
     // Clear type-specific fields when switching
-    if (newType === "individual") {
+    if (newType === "individual" && oldType === "company") {
+      // Clear company fields
       state.company_name = "";
-      state.siret = "";
-      state.tax_id = "";
-    } else {
+      // Keep SIRET and tax_id as they can be used for individuals too
+    } else if (newType === "company" && oldType === "individual") {
+      // Clear individual fields
       state.first_name = "";
       state.last_name = "";
     }
@@ -111,7 +118,7 @@ export const useClientForm = (initialClient?: Client) => {
 
   return {
     state,
-    schema: clientFormSchema,
+    schema: currentSchema,
     isIndividual,
     isCompany,
     isEditMode,

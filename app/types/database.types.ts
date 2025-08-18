@@ -19,7 +19,7 @@ export type Database = {
           billing_address: string | null
           billing_city: string | null
           billing_country: string | null
-          billing_email: string | null
+          billing_email: string
           billing_phone: string | null
           billing_postal: string | null
           company_name: string | null
@@ -37,7 +37,7 @@ export type Database = {
           billing_address?: string | null
           billing_city?: string | null
           billing_country?: string | null
-          billing_email?: string | null
+          billing_email: string
           billing_phone?: string | null
           billing_postal?: string | null
           company_name?: string | null
@@ -55,7 +55,7 @@ export type Database = {
           billing_address?: string | null
           billing_city?: string | null
           billing_country?: string | null
-          billing_email?: string | null
+          billing_email?: string
           billing_phone?: string | null
           billing_postal?: string | null
           company_name?: string | null

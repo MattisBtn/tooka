@@ -70,13 +70,7 @@ const validateFrenchVAT = (vat?: string): boolean => {
 // Base schema with common fields
 const baseClientSchema = z.object({
   type: z.enum(["individual", "company"]),
-  billing_email: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-      "Email invalide"
-    ),
+  billing_email: z.string().min(1, "Email requis").email("Email invalide"),
   billing_address: z.string().optional(),
   billing_city: z.string().optional(),
   billing_country: z.string().optional(),
