@@ -792,7 +792,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_kpi_view: {
+        Row: {
+          active_projects: number | null
+          avg_days_to_complete: number | null
+          avg_project_value: number | null
+          completed_galleries: number | null
+          completed_moodboards: number | null
+          completed_projects: number | null
+          completed_proposals: number | null
+          completed_selections: number | null
+          period: string | null
+          total_billed: number | null
+          total_projects: number | null
+          unique_clients: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_project_remaining_amount: {
