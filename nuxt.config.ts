@@ -56,6 +56,10 @@ export default defineNuxtConfig({
     },
   },
 
+  posthog: {
+    disabled: process.env.NODE_ENV === "development",
+  },
+
   runtimeConfig: {
     public: {
       companySearchApiUrl: "https://recherche-entreprises.api.gouv.fr",
