@@ -4,7 +4,7 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
-  modules: ["@nuxt/ui", "@nuxt/eslint", "@nuxt/image", "@vueuse/nuxt", "@nuxtjs/supabase", "@pinia/nuxt", "@nuxtjs/device", "@nuxtjs/seo"],
+  modules: ["@nuxt/ui", "@nuxt/eslint", "@nuxt/image", "@vueuse/nuxt", "@nuxtjs/supabase", "@pinia/nuxt", "@nuxtjs/device", "@nuxtjs/seo", "nuxt-charts"],
 
   css: ["~/assets/css/main.css"],
 
