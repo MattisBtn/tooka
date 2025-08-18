@@ -93,36 +93,13 @@ onMounted(async () => {
 })
 
 // Simplified computed to avoid deep type issues
-const planPrices = computed(() => {
-    try {
-        return subscriptionStore.plans.map(p => Number(p.price_monthly || 0))
-    } catch {
-        return []
-    }
-})
-
-const highestMonthlyPrice = computed(() => {
-    try {
-        const prices = planPrices.value
-        return prices.length ? Math.max(...prices) : 0
-    } catch {
-        return 0
-    }
-})
-
-const userMonthlyPrice = computed(() => {
-    try {
-        return Number(userStore.plan?.price_monthly ?? 0)
-    } catch {
-        return 0
-    }
-})
-
 const canUpgrade = computed(() => {
     try {
-        // If we don't know plans yet, show the button (optimistic)
         if (!subscriptionStore.plans.length) return true
-        return userMonthlyPrice.value < highestMonthlyPrice.value
+        const userPrice = Number(userStore.plan?.price_monthly ?? 0)
+        const prices = subscriptionStore.plans.map(p => Number(p.price_monthly || 0))
+        const maxPrice = prices.length > 0 ? Math.max(...prices) : 0
+        return userPrice < maxPrice
     } catch {
         return true
     }
@@ -225,16 +202,30 @@ const logout = async () => {
         <!-- Body: Sidebar + Main Content -->
         <div class="flex flex-1 overflow-hidden">
             <aside :class="[
-                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 flex flex-col flex-shrink-0',
+                'transition-all duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 flex flex-col flex-shrink-0 relative',
                 isSidebarCollapsed ? 'w-16' : 'w-64'
             ]">
                 <div class="flex-1 overflow-y-auto py-4 flex flex-col">
                     <!-- Navigation Menu -->
                     <UNavigationMenu :items="navigationItems" orientation="vertical" highlight highlight-color="neutral"
-                        :collapsed="isSidebarCollapsed" class="flex-1" />
+                        :collapsed="isSidebarCollapsed" class="flex-1"
+                        :class="isSidebarCollapsed ? 'self-center' : ''" />
 
                     <!-- Color mode toggle and upgrade button -->
                     <div class="px-4 mt-auto">
+                        <!-- Collapse Button -->
+                        <div
+                            :class="['flex items-center mb-4', isSidebarCollapsed ? 'justify-center' : 'justify-between']">
+                            <div v-if="!isSidebarCollapsed" class="flex items-center gap-2">
+                                <UIcon name="i-heroicons-arrows-pointing-in" class="text-neutral-500" />
+                                <span class="text-sm text-neutral-600 dark:text-neutral-300">Réduire</span>
+                            </div>
+                            <UButton
+                                :icon="isSidebarCollapsed ? 'i-heroicons-chevron-right' : 'i-heroicons-chevron-left'"
+                                color="neutral" variant="ghost" size="sm"
+                                @click="isSidebarCollapsed = !isSidebarCollapsed" />
+                        </div>
+
                         <div :class="['flex items-center', isSidebarCollapsed ? 'justify-center' : 'justify-between']">
                             <div v-if="!isSidebarCollapsed" class="flex items-center gap-4">
                                 <UIcon name="i-heroicons-moon" class="text-neutral-500" />
@@ -244,9 +235,9 @@ const logout = async () => {
                                 unchecked-icon="i-heroicons-sun" />
                         </div>
                         <div v-if="canUpgrade" class="mt-4">
-                            <UButton :disabled="true" color="primary" icon="i-heroicons-arrow-up-circle" size="xl"
-                                class="w-full" @click="goToUpgrade">
-                                Mise à niveau
+                            <UButton :disabled="true" color="primary" variant="subtle"
+                                icon="i-heroicons-arrow-up-circle" class="w-full" @click="goToUpgrade">
+                                <span v-if="!isSidebarCollapsed">Mise à niveau</span>
                             </UButton>
                         </div>
                     </div>
