@@ -4,7 +4,18 @@ export default defineNuxtConfig({
     enabled: true,
   },
 
-  modules: ["@nuxt/ui", "@nuxt/eslint", "@nuxt/image", "@vueuse/nuxt", "@nuxtjs/supabase", "@pinia/nuxt", "@nuxtjs/device", "@nuxtjs/seo", "nuxt-charts"],
+  modules: [
+    "@nuxt/ui",
+    "@nuxt/eslint",
+    "@nuxt/image",
+    "@vueuse/nuxt",
+    "@nuxtjs/supabase",
+    "@pinia/nuxt",
+    "@nuxtjs/device",
+    "@nuxtjs/seo",
+    "nuxt-charts",
+    "@nuxt/scripts",
+  ],
 
   css: ["~/assets/css/main.css"],
 
@@ -52,5 +63,6 @@ export default defineNuxtConfig({
     },
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    CRISP_ID: process.env.CRISP_ID,
   },
 });
