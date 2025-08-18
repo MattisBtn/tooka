@@ -2,14 +2,19 @@ import { userProfileRepository } from "~/repositories/userProfileRepository";
 import type {
   UserProfile,
   UserProfileFormData,
-  UserProfileWithPlan,
+  UserProfileWithStats,
 } from "~/types/userProfile";
 
 export const userProfileService = {
   /**
-   * Get user profile with auth info and subscription plan
+   * Get user profile with statistics (clients and projects count)
    */
-  async getUserProfile(userId: string): Promise<UserProfileWithPlan | null> {
+  async getUserProfile(
+    userId: string,
+    authInfo?: { email: string; name?: string }
+  ): Promise<
+    (UserProfileWithStats & { auth?: { email: string; name?: string } }) | null
+  > {
     try {
       const profile = await userProfileRepository.findById(userId);
 
@@ -17,22 +22,15 @@ export const userProfileService = {
         return null;
       }
 
-      // Get auth user info for email
-      const user = useSupabaseUser();
-      const authInfo = user.value
-        ? {
-            email: user.value.email || "",
-            name: user.value.user_metadata?.name || "",
-          }
-        : undefined;
-
       return {
         ...profile,
         auth: authInfo,
       };
     } catch (error) {
-      console.error("Error fetching user profile:", error);
-      throw new Error("Impossible de récupérer le profil utilisateur");
+      console.error("Error fetching user profile with stats:", error);
+      throw new Error(
+        "Impossible de récupérer le profil utilisateur avec les statistiques"
+      );
     }
   },
 
@@ -104,14 +102,18 @@ export const userProfileService = {
   /**
    * Get default profile data from auth user
    */
-  getDefaultProfileData(): Partial<UserProfileFormData> {
-    const user = useSupabaseUser();
-
-    if (!user.value) {
+  getDefaultProfileData(authUser?: {
+    user_metadata?: {
+      name?: string;
+      organization?: string;
+      avatar_url?: string;
+    };
+  }): Partial<UserProfileFormData> {
+    if (!authUser) {
       return {};
     }
 
-    const metadata = user.value.user_metadata || {};
+    const metadata = authUser.user_metadata || {};
     const name = metadata.name || "";
     const nameParts = name.split(" ");
 

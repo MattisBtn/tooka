@@ -3,12 +3,14 @@ import { defineStore } from "pinia";
 import { userProfileService } from "~/services/userProfileService";
 import type {
   UserProfileFormData,
-  UserProfileWithPlan,
+  UserProfileWithStats,
 } from "~/types/userProfile";
 
 interface AppUserState {
   auth: User | null;
-  profile: UserProfileWithPlan | null;
+  profile:
+    | (UserProfileWithStats & { auth?: { email: string; name?: string } })
+    | null;
 }
 
 export const useUserStore = defineStore("user", () => {
@@ -39,6 +41,10 @@ export const useUserStore = defineStore("user", () => {
   // Get plan directly from profile (no separate API call needed)
   const plan = computed(() => user.value.profile?.subscription_plans || null);
 
+  // Get counts for navigation badges
+  const clientsCount = computed(() => user.value.profile?.clientsCount || 0);
+  const projectsCount = computed(() => user.value.profile?.projectsCount || 0);
+
   // Actions
   const fetchUser = async (opts?: { silent?: boolean }) => {
     try {
@@ -52,8 +58,14 @@ export const useUserStore = defineStore("user", () => {
         return null;
       }
 
+      const authInfo = {
+        email: authUser.value.email || "",
+        name: authUser.value.user_metadata?.name || "",
+      };
+
       const profileWithPlan = await userProfileService.getUserProfile(
-        authUser.value.id
+        authUser.value.id,
+        authInfo
       );
       user.value = {
         auth: authUser.value,
@@ -101,15 +113,7 @@ export const useUserStore = defineStore("user", () => {
   const getDefaultProfileData = (): Partial<UserProfileFormData> => {
     const authUser = useSupabaseUser();
     if (!authUser.value) return {};
-    const metadata = authUser.value.user_metadata || {};
-    const name: string = metadata.name || "";
-    const nameParts = name.split(" ");
-    return {
-      first_name: nameParts[0] || "",
-      last_name: nameParts.slice(1).join(" ") || "",
-      company_name: (metadata.organization as string) || null,
-      avatar_url: (metadata.avatar_url as string) || null,
-    };
+    return userProfileService.getDefaultProfileData(authUser.value);
   };
 
   return {
@@ -119,6 +123,8 @@ export const useUserStore = defineStore("user", () => {
 
     // Getters
     plan,
+    clientsCount,
+    projectsCount,
 
     isLogged,
     hasStripeConnect,

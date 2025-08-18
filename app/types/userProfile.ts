@@ -4,7 +4,7 @@ import type { Tables } from "~/types/database.types";
 export type UserProfile = Tables<"user_profiles">;
 
 export interface IUserProfileRepository {
-  findById(id: string): Promise<UserProfile | null>;
+  findById(id: string): Promise<UserProfileWithStats | null>;
   create(
     data: Omit<UserProfile, "id" | "created_at" | "updated_at">
   ): Promise<UserProfile>;
@@ -193,8 +193,10 @@ export interface UserProfileWithAuth extends UserProfile {
   };
 }
 
-// User profile with subscription plan included (from JOIN)
-export interface UserProfileWithPlan extends UserProfileWithAuth {
+// User profile with statistics (clients and projects count)
+export interface UserProfileWithStats extends UserProfile {
+  clientsCount?: number;
+  projectsCount?: number;
   subscription_plans?: {
     id: string;
     name: string;

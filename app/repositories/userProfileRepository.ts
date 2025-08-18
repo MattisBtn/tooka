@@ -2,10 +2,15 @@ import type { TablesInsert, TablesUpdate } from "~/types/database.types";
 import type { IUserProfileRepository, UserProfile } from "~/types/userProfile";
 
 export const userProfileRepository: IUserProfileRepository = {
-  async findById(id: string): Promise<UserProfile | null> {
+  async findById(
+    id: string
+  ): Promise<
+    (UserProfile & { clientsCount?: number; projectsCount?: number }) | null
+  > {
     const supabase = useSupabaseClient();
 
-    const { data, error } = await supabase
+    // Récupérer le profil avec les relations
+    const { data: profile, error: profileError } = await supabase
       .from("user_profiles")
       .select(
         `
@@ -24,12 +29,36 @@ export const userProfileRepository: IUserProfileRepository = {
       .eq("id", id)
       .single();
 
-    if (error) {
-      if (error.code === "PGRST116") return null; // Not found
-      throw new Error(`Failed to fetch user profile: ${error.message}`);
+    if (profileError) {
+      if (profileError.code === "PGRST116") return null; // Not found
+      throw new Error(`Failed to fetch user profile: ${profileError.message}`);
     }
 
-    return data;
+    // Récupérer le nombre de clients
+    const { count: clientsCount, error: clientsError } = await supabase
+      .from("clients")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", id);
+
+    if (clientsError) {
+      console.warn(`Failed to fetch clients count: ${clientsError.message}`);
+    }
+
+    // Récupérer le nombre de projets
+    const { count: projectsCount, error: projectsError } = await supabase
+      .from("projects")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", id);
+
+    if (projectsError) {
+      console.warn(`Failed to fetch projects count: ${projectsError.message}`);
+    }
+
+    return {
+      ...profile,
+      clientsCount: clientsCount || 0,
+      projectsCount: projectsCount || 0,
+    };
   },
 
   async create(

@@ -149,7 +149,8 @@ const navigationItems = computed(() => [
         label: 'Clients',
         icon: 'i-heroicons-users',
         to: '/clients',
-        active: route.path === '/clients'
+        active: route.path === '/clients',
+        badge: userStore.clientsCount || undefined
     },
     {
         label: 'Workflow',
@@ -159,7 +160,8 @@ const navigationItems = computed(() => [
         label: 'Projects',
         icon: 'i-heroicons-folder',
         to: '/projects',
-        active: route.path.startsWith('/projects')
+        active: route.path.startsWith('/projects'),
+        badge: userStore.projectsCount || undefined
     }
 ])
 
