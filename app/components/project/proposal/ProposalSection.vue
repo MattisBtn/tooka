@@ -29,134 +29,146 @@
                             </div>
                         </div>
 
-                        <!-- Status Badge in Header -->
-                        <div class="flex items-center gap-2">
-                            <UBadge :color="statusColor" variant="soft" :label="statusLabel" />
-                        </div>
+                        <!-- Status Stepper in Header -->
+                        <ProjectSharedWorkflowSteps :current-status="proposalStore.proposal?.status || 'draft'"
+                            type="proposal" />
                     </div>
                 </template>
 
-                <div class="space-y-6">
-                    <!-- Pricing Information -->
-                    <div v-if="!isFree" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ formatPrice(proposalStore.proposal?.price) }}
-                            </p>
+                <div class="space-y-8">
+                    <!-- Pricing Section -->
+                    <div v-if="!isFree" class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-euro" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations tarifaires
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions de paiement
+                                </p>
+                            </div>
                         </div>
-                        <div v-if="proposalStore.proposal?.deposit_required" class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ formatPrice(proposalStore.proposal?.deposit_amount) }}
-                            </p>
-                            <p class="text-xs text-neutral-500 dark:text-neutral-400">
-                                {{ getDepositPercentage() }}% du prix total
-                            </p>
-                        </div>
-                    </div>
 
-                    <!-- Payment Method Info -->
-                    <div v-if="!isFree && proposalStore.proposal?.deposit_required" class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Méthode
-                                de
-                                paiement</span>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">Prix</span>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ formatPrice(proposalStore.proposal?.price) }}
+                                </span>
+                            </div>
+                            <div v-if="proposalStore.proposal?.deposit_required"
+                                class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Acompte</span>
+                                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                                        {{ getDepositPercentage() }}% du prix total
+                                    </p>
+                                </div>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ formatPrice(proposalStore.proposal?.deposit_amount) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div v-if="proposalStore.proposal?.deposit_required" class="flex items-center justify-between">
+                            <span class="text-sm text-neutral-600 dark:text-neutral-400">Méthode de paiement</span>
                             <UBadge :color="getPaymentMethodColor()" variant="soft" :label="getPaymentMethodLabel()" />
                         </div>
                     </div>
 
-                    <!-- Documents Info -->
-                    <div class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Documents</span>
+                    <!-- Documents Section -->
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-file-text" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Documents joints</h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Fichiers associés à la
+                                    proposition</p>
+                            </div>
                             <UBadge :color="getDocumentsStatusColor()" variant="soft"
                                 :label="getDocumentsStatusLabel()" />
                         </div>
 
                         <div v-if="hasDocuments()" class="space-y-2">
-                            <div v-if="proposalStore.proposal?.contract_url"
-                                class="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                                <UIcon name="i-lucide-file-text" class="w-4 h-4 text-orange-500" />
-                                <span class="text-sm text-neutral-900 dark:text-neutral-100">Contrat joint</span>
+                            <div v-if="proposalStore.proposal?.contract_url" class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-900 dark:text-neutral-100">Contrat</span>
                                 <UButton icon="i-lucide-external-link" size="xs" variant="ghost" color="neutral"
                                     @click="openDocument(proposalStore.proposal!.contract_url!)" />
                             </div>
-                            <div v-if="proposalStore.proposal?.quote_url"
-                                class="flex items-center gap-2 p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-                                <UIcon name="i-lucide-file-text" class="w-4 h-4 text-green-500" />
-                                <span class="text-sm text-neutral-900 dark:text-neutral-100">Devis joint</span>
+                            <div v-if="proposalStore.proposal?.quote_url" class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-900 dark:text-neutral-100">Devis</span>
                                 <UButton icon="i-lucide-external-link" size="xs" variant="ghost" color="neutral"
                                     @click="openDocument(proposalStore.proposal!.quote_url!)" />
                             </div>
                         </div>
                     </div>
 
-                    <!-- Contextual Actions -->
-                    <div
-                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
-                        <!-- Edit Action - Available for draft and revision_requested -->
-                        <UTooltip v-if="proposalStore.canEdit && !isProjectCompleted" text="Modifier la proposition">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                @click="proposalStore.openForm()" />
-                        </UTooltip>
-                        <UTooltip v-else-if="proposalStore.canEdit && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                disabled />
-                        </UTooltip>
+                    <!-- Revision Comment -->
+                    <div v-if="proposalStore.proposal?.status === 'revision_requested' && proposalStore.proposal?.revision_last_comment"
+                        class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-message-circle" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Commentaire de révision
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Demande de modification du
+                                    client</p>
+                            </div>
+                        </div>
 
-                        <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="proposalStore.proposal?.status !== 'draft'" text="Voir l'aperçu client">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" :to="`/proposal/${proposalStore.proposal?.id}`" target="_blank" />
-                        </UTooltip>
-
-                        <!-- Send to Client Action - Available for draft and revision_requested -->
-                        <UTooltip
-                            v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'revision_requested') && !isProjectCompleted"
-                            text="Envoyer la proposition au client">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" @click="sendToClient()" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'revision_requested') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" disabled />
-                        </UTooltip>
-
-                        <!-- Mark as Completed Action - Only for payment_pending -->
-                        <UTooltip v-if="proposalStore.proposal?.status === 'payment_pending' && !isProjectCompleted"
-                            text="Marquer la proposition comme terminée">
-                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
-                                label="Marquer comme terminé" @click="confirmPayment()" />
-                        </UTooltip>
-                        <UTooltip v-else-if="proposalStore.proposal?.status === 'payment_pending' && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
-                                label="Marquer comme terminé" disabled />
-                        </UTooltip>
-
-                        <!-- Delete Action - Only for draft and awaiting_client -->
-                        <UTooltip
-                            v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'awaiting_client') && !isProjectCompleted"
-                            text="Supprimer la proposition">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                :loading="proposalStore.loading" @click="handleDelete" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'awaiting_client') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                disabled />
-                        </UTooltip>
+                        <div
+                            class="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                            <p
+                                class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed break-words whitespace-pre-line">
+                                {{ proposalStore.proposal.revision_last_comment }}
+                            </p>
+                        </div>
                     </div>
                 </div>
+
+                <template #footer>
+                    <div class="flex items-center justify-between">
+                        <!-- Secondary Actions -->
+                        <div class="flex items-center gap-1">
+                            <UTooltip
+                                v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'awaiting_client') && !isProjectCompleted"
+                                text="Supprimer la proposition">
+                                <UButton icon="i-lucide-trash-2" size="sm" variant="ghost" color="error"
+                                    :loading="proposalStore.loading" @click="handleDelete" />
+                            </UTooltip>
+                        </div>
+
+                        <!-- Primary Actions -->
+                        <div class="flex items-center gap-2">
+                            <UButton v-if="proposalStore.canEdit && !isProjectCompleted" icon="i-lucide-edit" size="sm"
+                                variant="outline" color="neutral" label="Modifier" @click="proposalStore.openForm()" />
+
+                            <!-- Main CTA based on status -->
+                            <UButton
+                                v-if="(proposalStore.proposal?.status === 'draft' || proposalStore.proposal?.status === 'revision_requested') && !isProjectCompleted"
+                                icon="i-lucide-send" size="sm" variant="solid" color="primary" label="Envoyer au client"
+                                @click="sendToClient()" />
+
+                            <UButton
+                                v-else-if="proposalStore.proposal?.status === 'payment_pending' && !isProjectCompleted"
+                                icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
+                                label="Marquer comme terminé" @click="confirmPayment()" />
+
+                            <UButton v-if="proposalStore.proposal?.status !== 'draft'" icon="i-lucide-external-link"
+                                size="sm" label="Voir l'aperçu client" variant="ghost" color="neutral"
+                                :to="`/proposal/${proposalStore.proposal?.id}`" target="_blank" />
+                        </div>
+                    </div>
+                </template>
             </UCard>
         </div>
 
@@ -253,34 +265,27 @@
 
 <script lang="ts" setup>
 
-import type { Project } from "~/types/project";
 import type { ProjectPaymentData, ProposalFormData } from "~/types/proposal";
-import { formatPrice, getStatusColor } from "~/utils/formatters";
+import { formatPrice } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
 
-// Hybrid computed properties: use proposalStore when available, fallback to projectSetupStore
+// Hybrid computed properties
 const isProjectCompleted = computed(() => {
     if (proposalStore.proposal?.project) {
-        // Mode modification : utiliser les données de la proposition
-        return (proposalStore.proposal.project as Project).status === 'completed'
-    } else {
-        // Mode création : utiliser les données du projectSetupStore
-        return projectSetupStore.isProjectCompleted
+        return proposalStore.proposal.project.status === 'completed'
     }
+    return projectSetupStore.isProjectCompleted
 })
 
 const isFree = computed(() => {
     if (proposalStore.proposal?.project) {
-        // Mode modification : utiliser les données de la proposition
-        const price = proposalStore.proposal.project.initial_price as number | undefined
+        const price = proposalStore.proposal.project.initial_price
         return (price || 0) === 0
-    } else {
-        // Mode création : utiliser les données du projectSetupStore
-        return projectSetupStore.isFree
     }
+    return projectSetupStore.isFree
 })
 
 // Modal title
@@ -288,23 +293,7 @@ const modalTitle = computed(() =>
     proposalStore.exists ? 'Modifier la proposition' : 'Créer une proposition'
 )
 
-// Simple status helpers with explicit typing to avoid deep instantiation
-const statusLabel = computed((): string => {
-    const status = proposalStore.proposal?.status as string | undefined
-    const map: Record<string, string> = {
-        draft: 'Brouillon',
-        awaiting_client: 'En attente client',
-        revision_requested: 'Révision demandée',
-        completed: 'Acceptée',
-        payment_pending: 'Paiement en attente',
-    }
-    return map[status || 'draft'] ?? status ?? 'draft'
-})
 
-const statusColor = computed(() => {
-    const status = proposalStore.proposal?.status as string | undefined
-    return getStatusColor(status || 'draft')
-})
 
 // Load proposal when component is mounted
 onMounted(async () => {

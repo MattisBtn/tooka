@@ -87,7 +87,7 @@ const handleUpdatePassword = async () => {
                 <div class="text-center pt-2">
                     <p class="text-sm text-neutral-600 dark:text-neutral-400">
                         Vous vous souvenez de votre mot de passe ?
-                        <NuxtLink to="/login" class="font-medium text-primary-600 hover:text-primary-500">
+                        <NuxtLink to="/login" class="font-medium text-primary hover:text-primary">
                             Se connecter
                         </NuxtLink>
                     </p>

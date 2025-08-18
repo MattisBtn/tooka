@@ -552,7 +552,7 @@ async function handleSubscriptionCancellation(
         v-for="plan in plans"
         :key="plan.id"
         class="relative"
-        :class="{ 'ring-2 ring-primary-500': isCurrentPlan(plan) }"
+        :class="{ 'ring-2 ring-primary': isCurrentPlan(plan) }"
       >
         <template #header>
           <div class="text-center">

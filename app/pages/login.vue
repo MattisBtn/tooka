@@ -65,7 +65,7 @@ const handleGoogleLogin = async () => {
 
         <div class="flex justify-between items-center">
           <UCheckbox label="Se souvenir de moi" name="remember" />
-          <NuxtLink to="/forgot-password" class="text-sm text-primary-600 hover:text-primary-500">
+          <NuxtLink to="/forgot-password" class="text-sm text-primary hover:text-primary">
             Mot de passe oublié ?
           </NuxtLink>
         </div>
@@ -94,7 +94,7 @@ const handleGoogleLogin = async () => {
         <div class="text-center pt-2">
           <p class="text-sm text-neutral-600 dark:text-neutral-400">
             Vous n'avez pas de compte ?
-            <NuxtLink to="/register" class="font-medium text-primary-600 hover:text-primary-500">
+            <NuxtLink to="/register" class="font-medium text-primary hover:text-primary">
               Créer un compte
             </NuxtLink>
           </p>

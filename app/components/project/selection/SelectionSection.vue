@@ -32,71 +32,80 @@
                             </div>
                         </div>
 
-                        <!-- Status Badge in Header -->
-                        <div class="flex items-center gap-2">
-                            <UBadge :color="getStatusColor(selectionStore.selection?.status)" variant="soft"
-                                :label="getStatusLabel(selectionStore.selection?.status || 'Inconnu', 'selection')" />
-                        </div>
+                        <!-- Status Stepper in Header -->
+                        <ProjectSharedWorkflowSteps :current-status="selectionStore.selection?.status || 'draft'"
+                            type="selection" />
                     </div>
                 </template>
 
-                <div class="space-y-6">
+                <div class="space-y-8">
                     <!-- Selection Information -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Sélection
-                                max</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ selectionStore.formattedSelectionLimit }}
-                            </p>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-info" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations générales
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails de la sélection</p>
+                            </div>
                         </div>
-                        <div class="space-y-1">
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">Sélection max</span>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ selectionStore.formattedSelectionLimit }}
+                                </span>
+                            </div>
+
+                            <div v-if="selectionStore.formattedExtraMediaPrice"
+                                class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">Prix média
+                                    supplémentaire</span>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ selectionStore.formattedExtraMediaPrice }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Selected Count -->
+                        <div v-if="selectionStore.selectedCount > 0" class="space-y-2">
                             <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Images</span>
+                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Sélectionnés
+                                par le client</span>
                             <div class="flex items-center gap-2">
-                                <UIcon name="i-lucide-images" class="w-4 h-4 text-neutral-500" />
-                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    {{ selectionStore.imageCount }} image{{ selectionStore.imageCount > 1 ? 's' : '' }}
-                                    disponible{{ selectionStore.imageCount > 1 ? 's' : '' }}
+                                <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-orange-500" />
+                                <span class="text-sm text-orange-600 dark:text-orange-400">
+                                    {{ selectionStore.selectedCount }} image{{ selectionStore.selectedCount > 1 ? 's' :
+                                        ''
+                                    }}
+                                    sélectionnée{{ selectionStore.selectedCount > 1 ? 's' : '' }}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Extra Media Price -->
-                    <div v-if="selectionStore.formattedExtraMediaPrice" class="space-y-2">
-                        <span
-                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix
-                            média
-                            supplémentaire</span>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            {{ selectionStore.formattedExtraMediaPrice }}
-                        </p>
-                    </div>
-
-                    <!-- Selected Count -->
-                    <div v-if="selectionStore.selectedCount > 0" class="space-y-2">
-                        <span
-                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Sélectionnés
-                            par le client</span>
-                        <div class="flex items-center gap-2">
-                            <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-orange-500" />
-                            <span class="text-sm text-orange-600 dark:text-orange-400">
-                                {{ selectionStore.selectedCount }} image{{ selectionStore.selectedCount > 1 ? 's' : ''
-                                }}
-                                sélectionnée{{ selectionStore.selectedCount > 1 ? 's' : '' }}
-                            </span>
-                        </div>
-                    </div>
-
                     <!-- Images Preview -->
-                    <div v-if="selectionStore.hasImages" class="space-y-3">
+                    <div v-if="selectionStore.hasImages" class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Aperçu
-                                des
-                                images</span>
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                    <UIcon name="i-lucide-images" class="w-4 h-4 text-white dark:text-black" />
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Aperçu des images
+                                    </h4>
+                                    <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                                        {{ selectionStore.imageCount }} image{{ selectionStore.imageCount > 1 ? 's' : ''
+                                        }}
+                                        disponible{{ selectionStore.imageCount > 1 ? 's' : '' }}
+                                    </p>
+                                </div>
+                            </div>
                             <UButton v-if="selectionStore.selectedCount > 0" icon="i-lucide-download" size="xs"
                                 variant="ghost" color="neutral" :loading="selectionStore.isDownloadingZip"
                                 :disabled="selectionStore.isDownloadingZip" @click="handleDownloadSelectedAsZip">
@@ -108,56 +117,62 @@
                             :show-selection-state="true" @delete-image="handleDeleteImage" />
                     </div>
 
-                    <!-- Contextual Actions -->
-                    <div
-                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
-                        <!-- Edit Action - Available for draft and revision_requested -->
-                        <UTooltip v-if="selectionStore.canEdit && !isProjectCompleted" text="Modifier la sélection">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                @click="selectionStore.openForm()" />
-                        </UTooltip>
-                        <UTooltip v-else-if="selectionStore.canEdit && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                disabled />
-                        </UTooltip>
+                    <!-- Revision Comment -->
+                    <div v-if="selectionStore.selection?.status === 'revision_requested' && selectionStore.selection?.revision_last_comment"
+                        class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-message-circle" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Commentaire de révision
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Demande de modification du
+                                    client</p>
+                            </div>
+                        </div>
 
-                        <!-- Send to Client Action - Available for draft and revision_requested -->
-                        <UTooltip
-                            v-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'revision_requested') && !isProjectCompleted"
-                            text="Envoyer la sélection au client">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" :loading="selectionStore.loading" @click="sendToClient()" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'revision_requested') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" disabled />
-                        </UTooltip>
-
-                        <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="selectionStore.selection?.status !== 'draft'" text="Voir l'aperçu client">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" :to="`/selection/${selectionStore.selection?.id}`"
-                                target="_blank" />
-                        </UTooltip>
-
-                        <!-- Delete Action - Only for draft and awaiting_client -->
-                        <UTooltip
-                            v-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'awaiting_client') && !isProjectCompleted"
-                            text="Supprimer la sélection">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                :loading="selectionStore.loading" @click="handleDelete" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'awaiting_client') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                disabled />
-                        </UTooltip>
+                        <div
+                            class="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                            <p
+                                class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed break-words whitespace-pre-line">
+                                {{ selectionStore.selection.revision_last_comment }}
+                            </p>
+                        </div>
                     </div>
+
                 </div>
+
+                <template #footer>
+                    <div class="flex items-center justify-between">
+                        <!-- Secondary Actions -->
+                        <div class="flex items-center gap-1">
+                            <UTooltip
+                                v-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'awaiting_client') && !isProjectCompleted"
+                                text="Supprimer la sélection">
+                                <UButton icon="i-lucide-trash-2" size="sm" variant="ghost" color="error"
+                                    :loading="selectionStore.loading" @click="handleDelete" />
+                            </UTooltip>
+                        </div>
+
+                        <!-- Primary Actions -->
+                        <div class="flex items-center gap-2">
+                            <UButton v-if="selectionStore.canEdit && !isProjectCompleted" icon="i-lucide-edit" size="sm"
+                                variant="outline" color="neutral" label="Modifier" @click="selectionStore.openForm()" />
+
+                            <!-- Main CTA based on status -->
+                            <UButton
+                                v-if="(selectionStore.selection?.status === 'draft' || selectionStore.selection?.status === 'revision_requested') && !isProjectCompleted"
+                                icon="i-lucide-send" size="sm" variant="solid" color="primary" label="Envoyer au client"
+                                :loading="selectionStore.loading" @click="sendToClient()" />
+
+                            <UButton v-if="selectionStore.selection?.status !== 'draft'" icon="i-lucide-external-link"
+                                size="sm" label="Voir l'aperçu client" variant="ghost" color="neutral"
+                                :to="`/selection/${selectionStore.selection?.id}`" target="_blank" />
+                        </div>
+                    </div>
+                </template>
             </UCard>
         </div>
 
@@ -254,7 +269,6 @@
 
 <script lang="ts" setup>
 import type { SelectionFormData } from "~/types/selection";
-import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()

@@ -16,12 +16,12 @@
                 <div v-for="item in clientTypeItems" :key="item.value" :class="[
                     'group relative cursor-pointer rounded-lg p-4 transition-colors duration-200 border-2',
                     state.type === item.value
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-950'
+                        ? 'border-primary bg-primary-50 dark:bg-primary-950'
                         : 'border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600'
                 ]" @click="changeClientType(item.value as 'individual' | 'company')">
                     <!-- Selection indicator -->
                     <div v-if="state.type === item.value" class="absolute -top-1 -right-1">
-                        <div class="w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
+                        <div class="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
                             <UIcon name="i-heroicons-check" class="w-2.5 h-2.5 text-white" />
                         </div>
                     </div>
@@ -29,7 +29,7 @@
                     <div class="flex items-center gap-3">
                         <!-- Icon -->
                         <div :class="[
-                            'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                            'w-10 h-10 rounded-lg flex items-ceprimaryy-center transition-colors',
                             state.type === item.value
                                 ? 'text-white bg-black dark:bg-primary-600 dark:text-white'
                                 : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
@@ -42,7 +42,7 @@
                             <h3 :class="[
                                 'font-semibold text-sm transition-colors',
                                 state.type === item.value
-                                    ? 'text-primary-900 dark:text-primary-100'
+                                    ? 'text-primary dark:text-primary'
                                     : 'text-neutral-900 dark:text-neutral-100'
                             ]">
                                 {{ item.label }}
@@ -50,7 +50,7 @@
                             <p :class="[
                                 'text-xs text-neutral-600 dark:text-neutral-400 transition-colors',
                                 state.type === item.value
-                                    ? 'text-primary-700 dark:text-primary-300'
+                                    ? 'text-primary dark:text-primary'
                                     : 'text-neutral-600 dark:text-neutral-400'
                             ]">
                                 {{ item.description }}

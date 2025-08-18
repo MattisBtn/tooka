@@ -4,7 +4,7 @@
         <div v-if="isSubmitting || uploading"
             class="absolute inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
             <div class="text-center">
-                <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500 mx-auto mb-2" />
+                <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
                 <p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                     {{ uploading ? 'Upload en cours...' : 'Sauvegarde...' }}
                 </p>
@@ -40,7 +40,7 @@
                                     class="flex-shrink-0" />
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
-                                        <UIcon name="i-lucide-infinity" class="w-4 h-4 text-primary-500" />
+                                        <UIcon name="i-lucide-infinity" class="w-4 h-4 text-primary" />
                                         <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                             Sélection illimitée
                                         </span>

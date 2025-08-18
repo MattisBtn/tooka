@@ -52,21 +52,20 @@ export default defineEventHandler(async (event) => {
     }
 
     // Update selection status to revision_requested
-    const { error: updateError } = await supabase
+    const { data: updatedSelection, error: updateError } = await supabase
       .from("selections")
       .update({
         status: "revision_requested",
+        revision_last_comment: body?.comment || null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", selectionId);
+      .eq("id", selectionId)
+      .select()
+      .single();
 
     if (updateError) {
       throw new Error(`Failed to update selection: ${updateError.message}`);
     }
-
-    // TODO: If there's a comment, we could store it in a comments table
-    // For now, we'll just return success with the comment included
-    // TODO: Implement selection_comments table and store the revision comment
 
     // TODO: Optionally send notification to photographer with the comment
     // This could be implemented later with email notifications
@@ -74,10 +73,7 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       message: "Demande de révision envoyée avec succès",
-      selection: {
-        id: selectionId,
-        status: "revision_requested",
-      },
+      selection: updatedSelection,
       comment: body.comment || null,
     };
   } catch (error) {

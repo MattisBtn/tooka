@@ -88,12 +88,12 @@ export const useProposalHtmlGenerator = () => {
               // Variant classes
               const variantClasses = {
                 solid:
-                  "bg-primary-500 text-white hover:bg-primary-600 focus-visible:outline-primary-500",
+                  "bg-primary text-white hover:bg-primary focus-visible:outline-primary",
                 outline:
-                  "border border-primary-500 text-primary-500 hover:bg-primary-50 focus-visible:outline-primary-500",
+                  "border border-primary text-primary hover:bg-primary-50 focus-visible:outline-primary",
                 ghost:
-                  "text-primary-500 hover:bg-primary-50 focus-visible:outline-primary-500",
-                link: "text-primary-500 underline-offset-4 hover:underline focus-visible:outline-primary-500",
+                  "text-primary hover:bg-primary-50 focus-visible:outline-primary",
+                link: "text-primary underline-offset-4 hover:underline focus-visible:outline-primary",
               };
 
               return `${baseClasses} ${

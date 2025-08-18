@@ -299,8 +299,9 @@ const isPaymentInfoRequired = computed(() => {
 
 const showPaymentMethodSelector = computed(() => {
     // Afficher le sélecteur si:
-    // 1. Le paiement est requis
-    return isPaymentInfoRequired.value;
+    // 1. Le paiement est requis ET
+    // 2. Aucune méthode de paiement n'est déjà définie
+    return isPaymentInfoRequired.value && !galleryStore.project?.payment_method;
 });
 
 

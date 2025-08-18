@@ -5,9 +5,9 @@ export const usePasswordFormConfig = () => {
     // Visual identity
     icon: "i-heroicons-key",
     smallIcon: "i-heroicons-lock-closed",
-    iconBgClass: "bg-gradient-to-br from-primary-500 to-primary-600",
+    iconBgClass: "bg-gradient-to-br from-primary to-primary",
     smallIconBgClass: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-    titleColorClass: "text-primary-600 dark:text-primary-400",
+    titleColorClass: "text-primary dark:text-primary",
 
     // Content
     title: "Accès sécurisé",

@@ -255,14 +255,14 @@ const handlePortalAccess = async () => {
         <UCard class="mb-8">
             <ClientOnly>
                 <div v-if="isLoading" class="flex items-center justify-center py-8">
-                    <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary-500" />
+                    <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary" />
                     <span class="ml-2 text-neutral-600 dark:text-neutral-400">Chargement du profil...</span>
                 </div>
                 <div v-else class="flex items-center gap-6">
                     <!-- Avatar - clickable to open modal -->
                     <div class="relative cursor-pointer group" @click="openAvatarModal">
                         <UAvatar :src="currentAvatarUrl" :alt="avatarAlt" size="3xl"
-                            class="ring-2 ring-neutral-200 dark:ring-neutral-700 transition-all group-hover:ring-primary-500" />
+                            class="ring-2 ring-neutral-200 dark:ring-neutral-700 transition-all group-hover:ring-primary" />
 
                         <!-- Overlay on hover -->
                         <div

@@ -60,7 +60,7 @@ const handleGoogleLogin = async () => {
 
         <UCard class="shadow-lg">
             <div v-if="emailConfirmationRequired" class="py-8 px-4 flex flex-col items-center">
-                <UIcon name="lucide:mail-check" class="h-12 w-12 mx-auto text-primary-500 mb-4" />
+                <UIcon name="lucide:mail-check" class="h-12 w-12 mx-auto text-primary mb-4" />
                 <h2 class="text-xl font-semibold text-center mb-2">Vérifiez votre email</h2>
                 <p class="text-neutral-500 dark:text-neutral-400 text-center mb-4">
                     Nous avons envoyé un lien de confirmation à <span class="font-medium">{{ formData.email }}</span>.
@@ -121,7 +121,7 @@ const handleGoogleLogin = async () => {
                 <div class="text-center pt-2">
                     <p class="text-sm text-neutral-600 dark:text-neutral-400">
                         Vous avez déjà un compte ?
-                        <NuxtLink to="/login" class="font-medium text-primary-600 hover:text-primary-500">
+                        <NuxtLink to="/login" class="font-medium text-primary hover:text-primary">
                             Se connecter
                         </NuxtLink>
                     </p>

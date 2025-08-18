@@ -29,133 +29,115 @@
                             </div>
                         </div>
 
-                        <!-- Status Badge in Header -->
-                        <div class="flex items-center gap-2">
-                            <UBadge :color="getStatusColor(moodboardStore.moodboard?.status)" variant="soft"
-                                :label="getStatusLabel(moodboardStore.moodboard?.status || 'Inconnu', 'moodboard')" />
-                        </div>
+                        <!-- Status Stepper in Header -->
+                        <ProjectSharedWorkflowSteps :current-status="moodboardStore.moodboard?.status || 'draft'"
+                            type="moodboard" />
                     </div>
                 </template>
 
-                <div class="space-y-6">
+                <div class="space-y-8">
                     <!-- Moodboard Information -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Titre</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ moodboardStore.moodboard?.title }}
-                            </p>
-                        </div>
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Images</span>
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-lucide-images" class="w-4 h-4 text-neutral-500" />
-                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    {{ moodboardStore.imageCount }} image{{ moodboardStore.imageCount > 1 ? 's' : '' }}
-                                    d'inspiration
-                                </span>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-info" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations générales
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails du moodboard</p>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Description -->
-                    <div v-if="moodboardStore.moodboard?.description" class="space-y-2">
-                        <span
-                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Description</span>
                         <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            {{ moodboardStore.moodboard.description }}
+                            <span class="font-semibold">Titre :</span> {{ moodboardStore.moodboard?.title }}
                         </p>
-                    </div>
 
-                    <!-- Revision Comment -->
-                    <div v-if="moodboardStore.moodboard?.status === 'revision_requested' && moodboardStore.moodboard?.revision_last_comment"
-                        class="space-y-2">
-                        <span
-                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Commentaire
-                            de
-                            révision</span>
-                        <div
-                            class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                            <div class="flex items-start gap-3">
-                                <UIcon name="i-lucide-message-circle"
-                                    class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                <div class="flex-1">
-                                    <p class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
-                                        Demande de révision du client
-                                    </p>
-                                    <p class="text-sm text-amber-800 dark:text-amber-200">
-                                        {{ moodboardStore.moodboard.revision_last_comment }}
-                                    </p>
-                                </div>
-                            </div>
+                        <div v-if="moodboardStore.moodboard?.description"
+                            class="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                            <p class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                                {{ moodboardStore.moodboard.description }}
+                            </p>
                         </div>
                     </div>
 
                     <!-- Images Preview -->
-                    <div v-if="moodboardStore.hasImages" class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Aperçu
-                                des
-                                images</span>
+                    <div v-if="moodboardStore.hasImages" class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-images" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Aperçu des images</h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                                    {{ moodboardStore.imageCount }} image{{ moodboardStore.imageCount > 1 ? 's' : '' }}
+                                    d'inspiration
+                                </p>
+                            </div>
                         </div>
                         <ProjectMoodboardImageGrid :images="Array.from(moodboardStore.moodboard?.images || [])"
                             :can-delete="false" :is-editing="false" :max-preview="6"
                             @delete-image="handleDeleteImage" />
                     </div>
 
-                    <!-- Contextual Actions -->
-                    <div
-                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
-                        <!-- Edit Action - Available for draft and revision_requested -->
-                        <UTooltip v-if="moodboardStore.canEdit && !isProjectCompleted" text="Modifier le moodboard">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                @click="moodboardStore.openForm()" />
-                        </UTooltip>
-                        <UTooltip v-else-if="moodboardStore.canEdit && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                disabled />
-                        </UTooltip>
+                    <!-- Revision Comment -->
+                    <div v-if="moodboardStore.moodboard?.status === 'revision_requested' && moodboardStore.moodboard?.revision_last_comment"
+                        class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-message-circle" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Commentaire de révision
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Demande de modification du
+                                    client</p>
+                            </div>
+                        </div>
 
-                        <!-- Send to Client Action - Available for draft and revision_requested -->
-                        <UTooltip
-                            v-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'revision_requested') && !isProjectCompleted"
-                            text="Envoyer le moodboard au client">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" :loading="moodboardStore.loading" @click="sendToClient()" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'revision_requested') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" disabled />
-                        </UTooltip>
-
-                        <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="moodboardStore.moodboard?.status !== 'draft'" text="Voir l'aperçu client">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" :to="`/moodboard/${moodboardStore.moodboard?.id}`"
-                                target="_blank" />
-                        </UTooltip>
-
-                        <!-- Delete Action - Only for draft and awaiting_client -->
-                        <UTooltip
-                            v-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'awaiting_client') && !isProjectCompleted"
-                            text="Supprimer le moodboard">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                :loading="moodboardStore.loading" @click="handleDelete" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'awaiting_client') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                disabled />
-                        </UTooltip>
+                        <div
+                            class="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                            <p
+                                class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed break-words whitespace-pre-line">
+                                {{ moodboardStore.moodboard.revision_last_comment }}
+                            </p>
+                        </div>
                     </div>
+
                 </div>
+
+                <template #footer>
+                    <div class="flex items-center justify-between">
+                        <!-- Secondary Actions -->
+                        <div class="flex items-center gap-1">
+                            <UTooltip
+                                v-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'awaiting_client') && !isProjectCompleted"
+                                text="Supprimer le moodboard">
+                                <UButton icon="i-lucide-trash-2" size="sm" variant="ghost" color="error"
+                                    :loading="moodboardStore.loading" @click="handleDelete" />
+                            </UTooltip>
+                        </div>
+
+                        <!-- Primary Actions -->
+                        <div class="flex items-center gap-2">
+                            <UButton v-if="moodboardStore.canEdit && !isProjectCompleted" icon="i-lucide-edit" size="sm"
+                                variant="outline" color="neutral" label="Modifier" @click="moodboardStore.openForm()" />
+
+                            <!-- Main CTA based on status -->
+                            <UButton
+                                v-if="(moodboardStore.moodboard?.status === 'draft' || moodboardStore.moodboard?.status === 'revision_requested') && !isProjectCompleted"
+                                icon="i-lucide-send" size="sm" variant="solid" color="primary" label="Envoyer au client"
+                                :loading="moodboardStore.loading" @click="sendToClient()" />
+
+                            <UButton v-if="moodboardStore.moodboard?.status !== 'draft'" icon="i-lucide-external-link"
+                                size="sm" label="Voir l'aperçu client" variant="ghost" color="neutral"
+                                :to="`/moodboard/${moodboardStore.moodboard?.id}`" target="_blank" />
+                        </div>
+                    </div>
+                </template>
             </UCard>
         </div>
 
@@ -255,7 +237,6 @@
 
 <script lang="ts" setup>
 import type { MoodboardFormData } from "~/types/moodboard";
-import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()

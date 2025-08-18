@@ -1,7 +1,7 @@
 <template>
     <div class="group relative bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 transition-all cursor-pointer"
         :class="{
-            'border-primary-300 dark:border-primary-700 shadow-lg': isSelected,
+            'border-primary dark:border-primary shadow-lg': isSelected,
             'hover:border-neutral-300 dark:hover:border-neutral-600': !isSelected
         }" @click="$emit('select')">
         <!-- Component Actions (on hover) -->

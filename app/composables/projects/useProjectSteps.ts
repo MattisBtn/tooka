@@ -32,7 +32,7 @@ export const normalizeModule = (
   return { exists: false };
 };
 
-// Simple logic to determine if a step is accessible
+// Corrected logic to determine if a step is accessible
 const isStepAccessible = (
   stepNumber: WorkflowStep,
   project: {
@@ -57,31 +57,32 @@ const isStepAccessible = (
     return true;
   }
 
-  // Si le step existe, il est accessible
-  if (moduleExists(stepNumber)) {
-    return true;
-  }
-
   // Si step 4 terminé : seuls les terminés sont accessibles
   if (moduleCompleted(4)) {
     return moduleCompleted(stepNumber);
   }
 
-  // Nouvelle règle : seuls les steps supérieurs au dernier step terminé sont accessibles
-  let lastCompletedStep = 0;
-  for (let i = 1; i <= 4; i++) {
-    if (moduleCompleted(i)) {
-      lastCompletedStep = i;
-    }
-  }
-
-  // Si on a un step terminé et que le step demandé est supérieur au dernier terminé
-  if (lastCompletedStep > 0 && stepNumber > lastCompletedStep) {
+  // Si le step existe, il est accessible
+  if (moduleExists(stepNumber)) {
     return true;
   }
 
-  // Si aucune règle précédente ne s'applique, le step n'est pas accessible
-  return false;
+  // Vérifier qu'aucun step antérieur n'est en cours (non terminé)
+  for (let i = 1; i < stepNumber; i++) {
+    if (moduleExists(i) && !moduleCompleted(i)) {
+      return false; // Step antérieur en cours → verrouillé
+    }
+  }
+
+  // Vérifier qu'aucun step ultérieur n'est en cours (non terminé)
+  for (let i = stepNumber + 1; i <= 4; i++) {
+    if (moduleExists(i) && !moduleCompleted(i)) {
+      return false; // Step ultérieur en cours → verrouillé
+    }
+  }
+
+  // Step accessible si tous les antérieurs terminés et aucun ultérieur en cours
+  return true;
 };
 
 // Determine step status based on project modules

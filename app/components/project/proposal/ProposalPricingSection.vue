@@ -31,7 +31,7 @@
                     @update:model-value="updateDepositRequired" />
             </UFormField>
 
-            <div v-if="depositRequired" class="space-y-4 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
+            <div v-if="depositRequired" class="space-y-4 pl-4 border-l-2 border-primary dark:border-primary-800">
                 <!-- Payment Method -->
                 <UFormField label="Méthode de paiement" name="payment_method" required>
                     <USelectMenu :model-value="projectPayment.payment_method || undefined" value-key="value"
@@ -46,7 +46,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
                                 <span v-if="depositPercentage > 0"
-                                    class="text-xs font-medium text-primary-600 dark:text-primary-400">
+                                    class="text-xs font-medium text-primary dark:text-primary">
                                     ({{ depositPercentage }}%)
                                 </span>
                             </div>

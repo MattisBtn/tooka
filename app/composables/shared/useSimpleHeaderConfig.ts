@@ -3,14 +3,14 @@ import type { SimpleHeaderConfig } from "~/components/shared/SimpleHeader.vue";
 export const useSimpleHeaderConfig = () => {
   const getGalleryConfig = (): SimpleHeaderConfig => ({
     icon: "i-heroicons-camera",
-    iconBgClass: "bg-primary-500",
+    iconBgClass: "bg-primary",
     showLogo: true,
     showColorToggle: true,
   });
 
   const getMoodboardConfig = (): SimpleHeaderConfig => ({
     icon: "i-heroicons-camera",
-    iconBgClass: "bg-primary-500",
+    iconBgClass: "bg-primary",
     showLogo: true,
     showColorToggle: true,
   });

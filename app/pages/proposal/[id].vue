@@ -26,8 +26,7 @@
                 <!-- Loading state -->
                 <div v-else-if="loading" class="min-h-screen flex items-center justify-center">
                     <div class="text-center">
-                        <UIcon name="i-heroicons-arrow-path"
-                            class="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
+                        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
                         <p class="text-neutral-600 dark:text-neutral-400">Chargement de la proposition...</p>
                     </div>
                 </div>

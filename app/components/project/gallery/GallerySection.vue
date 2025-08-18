@@ -29,61 +29,87 @@
                             </div>
                         </div>
 
-                        <!-- Status Badge in Header -->
-                        <div class="flex items-center gap-2">
-                            <UBadge :color="getStatusColor(galleryStore.gallery?.status)" variant="soft"
-                                :label="getStatusLabel(galleryStore.gallery?.status || 'Inconnu', 'gallery')" />
-                        </div>
+                        <!-- Status Stepper in Header -->
+                        <ProjectSharedWorkflowSteps :current-status="galleryStore.gallery?.status || 'draft'"
+                            type="gallery" />
                     </div>
                 </template>
 
-                <div class="space-y-6">
+                <div class="space-y-8">
                     <!-- Gallery Information -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Images</span>
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-lucide-images" class="w-4 h-4 text-neutral-500" />
-                                <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                                    {{ galleryStore.imageCount }} image{{ galleryStore.imageCount > 1 ? 's' : '' }}
-                                    uploadée{{ galleryStore.imageCount > 1 ? 's' : '' }}
-                                </span>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-info" class="w-4 h-4 text-white dark:text-black" />
                             </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations générales
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails de la galerie</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Add other general info here if needed -->
                         </div>
                     </div>
 
-                    <!-- Pricing Information -->
-                    <div v-if="shouldShowPricing" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Prix
-                                total</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ galleryStore.formattedBasePrice }}
-                            </p>
+                    <!-- Pricing Section -->
+                    <div v-if="!isFree" class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-euro" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations tarifaires
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions de paiement
+                                </p>
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Acompte
-                                payé</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ galleryStore.formattedDepositPaid }}
-                            </p>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-neutral-600 dark:text-neutral-400">Prix</span>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ galleryStore.formattedBasePrice }}
+                                </span>
+                            </div>
+                            <div v-if="galleryStore.pricing?.depositPaid > 0" class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-sm text-neutral-600 dark:text-neutral-400">Acompte</span>
+                                    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                                        {{ getDepositPercentage() }}% du prix total
+                                    </p>
+                                </div>
+                                <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                                    {{ galleryStore.formattedDepositPaid }}
+                                </span>
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Reste
-                                à
-                                payer</span>
-                            <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                                {{ galleryStore.formattedRemainingAmount }}
-                            </p>
+
+                        <!-- Payment Method -->
+                        <div v-if="galleryStore.pricing?.depositPaid > 0" class="flex items-center justify-between">
+                            <span class="text-sm text-neutral-600 dark:text-neutral-400">Méthode de paiement</span>
+                            <UBadge :color="getPaymentMethodColor()" variant="soft" :label="getPaymentMethodLabel()" />
                         </div>
                     </div>
 
                     <!-- Completion Message for completed galleries -->
-                    <div v-if="galleryStore.gallery?.status === 'completed'" class="grid grid-cols-1 gap-4">
+                    <div v-if="galleryStore.gallery?.status === 'completed'" class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Galerie livrée</h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Le client a validé et payé la
+                                    galerie</p>
+                            </div>
+                        </div>
                         <div
                             class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
                             <div class="flex items-center gap-3">
@@ -101,94 +127,87 @@
                         </div>
                     </div>
 
-                    <!-- Revision Comment -->
-                    <div v-if="galleryStore.gallery?.status === 'revision_requested' && galleryStore.gallery?.revision_last_comment"
-                        class="space-y-2">
-                        <span
-                            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Commentaire
-                            de
-                            révision</span>
-                        <div
-                            class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                            <div class="flex items-start gap-3">
-                                <UIcon name="i-lucide-message-circle"
-                                    class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                <div class="flex-1">
-                                    <p class="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
-                                        Demande de révision du client
-                                    </p>
-                                    <p class="text-sm text-amber-800 dark:text-amber-200">
-                                        {{ galleryStore.gallery.revision_last_comment }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Images Preview -->
-                    <div v-if="galleryStore.hasImages" class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Aperçu
-                                des
-                                images</span>
+                    <div v-if="galleryStore.hasImages" class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-images" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Aperçu des images</h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">
+                                    {{ galleryStore.imageCount }} image{{ galleryStore.imageCount > 1 ? 's' : '' }} de
+                                    la galerie
+                                </p>
+                            </div>
                         </div>
                         <ProjectGalleryImageGrid :images="galleryStore.gallery?.images || []" :can-delete="false"
                             :max-preview="6" @delete-image="handleDeleteImage" />
                     </div>
 
-                    <!-- Contextual Actions -->
-                    <div
-                        class="flex items-center gap-2 pt-4 border-t border-neutral-200 dark:border-neutral-700 justify-end">
-                        <!-- Edit Action - Available for draft and revision_requested -->
-                        <UTooltip v-if="galleryStore.canEdit && !isProjectCompleted" text="Modifier la galerie">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                @click="galleryStore.openForm()" />
-                        </UTooltip>
-                        <UTooltip v-else-if="galleryStore.canEdit && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-edit" size="sm" variant="outline" color="neutral" label="Modifier"
-                                disabled />
-                        </UTooltip>
+                    <!-- Revision Comment -->
+                    <div v-if="galleryStore.gallery?.status === 'revision_requested' && galleryStore.gallery?.revision_last_comment"
+                        class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                <UIcon name="i-lucide-message-circle" class="w-4 h-4 text-white dark:text-black" />
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Commentaire de révision
+                                </h4>
+                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Demande de modification du
+                                    client</p>
+                            </div>
+                        </div>
 
-                        <!-- Send to Client Action - Available for draft and revision_requested -->
-                        <UTooltip
-                            v-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'revision_requested') && !isProjectCompleted"
-                            text="Envoyer la galerie au client">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" :loading="galleryStore.loading" @click="sendToClient()" />
-                        </UTooltip>
-                        <UTooltip
-                            v-else-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'revision_requested') && isProjectCompleted"
-                            text="Le projet est terminé. Rafraîchissez la page pour voir les dernières modifications.">
-                            <UButton icon="i-lucide-send" size="sm" variant="solid" color="primary"
-                                label="Envoyer au client" disabled />
-                        </UTooltip>
+                        <div
+                            class="bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4">
+                            <p
+                                class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed break-words whitespace-pre-line">
+                                {{ galleryStore.gallery.revision_last_comment }}
+                            </p>
+                        </div>
+                    </div>
 
-                        <!-- Preview Action - Available for all non-draft statuses -->
-                        <UTooltip v-if="galleryStore.gallery?.status !== 'draft'" text="Voir l'aperçu client">
-                            <UButton icon="i-lucide-external-link" size="sm" variant="outline" color="neutral"
-                                label="Aperçu client" :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
-                        </UTooltip>
+                </div>
 
-                        <!-- Confirm Payment Action - Only for payment_pending and bank_transfer -->
-                        <UTooltip
-                            v-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && galleryStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
-                            text="Confirmer le paiement reçu">
-                            <UButton icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
+                <template #footer>
+                    <div class="flex items-center justify-between">
+                        <!-- Secondary Actions -->
+                        <div class="flex items-center gap-1">
+                            <UTooltip
+                                v-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'awaiting_client') && !isProjectCompleted"
+                                text="Supprimer la galerie">
+                                <UButton icon="i-lucide-trash-2" size="sm" variant="ghost" color="error"
+                                    :loading="galleryStore.loading" @click="handleDelete" />
+                            </UTooltip>
+                        </div>
+
+                        <!-- Primary Actions -->
+                        <div class="flex items-center gap-2">
+                            <UButton v-if="galleryStore.canEdit && !isProjectCompleted" icon="i-lucide-edit" size="sm"
+                                variant="outline" color="neutral" label="Modifier" @click="galleryStore.openForm()" />
+
+                            <!-- Main CTA based on status -->
+                            <UButton
+                                v-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'revision_requested') && !isProjectCompleted"
+                                icon="i-lucide-send" size="sm" variant="solid" color="primary" label="Envoyer au client"
+                                :loading="galleryStore.loading" @click="sendToClient()" />
+
+                            <UButton
+                                v-else-if="!isFree && galleryStore.gallery?.status === 'payment_pending' && galleryStore.project?.payment_method === 'bank_transfer' && !isProjectCompleted"
+                                icon="i-lucide-check-circle" size="sm" variant="solid" color="success"
                                 label="Confirmer paiement" :loading="galleryStore.loading"
                                 @click="handleConfirmPayment" />
-                        </UTooltip>
 
-                        <!-- Delete Action - Only for draft and awaiting_client -->
-                        <UTooltip
-                            v-if="(galleryStore.gallery?.status === 'draft' || galleryStore.gallery?.status === 'awaiting_client') && !isProjectCompleted"
-                            text="Supprimer la galerie">
-                            <UButton icon="i-lucide-trash-2" size="sm" variant="outline" color="error" label="Supprimer"
-                                :loading="galleryStore.loading" @click="handleDelete" />
-                        </UTooltip>
+                            <UButton v-if="galleryStore.gallery?.status !== 'draft'" icon="i-lucide-external-link"
+                                size="sm" label="Voir l'aperçu client" variant="ghost" color="neutral"
+                                :to="`/gallery/${galleryStore.gallery?.id}`" target="_blank" />
+                        </div>
                     </div>
-                </div>
+                </template>
             </UCard>
         </div>
 
@@ -287,7 +306,6 @@
 
 <script lang="ts" setup>
 import type { GalleryFormData, ProjectPaymentData } from "~/types/gallery";
-import { getStatusColor, getStatusLabel } from "~/utils/formatters";
 
 // Use stores
 const projectSetupStore = useProjectSetupStore()
@@ -313,6 +331,26 @@ const shouldShowPricing = computed(() => {
         galleryStore.pricing &&
         galleryStore.gallery?.status !== 'completed';
 })
+
+// Helper functions for pricing display
+const getDepositPercentage = () => {
+    if (!galleryStore.pricing?.depositPaid || !galleryStore.pricing?.basePrice) return 0;
+    return Math.round((galleryStore.pricing.depositPaid / galleryStore.pricing.basePrice) * 100);
+}
+
+const getPaymentMethodColor = () => {
+    const method = galleryStore.project?.payment_method;
+    if (method === 'bank_transfer') return 'info';
+    if (method === 'stripe') return 'success';
+    return 'neutral';
+}
+
+const getPaymentMethodLabel = () => {
+    const method = galleryStore.project?.payment_method;
+    if (method === 'bank_transfer') return 'Virement bancaire';
+    if (method === 'stripe') return 'Carte bancaire';
+    return 'Non défini';
+}
 
 // Computed for proposal payment info
 const proposalPaymentInfo = computed(() => {

@@ -175,7 +175,7 @@ export const userProfileService = {
         title: "Informations personnelles",
         description: "Votre nom et téléphone",
         icon: "i-heroicons-user",
-        color: "from-primary-500 to-primary-600",
+        color: "from-primary to-primary",
         fields: ["first_name", "last_name", "phone"],
       },
       {

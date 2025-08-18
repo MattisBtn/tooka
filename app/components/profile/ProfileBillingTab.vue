@@ -30,7 +30,7 @@
                     </div>
 
                     <div v-if="isLoadingSubscription" class="flex items-center justify-center py-8">
-                        <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary-500" />
+                        <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary" />
                         <span class="ml-2 text-neutral-600 dark:text-neutral-400">Chargement de l'abonnement...</span>
                     </div>
 
@@ -63,7 +63,7 @@
                                         'Expire le' : 'Prochaine facturation' }}:
                                 </span>
                                 <span>{{ formatDate(subscriptionStore.currentSubscription.subscription_end_date)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
 

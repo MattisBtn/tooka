@@ -178,21 +178,38 @@ const getStepTooltip = (stepNumber: WorkflowStep) => {
     }
 
     if (status?.status === 'locked') {
-        // Vérifier si des steps ultérieurs sont déjà avancés
-        const hasAdvancedSteps = (() => {
+        // Vérifier si un step antérieur est en cours (non terminé)
+        const hasInProgressPreviousStep = (() => {
             if (!projectSetupStore.project) return false
 
-            for (let i = stepNumber + 1; i <= 4; i++) {
-                const futureStepStatus = getStepDisplayStatus(i as WorkflowStep)
-                if (futureStepStatus?.moduleExists || futureStepStatus?.moduleStatus === 'completed') {
+            for (let i = 1; i < stepNumber; i++) {
+                const previousStepStatus = getStepDisplayStatus(i as WorkflowStep)
+                if (previousStepStatus?.moduleExists && previousStepStatus?.moduleStatus !== 'completed') {
                     return true
                 }
             }
             return false
         })()
 
-        if (hasAdvancedSteps) {
-            return `${stepName} : Ce module ne peut plus être modifié car le workflow a avancé.`
+        // Vérifier si un step ultérieur est en cours (non terminé)
+        const hasInProgressNextStep = (() => {
+            if (!projectSetupStore.project) return false
+
+            for (let i = stepNumber + 1; i <= 4; i++) {
+                const nextStepStatus = getStepDisplayStatus(i as WorkflowStep)
+                if (nextStepStatus?.moduleExists && nextStepStatus?.moduleStatus !== 'completed') {
+                    return true
+                }
+            }
+            return false
+        })()
+
+        if (hasInProgressPreviousStep) {
+            return `${stepName} : Ce module est verrouillé car une étape précédente est en cours.`
+        }
+
+        if (hasInProgressNextStep) {
+            return `${stepName} : Ce module est verrouillé car une étape ultérieure est en cours.`
         }
 
         return `${stepName} : Ce module sera accessible après avoir terminé les étapes précédentes.`

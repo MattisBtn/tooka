@@ -32,14 +32,6 @@
                         resize class="w-full" />
                 </UFormField>
             </div>
-
-            <!-- Moodboard Purpose Info -->
-            <UAlert color="info" variant="soft" icon="i-lucide-palette" title="Objectif du moodboard">
-                <template #description>
-                    Le moodboard permet de partager votre vision artistique avec le client et d'aligner les attentes
-                    sur le style, l'ambiance et les couleurs du projet photographique.
-                </template>
-            </UAlert>
         </div>
 
         <USeparator />

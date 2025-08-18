@@ -43,13 +43,13 @@
                         <!-- Available Components -->
                         <div class="flex-1 p-4 space-y-3 overflow-y-auto">
                             <div v-for="component in availableComponents" :key="component.type"
-                                class="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer transition-all hover:shadow-sm group"
+                                class="p-4 bg-neutral-50 dark:bgprimary0 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary cursor-pointer transition-all hover:shadow-sm group"
                                 @click="addComponent(component.type as 'title' | 'paragraph' | 'list' | 'button' | 'separator' | 'pricing' | 'portfolio')">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center group-hover:bg-primary-200 dark:group-hover:bg-primary-800 transition-colors">
+                                        class="w-10 h-10 bg-primary dark:bg-primary rounded-lg flex items-center justify-center group-hover:bg-primary dark:group-hover:bg-primary-800 transition-colors">
                                         <UIcon :name="component.icon"
-                                            class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                            class="w-5 h-5 text-primary-600 dark:text-primary" />
                                     </div>
                                     <div>
                                         <h4 class="font-medium text-neutral-900 dark:text-neutral-100">
@@ -158,7 +158,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <UIcon :name="getComponentIcon(selectedComponent?.type)"
-                                            class="w-5 h-5 text-primary-500" />
+                                            class="w-5 h-5 text-primary" />
                                         <h3 class="font-semibold text-neutral-900 dark:text-neutral-100">{{
                                             getComponentLabel(selectedComponent?.type) }}</h3>
                                     </div>

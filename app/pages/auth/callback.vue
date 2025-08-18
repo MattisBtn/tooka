@@ -66,7 +66,7 @@ onMounted(async () => {
     <div class="flex items-center justify-center min-h-screen">
         <div class="text-center">
             <div v-if="loading" class="space-y-4">
-                <UIcon name="lucide:loader-2" class="h-8 w-8 mx-auto animate-spin text-primary-500" />
+                <UIcon name="lucide:loader-2" class="h-8 w-8 mx-auto animate-spin text-primary" />
                 <p class="text-neutral-600 dark:text-neutral-400">Authentification en cours...</p>
             </div>
 
