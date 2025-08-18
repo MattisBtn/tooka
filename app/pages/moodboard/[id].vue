@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { useClientMoodboardActions } from '~/composables/moodboards/client/useClientMoodboardActions'
 import { useClientConfig } from '~/composables/shared/useClientConfig'
+import { useErrorHandler } from '~/composables/shared/useErrorHandler'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
 import { useClientMoodboardStore } from '~/stores/public/moodboard'
@@ -93,6 +94,9 @@ const simpleHeaderConfig = getMoodboardHeaderConfig();
 // Get error and footer configurations
 const { getMoodboardErrorConfig } = useClientConfig();
 const errorConfig = getMoodboardErrorConfig();
+
+// Error handler
+const { createNuxtError } = useErrorHandler();
 
 // Use client moodboard store and actions
 const store = useClientMoodboardStore()
@@ -160,12 +164,11 @@ useHead({
 })
 
 // Handle errors
-if (store.error) {
-    throw createError({
-        statusCode: 404,
-        message: 'Moodboard non trouvé',
-    })
-}
+watchEffect(() => {
+    if (store.error) {
+        throw createNuxtError(store.error.message);
+    }
+});
 </script>
 
 <style></style>

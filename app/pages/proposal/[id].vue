@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { useClientProposal } from '~/composables/proposals/client/useClientProposal';
 import { useClientConfig } from '~/composables/shared/useClientConfig';
+import { useErrorHandler } from '~/composables/shared/useErrorHandler';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 
@@ -84,6 +85,9 @@ const simpleHeaderConfig = getProposalHeaderConfig();
 // Get error and footer configurations
 const { getProposalErrorConfig } = useClientConfig();
 const errorConfig = getProposalErrorConfig();
+
+// Error handler
+const { createNuxtError } = useErrorHandler();
 
 // Use client proposal composable
 const {
@@ -160,6 +164,13 @@ useHead({
     meta: [
         { name: "robots", content: "noindex, nofollow" },
     ],
+});
+
+// Handle errors
+watchEffect(() => {
+    if (error.value) {
+        throw createNuxtError(error.value.message);
+    }
 });
 </script>
 

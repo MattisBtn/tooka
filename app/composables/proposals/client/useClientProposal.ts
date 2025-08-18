@@ -18,13 +18,20 @@ export const useClientProposal = async (proposalId: string) => {
       key: `proposal-client-${proposalId}`,
       server: false,
       onResponseError({ response }) {
-        if (response.status === 404) {
-          error.value = new Error("Proposition non trouvée");
-        } else if (response.status === 403) {
-          error.value = new Error("Proposition non accessible");
-        } else {
-          error.value = new Error("Erreur lors du chargement");
+        const status = response.status;
+        let errorMessage = "Erreur lors du chargement";
+
+        if (status === 404) {
+          errorMessage = "Proposition non trouvée";
+        } else if (status === 403) {
+          errorMessage = "Proposition non accessible";
+        } else if (status === 401) {
+          errorMessage = "Accès non autorisé";
+        } else if (status >= 500) {
+          errorMessage = "Erreur serveur";
         }
+
+        error.value = new Error(errorMessage);
       },
     }
   );
@@ -87,8 +94,22 @@ export const useClientProposal = async (proposalId: string) => {
     { immediate: true }
   );
 
+  // Handle fetch errors
   if (fetchError.value) {
-    error.value = fetchError.value;
+    const status = fetchError.value?.statusCode || 500;
+    let errorMessage = "Erreur lors du chargement";
+
+    if (status === 404) {
+      errorMessage = "Proposition non trouvée";
+    } else if (status === 403) {
+      errorMessage = "Proposition non accessible";
+    } else if (status === 401) {
+      errorMessage = "Accès non autorisé";
+    } else if (status >= 500) {
+      errorMessage = "Erreur serveur";
+    }
+
+    error.value = new Error(errorMessage);
   }
 
   loading.value = pending.value;

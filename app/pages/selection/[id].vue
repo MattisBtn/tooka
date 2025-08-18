@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { useClientSelectionActions } from '~/composables/selections/client/useClientSelectionActions'
 import { useClientConfig } from '~/composables/shared/useClientConfig'
+import { useErrorHandler } from '~/composables/shared/useErrorHandler'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
 import { useClientSelectionStore } from '~/stores/public/selection'
@@ -96,6 +97,9 @@ const simpleHeaderConfig = getSelectionHeaderConfig();
 // Get error and footer configurations
 const { getSelectionErrorConfig } = useClientConfig();
 const errorConfig = getSelectionErrorConfig();
+
+// Error handler
+const { createNuxtError } = useErrorHandler();
 
 // Use client selection store and actions
 const store = useClientSelectionStore()
@@ -152,12 +156,11 @@ useHead({
 })
 
 // Handle errors
-if (store.error) {
-    throw createError({
-        statusCode: 404,
-        message: 'Sélection non trouvée',
-    })
-}
+watchEffect(() => {
+    if (store.error) {
+        throw createNuxtError(store.error.message);
+    }
+});
 </script>
 
 <style></style>

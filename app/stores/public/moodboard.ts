@@ -104,13 +104,30 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
         auth.value.initializeAuth();
       }
     } catch (err) {
-      if (err instanceof Error && err.message.includes("404")) {
-        error.value = new Error("Moodboard non trouvé");
-      } else if (err instanceof Error && err.message.includes("403")) {
-        error.value = new Error("Moodboard non accessible");
-      } else {
-        error.value = new Error("Erreur lors du chargement");
+      let errorMessage = "Erreur lors du chargement";
+
+      if (err instanceof Error) {
+        if (err.message.includes("404") || err.message.includes("not found")) {
+          errorMessage = "Moodboard non trouvé";
+        } else if (
+          err.message.includes("403") ||
+          err.message.includes("forbidden")
+        ) {
+          errorMessage = "Moodboard non accessible";
+        } else if (
+          err.message.includes("401") ||
+          err.message.includes("unauthorized")
+        ) {
+          errorMessage = "Accès non autorisé";
+        } else if (
+          err.message.includes("500") ||
+          err.message.includes("server")
+        ) {
+          errorMessage = "Erreur serveur";
+        }
       }
+
+      error.value = new Error(errorMessage);
       throw err;
     } finally {
       loading.value = false;
@@ -174,11 +191,7 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   };
 
   const updateMoodboardStatus = (
-    status:
-      | "draft"
-      | "awaiting_client"
-      | "revision_requested"
-      | "completed"
+    status: "draft" | "awaiting_client" | "revision_requested" | "completed"
   ) => {
     if (moodboard.value) {
       moodboard.value.status = status;

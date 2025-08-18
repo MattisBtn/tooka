@@ -115,12 +115,28 @@ export const useClientGalleryStore = defineStore("clientGallery", () => {
         auth.value.initializeAuth();
       }
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error && err.message.includes("404")
-          ? "Galerie non trouvée"
-          : err instanceof Error && err.message.includes("403")
-          ? "Galerie non accessible"
-          : "Erreur lors du chargement";
+      let errorMessage = "Erreur lors du chargement";
+
+      if (err instanceof Error) {
+        if (err.message.includes("404") || err.message.includes("not found")) {
+          errorMessage = "Galerie non trouvée";
+        } else if (
+          err.message.includes("403") ||
+          err.message.includes("forbidden")
+        ) {
+          errorMessage = "Galerie non accessible";
+        } else if (
+          err.message.includes("401") ||
+          err.message.includes("unauthorized")
+        ) {
+          errorMessage = "Accès non autorisé";
+        } else if (
+          err.message.includes("500") ||
+          err.message.includes("server")
+        ) {
+          errorMessage = "Erreur serveur";
+        }
+      }
 
       error.value = new Error(errorMessage);
       throw err;

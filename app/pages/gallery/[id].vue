@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { useClientGalleryActions } from '~/composables/galleries/client/useClientGalleryActions';
 import { useClientConfig } from '~/composables/shared/useClientConfig';
+import { useErrorHandler } from '~/composables/shared/useErrorHandler';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 import { useClientGalleryStore } from '~/stores/public/gallery';
@@ -97,13 +98,15 @@ const simpleHeaderConfig = getGalleryHeaderConfig();
 const { getGalleryErrorConfig } = useClientConfig();
 const errorConfig = getGalleryErrorConfig();
 
+// Error handler
+const { createNuxtError } = useErrorHandler();
+
 // Store and actions
 const store = useClientGalleryStore();
 const actions = useClientGalleryActions();
 
 // Load gallery data
 await store.loadGallery(galleryId);
-
 
 // Store methods
 const verifyPassword = store.verifyPassword;
@@ -149,10 +152,7 @@ useHead({
 // Handle errors
 watchEffect(() => {
   if (store.error) {
-    throw createError({
-      statusCode: 404,
-      message: "Galerie non trouvée",
-    });
+    throw createNuxtError(store.error.message);
   }
 });
 </script>
