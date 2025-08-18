@@ -10,6 +10,6 @@
 const config = useRuntimeConfig();
 
 useScriptCrisp({
-  id: config.public.CRISP_ID as string,
+  id: config.public.crispId as string,
 });
 </script>

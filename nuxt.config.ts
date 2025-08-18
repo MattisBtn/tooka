@@ -60,9 +60,9 @@ export default defineNuxtConfig({
       companySearchApiUrl: "https://recherche-entreprises.api.gouv.fr",
       STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
       baseUrl: process.env.BASE_URL || "http://localhost:3000",
+      crispId: process.env.CRISP_ID,
     },
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-    CRISP_ID: process.env.CRISP_ID,
   },
 });
