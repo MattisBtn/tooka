@@ -32,7 +32,8 @@
 
         <!-- Filter Bar -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center justify-between">
+            <!-- Desktop: Horizontal layout -->
+            <div class="hidden md:flex items-center justify-between">
                 <!-- Filter Dropdown -->
                 <UDropdownMenu :items="filterDropdownItems" :popper="{ placement: 'bottom-start' }">
                     <UButton icon="i-lucide-filter" :label="filterButtonLabel" color="neutral" variant="outline"
@@ -41,6 +42,29 @@
 
                 <!-- Active filters display -->
                 <div v-if="activeFilters.length > 0" class="flex items-center gap-2">
+                    <UBadge v-for="filter in activeFilters" :key="filter" :color="getFilterColor(filter)" variant="soft"
+                        size="sm" class="cursor-pointer" @click="toggleFilter(filter)">
+                        <UIcon :name="getFilterIcon(filter)" class="w-3 h-3 mr-1" />
+                        {{ getFilterLabel(filter) }}
+                        <UIcon name="i-heroicons-x-mark-20-solid" class="w-3 h-3 ml-1" />
+                    </UBadge>
+                    <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" size="xs"
+                        @click="clearAllFilters">
+                        Effacer
+                    </UButton>
+                </div>
+            </div>
+
+            <!-- Mobile: Vertical layout -->
+            <div class="md:hidden space-y-3">
+                <!-- Filter controls row -->
+                <UDropdownMenu :items="filterDropdownItems" :popper="{ placement: 'bottom-start' }">
+                    <UButton icon="i-lucide-filter" :label="filterButtonLabel" color="neutral" variant="outline"
+                        size="sm" trailing-icon="i-heroicons-chevron-down-20-solid" />
+                </UDropdownMenu>
+
+                <!-- Active filters display -->
+                <div v-if="activeFilters.length > 0" class="flex flex-wrap items-center gap-2">
                     <UBadge v-for="filter in activeFilters" :key="filter" :color="getFilterColor(filter)" variant="soft"
                         size="sm" class="cursor-pointer" @click="toggleFilter(filter)">
                         <UIcon :name="getFilterIcon(filter)" class="w-3 h-3 mr-1" />
