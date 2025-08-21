@@ -136,8 +136,8 @@ const handleUploadImages = async (files: File[]) => {
 }
 
 // Handle add comment
-const handleAddComment = async (imageId: string, comment: string) => {
-    await actions.addComment(imageId, comment)
+const handleAddComment = async (imageId: string, comment: string, onSuccess?: () => void) => {
+    await actions.addComment(imageId, comment, onSuccess)
 }
 
 // Handle image reaction

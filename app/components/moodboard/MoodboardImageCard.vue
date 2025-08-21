@@ -16,7 +16,7 @@
 
             <!-- Desktop: Interactions overlay (hover only) -->
             <div v-if="canInteract || hasReactions || hasComments"
-                class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-between items-end p-4 hidden md:flex">
+                class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex md:justify-between md:items-end p-4">
 
                 <!-- Comments (bottom left) -->
                 <div v-if="canInteract || hasComments">
@@ -28,9 +28,7 @@
                     <UButton v-else-if="canInteract" variant="solid" color="neutral" size="sm"
                         icon="i-lucide-message-circle-plus"
                         class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900"
-                        @click.stop="showCommentModal = true">
-                        Commenter
-                    </UButton>
+                        @click.stop="showCommentModal = true" />
                 </div>
 
                 <!-- Reactions (bottom right) -->
@@ -105,9 +103,7 @@
                         icon="i-lucide-message-circle-plus"
                         class="backdrop-blur-sm bg-white/90 hover:bg-white text-neutral-900 shadow-lg"
                         aria-label="Ajouter un commentaire" title="Ajouter un commentaire"
-                        @click.stop="showCommentModal = true">
-                        <span class="text-xs font-medium">+</span>
-                    </UButton>
+                        @click.stop="showCommentModal = true" />
                 </div>
 
                 <!-- Reactions (bottom right) -->
@@ -205,7 +201,7 @@ interface Props {
 
 interface Emits {
     react: [reaction: 'love' | 'like' | 'dislike']
-    comment: [comment: string]
+    comment: [comment: string, onSuccess?: () => void]
     'open-preview': [image: MoodboardImageWithInteractions]
 }
 
@@ -227,7 +223,10 @@ const hasComments = computed(() => {
 
 // Comment methods
 const handleCommentAdded = (content: string) => {
-    emit('comment', content)
+    emit('comment', content, () => {
+        // Close modal after successful comment addition
+        showCommentModal.value = false
+    })
 }
 
 // Image preview methods

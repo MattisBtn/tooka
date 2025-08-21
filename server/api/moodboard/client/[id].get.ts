@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import type { Tables } from "~/types/database.types";
 import type { ClientMoodboardAccess } from "~/types/moodboard";
 
 export default defineEventHandler(
@@ -10,6 +11,17 @@ export default defineEventHandler(
     const page = parseInt(query.page as string) || 1;
     const pageSize = parseInt(query.pageSize as string) || 20;
     const offset = (page - 1) * pageSize;
+
+    // Filter parameters
+    const filters = {
+      commented: query.commented === "true",
+      love: query.love === "true",
+      like: query.like === "true",
+      dislike: query.dislike === "true",
+    };
+
+    // Check if any filters are active
+    const hasFilters = Object.values(filters).some(Boolean);
 
     if (!moodboardId) {
       throw createError({
@@ -27,13 +39,7 @@ export default defineEventHandler(
         .select(
           `
           *,
-          project:projects(
-            id,
-            title,
-            description,
-            password_hash,
-            status
-          )
+          project:projects(*)
         `
         )
         .eq("id", moodboardId)
@@ -61,8 +67,8 @@ export default defineEventHandler(
         });
       }
 
-      // Get images with comments and reactions in one optimized query
-      const { data: imagesData, error: imagesError } = await supabase
+      // Get all images with comments and reactions for filtering
+      const { data: allImagesData, error: imagesError } = await supabase
         .from("moodboard_images")
         .select(
           `
@@ -72,18 +78,42 @@ export default defineEventHandler(
         `
         )
         .eq("moodboard_id", moodboard.id)
-        .order("created_at", { ascending: true })
-        .range(offset, offset + pageSize - 1);
+        .order("created_at", { ascending: true });
 
       if (imagesError) {
         throw new Error(`Failed to fetch images: ${imagesError.message}`);
       }
 
-      // Get total count for pagination
-      const { count } = await supabase
-        .from("moodboard_images")
-        .select("id", { count: "exact" })
-        .eq("moodboard_id", moodboard.id);
+      // Apply filters if any are active
+      let filteredImages = allImagesData || [];
+
+      if (hasFilters) {
+        filteredImages = filteredImages.filter((image) => {
+          const hasComments = image.comments && image.comments.length > 0;
+          const reactionCounts = { love: 0, like: 0, dislike: 0 };
+
+          if (image.reactions) {
+            image.reactions.forEach(
+              (reaction: { reaction_type: "love" | "like" | "dislike" }) => {
+                reactionCounts[reaction.reaction_type]++;
+              }
+            );
+          }
+
+          // Check if image matches any of the active filters (OR logic)
+          return (
+            (filters.commented && hasComments) ||
+            (filters.love && reactionCounts.love > 0) ||
+            (filters.like && reactionCounts.like > 0) ||
+            (filters.dislike && reactionCounts.dislike > 0)
+          );
+        });
+      }
+
+      // Apply pagination to filtered results
+      const totalImages = filteredImages.length;
+      const paginatedImages = filteredImages.slice(offset, offset + pageSize);
+      const imagesData = paginatedImages;
 
       // Generate signed URLs for all images (only if there are images)
       const filepaths = (imagesData || []).map((img) => img.file_url);
@@ -129,14 +159,7 @@ export default defineEventHandler(
         };
       });
 
-      const projectData = moodboard.project as {
-        id: string;
-        title: string;
-        description: string | null;
-        password_hash: string;
-        status: string;
-      };
-      const totalImages = count || 0;
+      const projectData = moodboard.project as Tables<"projects">;
       const hasMore = offset + pageSize < totalImages;
 
       const result: ClientMoodboardAccess = {
@@ -148,10 +171,12 @@ export default defineEventHandler(
         },
         moodboard: {
           ...moodboard,
+          project: projectData,
           images: imagesWithReactions,
           imageCount: totalImages,
           hasMore,
           currentPage: page,
+          activeFilters: filters,
         },
       };
 

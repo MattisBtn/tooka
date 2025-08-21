@@ -1,4 +1,5 @@
 import type {
+  MoodboardComment,
   MoodboardImageWithInteractions,
   ReactionType,
 } from "~/types/moodboard";
@@ -85,17 +86,35 @@ export const useClientMoodboardActions = () => {
     }
   };
 
-  const addComment = async (imageId: string, comment: string) => {
+  const addComment = async (
+    imageId: string,
+    comment: string,
+    onSuccess?: () => void
+  ) => {
     if (!store.moodboardId) return;
 
-    try {
-      await $fetch(`/api/moodboard/client/${store.moodboardId}/comment`, {
-        method: "POST",
-        body: { imageId, content: comment },
-      });
+    // Optimistic update: add comment immediately to UI
+    const tempCommentId = store.addCommentToImage(imageId, comment);
+    if (!tempCommentId) return;
 
-      // Reload current page to show updated comments
-      await store.loadPage(store.currentPage);
+    try {
+      const response = await $fetch<{ comment: MoodboardComment }>(
+        `/api/moodboard/client/${store.moodboardId}/comment`,
+        {
+          method: "POST",
+          body: { imageId, content: comment },
+        }
+      );
+
+      // Replace temporary comment with real one from server
+      if (response.comment) {
+        store.updateCommentInImage(imageId, tempCommentId, response.comment);
+      }
+
+      // Call success callback if provided (e.g., to close modal)
+      if (onSuccess) {
+        onSuccess();
+      }
 
       const toast = useToast();
       toast.add({
@@ -105,6 +124,9 @@ export const useClientMoodboardActions = () => {
         color: "success",
       });
     } catch (err) {
+      // Rollback: remove the temporary comment
+      store.removeCommentFromImage(imageId, tempCommentId);
+
       console.error("Error adding comment:", err);
       const toast = useToast();
       toast.add({
@@ -119,16 +141,46 @@ export const useClientMoodboardActions = () => {
   const reactToImage = async (imageId: string, reaction: ReactionType) => {
     if (!store.canInteract || !store.moodboardId) return;
 
-    try {
-      await $fetch(`/api/moodboard/client/${store.moodboardId}/reaction`, {
-        method: "POST",
-        body: { imageId, reaction },
-      });
+    // Get current reaction count to determine if we're adding or removing
+    const currentImage = store.images.find((img) => img.id === imageId);
+    const currentCount = currentImage?.reactions?.[reaction] || 0;
+    const isAdding = currentCount === 0;
 
-      // Reload current page to show updated reactions
-      await store.loadPage(store.currentPage);
+    // Optimistic update: toggle the reaction immediately
+    store.updateImageReaction(imageId, reaction, isAdding);
+
+    try {
+      const response = await $fetch<{ action: "created" | "removed" }>(
+        `/api/moodboard/client/${store.moodboardId}/reaction`,
+        {
+          method: "POST",
+          body: { imageId, reaction, action: "toggle" },
+        }
+      );
+
+      // Verify the optimistic update was correct
+      const expectedAction = isAdding ? "created" : "removed";
+      if (response.action !== expectedAction) {
+        // If server action differs from our prediction, rollback and apply correct action
+        store.rollbackImageReaction(imageId, reaction, isAdding);
+        store.updateImageReaction(
+          imageId,
+          reaction,
+          response.action === "created"
+        );
+      }
     } catch (err) {
+      // Rollback on error
+      store.rollbackImageReaction(imageId, reaction, isAdding);
       console.error("Error setting reaction:", err);
+
+      const toast = useToast();
+      toast.add({
+        title: "Erreur",
+        description: "Impossible d'enregistrer votre réaction",
+        icon: "i-lucide-alert-circle",
+        color: "error",
+      });
     }
   };
 

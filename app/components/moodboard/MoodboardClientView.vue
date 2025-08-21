@@ -30,6 +30,31 @@
             </div>
         </div>
 
+        <!-- Filter Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Filter Dropdown -->
+                <UDropdownMenu :items="filterDropdownItems" :popper="{ placement: 'bottom-start' }">
+                    <UButton icon="i-lucide-filter" :label="filterButtonLabel" color="neutral" variant="outline"
+                        size="sm" trailing-icon="i-heroicons-chevron-down-20-solid" />
+                </UDropdownMenu>
+
+                <!-- Active filters display -->
+                <div v-if="activeFilters.length > 0" class="flex items-center gap-2">
+                    <UBadge v-for="filter in activeFilters" :key="filter" :color="getFilterColor(filter)" variant="soft"
+                        size="sm" class="cursor-pointer" @click="toggleFilter(filter)">
+                        <UIcon :name="getFilterIcon(filter)" class="w-3 h-3 mr-1" />
+                        {{ getFilterLabel(filter) }}
+                        <UIcon name="i-heroicons-x-mark-20-solid" class="w-3 h-3 ml-1" />
+                    </UBadge>
+                    <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" size="xs"
+                        @click="clearAllFilters">
+                        Effacer
+                    </UButton>
+                </div>
+            </div>
+        </div>
+
         <!-- Images Grid -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div v-if="props.images.length === 0" class="text-center py-12">
@@ -55,11 +80,12 @@
 
                 <!-- Images grid -->
                 <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <MoodboardImageCard v-for="image in props.images" :key="image.id" :image="image"
+                    <MoodboardImageCard v-for="image in filteredImages" :key="image.id" :image="image"
                         :moodboard-id="moodboardId" :can-interact="canInteract"
                         :signed-url="store.getImageSignedUrl(image.file_url)"
                         @react="$emit('react-to-image', image.id, $event)"
-                        @comment="$emit('add-comment', image.id, $event)" @open-preview="openImagePreview" />
+                        @comment="(comment, onSuccess) => $emit('add-comment', image.id, comment, onSuccess)"
+                        @open-preview="openImagePreview" />
                 </div>
 
                 <!-- Pagination -->
@@ -103,7 +129,7 @@ interface Props {
 
 interface Emits {
     'upload-images': [files: File[]]
-    'add-comment': [imageId: string, comment: string]
+    'add-comment': [imageId: string, comment: string, onSuccess?: () => void]
     'react-to-image': [imageId: string, reaction: 'love' | 'like' | 'dislike']
     'page-change': [page: number]
 }
@@ -113,6 +139,9 @@ const emit = defineEmits<Emits>();
 
 // Image preview composable
 const imagePreview = useImagePreview();
+
+// Filter state - now managed by the store
+type FilterType = 'commented' | 'love' | 'like' | 'dislike';
 
 // Store for signed URLs
 const store = useClientMoodboardStore();
@@ -131,11 +160,99 @@ const currentPreviewImage = computed(() => {
     return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null;
 });
 
-const modalImages = computed(() => props.images as unknown as MoodboardImageWithInteractions[]);
+// Filter logic - now images are already filtered by the server
+const filteredImages = computed(() => props.images);
+
+// Active filters computed from store
+const activeFilters = computed(() => {
+    const filters = store.activeFilters;
+    const active: FilterType[] = [];
+    if (filters.commented) active.push('commented');
+    if (filters.love) active.push('love');
+    if (filters.like) active.push('like');
+    if (filters.dislike) active.push('dislike');
+    return active;
+});
+
+// Filter controls - delegate to store
+const toggleFilter = async (filter: FilterType) => {
+    await store.toggleFilter(filter);
+};
+
+const clearAllFilters = async () => {
+    await store.clearAllFilters();
+};
+
+// Filter UI helpers
+const getFilterColor = (filter: FilterType) => {
+    switch (filter) {
+        case 'commented': return 'info';
+        case 'love': return 'error';
+        case 'like': return 'success';
+        case 'dislike': return 'warning';
+        default: return 'neutral';
+    }
+};
+
+const getFilterIcon = (filter: FilterType) => {
+    switch (filter) {
+        case 'commented': return 'i-lucide-message-circle';
+        case 'love': return 'i-lucide-heart';
+        case 'like': return 'i-lucide-thumbs-up';
+        case 'dislike': return 'i-lucide-thumbs-down';
+        default: return 'i-lucide-filter';
+    }
+};
+
+const getFilterLabel = (filter: FilterType) => {
+    switch (filter) {
+        case 'commented': return 'Commentés';
+        case 'love': return 'Aimés';
+        case 'like': return 'Approuvés';
+        case 'dislike': return 'Désapprouvés';
+        default: return filter;
+    }
+};
+
+const filterButtonLabel = computed(() => {
+    if (activeFilters.value.length === 0) {
+        return 'Filtrer';
+    }
+    return `Filtrer (${activeFilters.value.length})`;
+});
+
+// Dropdown items for filter - following the pattern from clients/projects pages
+const filterDropdownItems = computed(() => [
+    [{
+        label: 'Commentés',
+        icon: 'i-lucide-message-circle',
+        onSelect: () => toggleFilter('commented')
+    }, {
+        label: 'Aimés ❤️',
+        icon: 'i-lucide-heart',
+        onSelect: () => toggleFilter('love')
+    }, {
+        label: 'Approuvés 👍',
+        icon: 'i-lucide-thumbs-up',
+        onSelect: () => toggleFilter('like')
+    }, {
+        label: 'Désapprouvés 👎',
+        icon: 'i-lucide-thumbs-down',
+        onSelect: () => toggleFilter('dislike')
+    }],
+    [{
+        label: 'Effacer les filtres',
+        icon: 'i-heroicons-x-mark-20-solid',
+        onSelect: clearAllFilters,
+        disabled: activeFilters.value.length === 0
+    }]
+]);
+
+const modalImages = computed(() => filteredImages.value as unknown as MoodboardImageWithInteractions[]);
 
 const openImagePreview = (image: MoodboardImageWithInteractions) => {
     // Convert MoodboardImageWithInteractions to PreviewImage format
-    const previewImages = props.images.map(img => ({
+    const previewImages = filteredImages.value.map(img => ({
         id: img.id,
         file_url: img.file_url,
         created_at: img.created_at

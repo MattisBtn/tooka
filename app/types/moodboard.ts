@@ -73,6 +73,14 @@ export interface MoodboardWithDetails extends Moodboard {
   project?: Tables<"projects">;
   images?: readonly MoodboardImage[];
   imageCount?: number;
+  hasMore?: boolean;
+  currentPage?: number;
+  activeFilters?: {
+    commented: boolean;
+    love: boolean;
+    like: boolean;
+    dislike: boolean;
+  };
 }
 
 // Client moodboard access types

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import type {
   ClientMoodboardAccess,
+  MoodboardComment,
   MoodboardImageWithInteractions,
 } from "~/types/moodboard";
 
@@ -15,6 +16,19 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
   const currentPage = ref(1);
   const totalImages = ref(0);
   const pageSize = ref(20);
+
+  // Filter state
+  const activeFilters = ref<{
+    commented: boolean;
+    love: boolean;
+    like: boolean;
+    dislike: boolean;
+  }>({
+    commented: false,
+    love: false,
+    like: false,
+    dislike: false,
+  });
 
   // Image signed URLs management
   const imageSignedUrls = ref<Map<string, string>>(new Map());
@@ -66,6 +80,12 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     error.value = null;
     currentPage.value = 1;
     totalImages.value = 0;
+    activeFilters.value = {
+      commented: false,
+      love: false,
+      like: false,
+      dislike: false,
+    };
     imageSignedUrls.value.clear();
     auth.value = null;
   };
@@ -82,7 +102,13 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     try {
       const response = await $fetch<ClientMoodboardAccess>(
         `/api/moodboard/client/${id}`,
-        { query: { page: 1, pageSize: 20 } }
+        {
+          query: {
+            page: 1,
+            pageSize: 20,
+            ...buildFilterQuery(),
+          },
+        }
       );
 
       project.value = response.project;
@@ -143,7 +169,11 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
       const response = await $fetch<ClientMoodboardAccess>(
         `/api/moodboard/client/${moodboardId.value}`,
         {
-          query: { page, pageSize: pageSize.value },
+          query: {
+            page,
+            pageSize: pageSize.value,
+            ...buildFilterQuery(),
+          },
         }
       );
 
@@ -204,6 +234,135 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     }
   };
 
+  // Update image reaction locally (optimistic update)
+  const updateImageReaction = (
+    imageId: string,
+    reaction: "love" | "like" | "dislike",
+    increment: boolean = true
+  ) => {
+    const imageIndex = images.value.findIndex((img) => img.id === imageId);
+    if (imageIndex === -1) return;
+
+    const currentImage = images.value[imageIndex];
+    if (!currentImage) return;
+
+    // Ensure reactions object exists
+    if (!currentImage.reactions) {
+      currentImage.reactions = { love: 0, like: 0, dislike: 0 };
+    }
+
+    // Update reaction count
+    if (increment) {
+      currentImage.reactions[reaction] =
+        (currentImage.reactions[reaction] || 0) + 1;
+    } else {
+      currentImage.reactions[reaction] = Math.max(
+        0,
+        (currentImage.reactions[reaction] || 0) - 1
+      );
+    }
+  };
+
+  // Rollback image reaction (in case of API error)
+  const rollbackImageReaction = (
+    imageId: string,
+    reaction: "love" | "like" | "dislike",
+    wasIncrement: boolean
+  ) => {
+    updateImageReaction(imageId, reaction, !wasIncrement);
+  };
+
+  // Add comment locally (optimistic update)
+  const addCommentToImage = (imageId: string, content: string) => {
+    const imageIndex = images.value.findIndex((img) => img.id === imageId);
+    if (imageIndex === -1) return null;
+
+    const currentImage = images.value[imageIndex];
+    if (!currentImage) return null;
+
+    // Create optimistic comment with temporary ID
+    const tempComment = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      image_id: imageId,
+      content: content.trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    // Ensure comments array exists
+    if (!currentImage.comments) {
+      currentImage.comments = [];
+    }
+
+    // Add comment to the array
+    currentImage.comments = [...currentImage.comments, tempComment];
+
+    return tempComment.id;
+  };
+
+  // Remove comment locally (rollback)
+  const removeCommentFromImage = (imageId: string, tempCommentId: string) => {
+    const imageIndex = images.value.findIndex((img) => img.id === imageId);
+    if (imageIndex === -1) return;
+
+    const currentImage = images.value[imageIndex];
+    if (!currentImage || !currentImage.comments) return;
+
+    // Remove the temporary comment
+    currentImage.comments = currentImage.comments.filter(
+      (comment) => comment.id !== tempCommentId
+    );
+  };
+
+  // Update comment with real data from server
+  const updateCommentInImage = (
+    imageId: string,
+    tempCommentId: string,
+    realComment: MoodboardComment
+  ) => {
+    const imageIndex = images.value.findIndex((img) => img.id === imageId);
+    if (imageIndex === -1) return;
+
+    const currentImage = images.value[imageIndex];
+    if (!currentImage || !currentImage.comments) return;
+
+    // Replace temporary comment with real one
+    const commentIndex = currentImage.comments.findIndex(
+      (comment) => comment.id === tempCommentId
+    );
+
+    if (commentIndex !== -1) {
+      currentImage.comments[commentIndex] = realComment;
+    }
+  };
+
+  // Build filter query parameters
+  const buildFilterQuery = () => {
+    const query: Record<string, string> = {};
+    if (activeFilters.value.commented) query.commented = "true";
+    if (activeFilters.value.love) query.love = "true";
+    if (activeFilters.value.like) query.like = "true";
+    if (activeFilters.value.dislike) query.dislike = "true";
+    return query;
+  };
+
+  // Filter management
+  const toggleFilter = async (filter: keyof typeof activeFilters.value) => {
+    activeFilters.value[filter] = !activeFilters.value[filter];
+    // Reload first page with new filters
+    await loadPage(1);
+  };
+
+  const clearAllFilters = async () => {
+    activeFilters.value = {
+      commented: false,
+      love: false,
+      like: false,
+      dislike: false,
+    };
+    // Reload first page without filters
+    await loadPage(1);
+  };
+
   // Get signed URL for an image
   const getImageSignedUrl = (fileUrl: string) => {
     return imageSignedUrls.value.get(fileUrl) || null;
@@ -220,6 +379,7 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     currentPage: readonly(currentPage),
     totalImages: readonly(totalImages),
     pageSize: readonly(pageSize),
+    activeFilters: readonly(activeFilters),
     imageSignedUrls: readonly(imageSignedUrls),
 
     // Auth
@@ -238,6 +398,13 @@ export const useClientMoodboardStore = defineStore("clientMoodboard", () => {
     loadPage,
     updateMoodboardStatus,
     updateMoodboardRevisionComment,
+    updateImageReaction,
+    rollbackImageReaction,
+    addCommentToImage,
+    removeCommentFromImage,
+    updateCommentInImage,
+    toggleFilter,
+    clearAllFilters,
     getImageSignedUrl,
   };
 });
