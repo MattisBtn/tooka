@@ -10,48 +10,22 @@
                         <UIcon :name="statusIcon" class="w-3 h-3 mr-1" />
                         {{ statusLabel }}
                     </UBadge>
-
-                    <!-- Selection Counter -->
-                    <div
-                        class="hidden lg:flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                        <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        <span class="text-sm font-medium text-amber-700 dark:text-amber-300">
-                            <template v-if="maxAllowed === Infinity">
-                                {{ selectedCount }} / ∞
-                            </template>
-                            <template v-else>
-                                {{ selectedCount }} / {{ maxAllowed }}
-                            </template>
-                        </span>
-                        <span v-if="extraCount > 0" class="text-xs text-amber-600 dark:text-amber-400">
-                            (+{{ extraCount }} extra)
-                        </span>
-                    </div>
                 </div>
 
                 <!-- Actions and Controls -->
                 <div class="flex items-center gap-3">
-                    <!-- Extra Price Display -->
-                    <div v-if="extraPrice > 0"
-                        class="hidden sm:flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                        <UIcon name="i-lucide-euro" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                        <span class="text-sm font-medium text-orange-700 dark:text-orange-300">
-                            +{{ extraPrice.toFixed(2) }}€
-                        </span>
-                    </div>
-
                     <!-- Client Actions -->
                     <div v-if="canShowActions" class="flex items-center gap-2">
                         <!-- Awaiting client actions -->
                         <template v-if="selection?.status === 'awaiting_client'">
                             <!-- Validate button -->
-                            <UButton color="warning" size="sm" icon="i-lucide-check" class="hidden sm:flex"
-                                @click="$emit('validate')">
+                            <UButton color="primary" variant="solid" size="sm" icon="i-lucide-check"
+                                class="hidden sm:flex" @click="$emit('validate')">
                                 <span class="hidden lg:inline">Valider</span>
                             </UButton>
 
                             <!-- Request revisions button -->
-                            <UButton color="warning" variant="outline" size="sm" icon="i-lucide-edit"
+                            <UButton color="primary" variant="soft" size="sm" icon="i-lucide-edit"
                                 class="hidden sm:flex" @click="$emit('request-revisions')">
                                 <span class="hidden lg:inline">Demander des révisions</span>
                                 <span class="lg:hidden">Révisions</span>
@@ -72,40 +46,16 @@
                                         </h3>
                                     </div>
 
-                                    <!-- Selection Info -->
-                                    <div class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 space-y-2">
-                                        <div class="flex items-center justify-between text-sm">
-                                            <span class="text-amber-700 dark:text-amber-300">Sélectionnées</span>
-                                            <span class="font-medium text-amber-800 dark:text-amber-200">
-                                                {{ selectedCount }} / {{ maxAllowed }}
-                                            </span>
-                                        </div>
-                                        <div v-if="extraCount > 0" class="flex items-center justify-between text-sm">
-                                            <span class="text-orange-700 dark:text-orange-300">Images
-                                                supplémentaires</span>
-                                            <span class="font-medium text-orange-800 dark:text-orange-200">
-                                                {{ extraCount }}
-                                            </span>
-                                        </div>
-                                        <div v-if="extraPrice > 0" class="flex items-center justify-between text-sm">
-                                            <span class="text-orange-700 dark:text-orange-300">Coût
-                                                supplémentaire</span>
-                                            <span class="font-medium text-orange-800 dark:text-orange-200">
-                                                +{{ extraPrice.toFixed(2) }}€
-                                            </span>
-                                        </div>
-                                    </div>
-
                                     <!-- Awaiting client actions -->
                                     <template v-if="selection?.status === 'awaiting_client'">
                                         <!-- Validate button -->
-                                        <UButton color="warning" variant="solid" size="lg" icon="i-lucide-check" block
+                                        <UButton color="primary" variant="solid" size="lg" icon="i-lucide-check" block
                                             @click="$emit('validate')">
                                             Valider la sélection
                                         </UButton>
 
                                         <!-- Request revisions -->
-                                        <UButton color="warning" variant="outline" size="lg" icon="i-lucide-edit" block
+                                        <UButton color="primary" variant="soft" size="lg" icon="i-lucide-edit" block
                                             @click="$emit('request-revisions')">
                                             Demander des révisions
                                         </UButton>

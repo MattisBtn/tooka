@@ -29,80 +29,46 @@
                     </p>
                 </div>
 
-                <!-- Selection Stats -->
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-                    <!-- Selected count -->
-                    <div class="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                        <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-white" />
-                        </div>
-                        <div class="text-left">
-                            <div class="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                                Images sélectionnées
+                <!-- Selection Information - Sticky Wrapper -->
+                <div
+                    class="sticky top-16 z-20 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-700 transition-all duration-300">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
+                        <!-- Selection Stats - Simplified -->
+                        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-2 sm:mb-3">
+                            <!-- Selected count -->
+                            <div
+                                class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg shadow-sm">
+                                <UIcon name="i-lucide-check-circle" class="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                                <span class="text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    <template v-if="maxAllowed === Infinity">
+                                        {{ selectedCount }}
+                                    </template>
+                                    <template v-else>
+                                        {{ selectedCount }}/{{ maxAllowed }}
+                                    </template>
+                                </span>
                             </div>
-                            <div class="text-lg font-bold text-amber-700 dark:text-amber-300">
-                                <template v-if="maxAllowed === Infinity">
-                                    {{ selectedCount }} / ∞
-                                </template>
-                                <template v-else>
-                                    {{ selectedCount }} / {{ maxAllowed }}
-                                </template>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Extra count -->
-                    <div v-if="extraCount > 0"
-                        class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-                        <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-plus-circle" class="w-4 h-4 text-white" />
-                        </div>
-                        <div class="text-left">
-                            <div class="text-sm text-orange-600 dark:text-orange-400 font-medium">
-                                Images supplémentaires
+                            <!-- Extra count -->
+                            <div v-if="extraCount > 0"
+                                class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg shadow-sm">
+                                <UIcon name="i-lucide-plus-circle" class="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                                <span class="text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    +{{ extraCount }}
+                                </span>
                             </div>
-                            <div class="text-lg font-bold text-orange-700 dark:text-orange-300">
-                                {{ extraCount }}
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Extra price -->
-                    <div v-if="extraPrice > 0"
-                        class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                        <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-                            <UIcon name="i-lucide-euro" class="w-4 h-4 text-white" />
-                        </div>
-                        <div class="text-left">
-                            <div class="text-sm text-red-600 dark:text-red-400 font-medium">
-                                Coût supplémentaire
-                            </div>
-                            <div class="text-lg font-bold text-red-700 dark:text-red-300">
-                                +{{ extraPrice.toFixed(2) }}€
+                            <!-- Extra price -->
+                            <div v-if="extraPrice > 0"
+                                class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg shadow-sm">
+                                <UIcon name="i-lucide-euro" class="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                                <span class="text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                    +{{ extraPrice.toFixed(2) }}€
+                                </span>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Instructions -->
-                <div v-if="canInteract" class="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
-                    <div class="flex items-center gap-3 justify-center">
-                        <UIcon name="i-lucide-info" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                        <p class="text-sm text-amber-700 dark:text-amber-300">
-                            Cliquez sur les images pour les sélectionner. Vous pouvez sélectionner plus d'images que
-                            la limite - un coût
-                            supplémentaire sera automatiquement calculé.
-                        </p>
-                    </div>
-                </div>
 
-                <!-- Selection status indicator -->
-                <div v-if="!canInteract" class="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4">
-                    <div class="flex items-center gap-3 justify-center">
-                        <UIcon name="i-lucide-lock" class="w-5 h-5 text-neutral-500" />
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                            Cette sélection a été validée et ne peut plus être modifiée.
-                        </p>
                     </div>
                 </div>
             </div>

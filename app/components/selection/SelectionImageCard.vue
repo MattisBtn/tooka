@@ -5,7 +5,7 @@
         <div class="aspect-square bg-neutral-100 dark:bg-neutral-900 relative group transition-transform duration-300"
             :class="[
                 canInteract ? 'cursor-pointer' : 'cursor-default',
-                isSelected ? 'ring-4 ring-amber-500' : ''
+                isSelected ? 'ring-4 ring-primary' : ''
             ]" @click="handleImageClick">
 
             <SelectionImageClient :image="image" :selection-id="selectionId" :signed-url="signedUrl"
@@ -14,9 +14,9 @@
                 ]" />
 
             <!-- Selection indicator overlay -->
-            <div v-if="isSelected" class="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
-                <div class="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
-                    <UIcon name="i-lucide-check" class="w-8 h-8 text-white" />
+            <div v-if="isSelected" class="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                    <UIcon name="i-lucide-check" class="w-8 h-8 text-white dark:text-black" />
                 </div>
             </div>
 
@@ -25,7 +25,7 @@
                 class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                 <div
                     class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/50">
-                    <UIcon name="i-lucide-plus" class="w-8 h-8 text-white" />
+                    <UIcon name="i-lucide-plus" class="w-8 h-8 text-white dark:text-black" />
                 </div>
             </div>
 
@@ -39,7 +39,8 @@
                     @click.stop="openImagePreview" />
 
                 <!-- Non-interactive status for completed state -->
-                <div v-if="!canInteract" class="px-2 py-1 bg-neutral-900/70 rounded-lg text-xs text-white">
+                <div v-if="!canInteract"
+                    class="px-2 py-1 bg-neutral-900/70 rounded-lg text-xs text-white dark:text-black">
                     {{ isSelected ? 'Sélectionnée' : 'Non sélectionnée' }}
                 </div>
             </div>
