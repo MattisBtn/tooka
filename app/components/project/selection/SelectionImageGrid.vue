@@ -8,9 +8,9 @@
                     :class="getImageClasses(image)">
 
                     <!-- Image Display -->
-                    <img :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
+                    <NuxtImg :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
                         class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
-                        @error="handleImageError">
+                        @error="handleImageError" />
 
                     <!-- RAW Badge -->
                     <div v-if="image.requires_conversion && image.source_file_url"

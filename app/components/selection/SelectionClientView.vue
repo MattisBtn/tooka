@@ -108,6 +108,61 @@
             </div>
         </div>
 
+        <!-- Filter Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <!-- Desktop: Horizontal layout -->
+            <div class="hidden md:flex items-center justify-between">
+                <!-- Filter Dropdown -->
+                <UDropdownMenu :items="filterDropdownItems" :popper="{ placement: 'bottom-start' }">
+                    <UButton icon="i-lucide-filter" :label="filterButtonLabel" color="neutral" variant="outline"
+                        size="sm" trailing-icon="i-heroicons-chevron-down-20-solid" />
+                </UDropdownMenu>
+
+                <!-- Active filters display -->
+                <div v-if="activeFilters.length > 0" class="flex items-center gap-2">
+                    <UBadge v-for="filter in activeFilters" :key="filter" :color="getFilterColor(filter)" variant="soft"
+                        size="sm" class="cursor-pointer" @click="toggleFilter(filter)">
+                        <UIcon :name="getFilterIcon(filter)" class="w-3 h-3 mr-1" />
+                        {{ getFilterLabel(filter) }}
+                        <UIcon name="i-heroicons-x-mark-20-solid" class="w-3 h-3 ml-1" />
+                    </UBadge>
+                    <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" size="xs"
+                        @click="clearAllFilters">
+                        Effacer
+                    </UButton>
+                </div>
+
+                <!-- Images count -->
+                <div class="text-sm text-neutral-500 dark:text-neutral-400">
+                    {{ props.images.length }} image{{ props.images.length > 1 ? 's' : '' }}
+                    <span v-if="activeFilters.length > 0">filtrée{{ props.images.length > 1 ? 's' : '' }}</span>
+                </div>
+            </div>
+
+            <!-- Mobile: Vertical layout -->
+            <div class="md:hidden space-y-3">
+                <!-- Filter controls row -->
+                <UDropdownMenu :items="filterDropdownItems" :popper="{ placement: 'bottom-start' }">
+                    <UButton icon="i-lucide-filter" :label="filterButtonLabel" color="neutral" variant="outline"
+                        size="sm" trailing-icon="i-heroicons-chevron-down-20-solid" />
+                </UDropdownMenu>
+
+                <!-- Active filters display -->
+                <div v-if="activeFilters.length > 0" class="flex flex-wrap items-center gap-2">
+                    <UBadge v-for="filter in activeFilters" :key="filter" :color="getFilterColor(filter)" variant="soft"
+                        size="sm" class="cursor-pointer" @click="toggleFilter(filter)">
+                        <UIcon :name="getFilterIcon(filter)" class="w-3 h-3 mr-1" />
+                        {{ getFilterLabel(filter) }}
+                        <UIcon name="i-heroicons-x-mark-20-solid" class="w-3 h-3 ml-1" />
+                    </UBadge>
+                    <UButton icon="i-heroicons-x-mark-20-solid" color="neutral" variant="ghost" size="xs"
+                        @click="clearAllFilters">
+                        Effacer
+                    </UButton>
+                </div>
+            </div>
+        </div>
+
         <!-- Images Grid -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div v-if="props.images.length === 0" class="text-center py-12">
@@ -151,8 +206,8 @@
         <!-- Image Preview Modal -->
         <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
             :images="modalImages" :current-index="imagePreview.currentIndex.value"
-            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
-            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview"
+            @next="imagePreview.nextImage" @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
             @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
@@ -192,6 +247,9 @@ const emit = defineEmits<Emits>();
 // Image preview composable
 const imagePreview = useImagePreview();
 
+// Filter state - managed by the store
+type FilterType = 'selected';
+
 // Store for signed URLs
 const store = useClientSelectionStore();
 
@@ -208,6 +266,67 @@ const currentPreviewImage = computed(() => {
     if (!imagePreview.currentImage.value || !props.images.length) return null;
     return props.images.find(img => img.id === imagePreview.currentImage.value?.id) || null;
 });
+
+// Active filters computed from store
+const activeFilters = computed(() => {
+    const filters = store.activeFilters;
+    const active: FilterType[] = [];
+    if (filters.selected) active.push('selected');
+    return active;
+});
+
+// Filter controls - delegate to store
+const toggleFilter = async (filter: FilterType) => {
+    await store.toggleFilter(filter);
+};
+
+const clearAllFilters = async () => {
+    await store.clearAllFilters();
+};
+
+// Filter UI helpers
+const getFilterColor = (filter: FilterType) => {
+    switch (filter) {
+        case 'selected': return 'success';
+        default: return 'neutral';
+    }
+};
+
+const getFilterIcon = (filter: FilterType) => {
+    switch (filter) {
+        case 'selected': return 'i-lucide-check-circle';
+        default: return 'i-lucide-filter';
+    }
+};
+
+const getFilterLabel = (filter: FilterType) => {
+    switch (filter) {
+        case 'selected': return 'Sélectionnées';
+        default: return filter;
+    }
+};
+
+const filterButtonLabel = computed(() => {
+    if (activeFilters.value.length === 0) {
+        return 'Filtrer';
+    }
+    return `Filtrer (${activeFilters.value.length})`;
+});
+
+// Dropdown items for filter
+const filterDropdownItems = computed(() => [
+    [{
+        label: 'Sélectionnées',
+        icon: 'i-lucide-check-circle',
+        onSelect: () => toggleFilter('selected')
+    }],
+    [{
+        label: 'Effacer les filtres',
+        icon: 'i-heroicons-x-mark-20-solid',
+        onSelect: clearAllFilters,
+        disabled: activeFilters.value.length === 0
+    }]
+]);
 
 const modalImages = computed(() => props.images as unknown as SelectionImageWithSelection[]);
 

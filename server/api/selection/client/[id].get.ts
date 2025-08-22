@@ -11,6 +11,14 @@ export default defineEventHandler(
     const pageSize = parseInt(query.pageSize as string) || 20;
     const offset = (page - 1) * pageSize;
 
+    // Filter parameters
+    const filters = {
+      selected: query.selected === "true",
+    };
+
+    // Check if any filters are active
+    const hasFilters = Object.values(filters).some(Boolean);
+
     if (!selectionId) {
       throw createError({
         statusCode: 400,
@@ -57,23 +65,32 @@ export default defineEventHandler(
         });
       }
 
-      // Get images for the selection
-      const { data: imagesData, error: imagesError } = await supabase
+      // Get all images for filtering and sorting
+      const { data: allImagesData, error: imagesError } = await supabase
         .from("selection_images")
         .select("*")
         .eq("selection_id", selection.id)
-        .order("created_at", { ascending: true })
-        .range(offset, offset + pageSize - 1);
+        .order("is_selected", { ascending: false }) // Selected images first
+        .order("created_at", { ascending: true }); // Then by creation date
 
       if (imagesError) {
         throw new Error(`Failed to fetch images: ${imagesError.message}`);
       }
 
-      // Get total count for pagination
-      const { count } = await supabase
-        .from("selection_images")
-        .select("id", { count: "exact" })
-        .eq("selection_id", selection.id);
+      // Apply filters if any are active
+      let filteredImages = allImagesData || [];
+
+      if (hasFilters) {
+        filteredImages = filteredImages.filter((image) => {
+          // Check if image matches the selected filter
+          return filters.selected && image.is_selected;
+        });
+      }
+
+      // Apply pagination to filtered results
+      const totalImages = filteredImages.length;
+      const paginatedImages = filteredImages.slice(offset, offset + pageSize);
+      const imagesData = paginatedImages;
 
       const projectData = selection.project as {
         id: string;
@@ -82,7 +99,6 @@ export default defineEventHandler(
         password_hash: string;
         status: string;
       };
-      const totalImages = count || 0;
       const hasMore = offset + pageSize < totalImages;
 
       // Generate signed URLs for all images (only if there are images)
@@ -134,6 +150,7 @@ export default defineEventHandler(
           imageCount: totalImages,
           hasMore,
           currentPage: page,
+          activeFilters: filters,
         },
       };
 

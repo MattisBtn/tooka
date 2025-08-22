@@ -16,6 +16,13 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
   const totalImages = ref(0);
   const pageSize = ref(20);
 
+  // Filter state
+  const activeFilters = ref<{
+    selected: boolean;
+  }>({
+    selected: false,
+  });
+
   // Image signed URLs management
   const imageSignedUrls = ref<Map<string, string>>(new Map());
 
@@ -85,6 +92,9 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     error.value = null;
     currentPage.value = 1;
     totalImages.value = 0;
+    activeFilters.value = {
+      selected: false,
+    };
     imageSignedUrls.value.clear();
     selectedImages.value.clear();
     auth.value = null;
@@ -102,7 +112,13 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     try {
       const response = await $fetch<ClientSelectionAccess>(
         `/api/selection/client/${id}`,
-        { query: { page: 1, pageSize: 20 } }
+        {
+          query: {
+            page: 1,
+            pageSize: 20,
+            ...buildFilterQuery(),
+          },
+        }
       );
 
       project.value = response.project;
@@ -170,7 +186,11 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
       const response = await $fetch<ClientSelectionAccess>(
         `/api/selection/client/${selectionId.value}`,
         {
-          query: { page, pageSize: pageSize.value },
+          query: {
+            page,
+            pageSize: pageSize.value,
+            ...buildFilterQuery(),
+          },
         }
       );
 
@@ -290,6 +310,28 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     }
   };
 
+  // Build filter query parameters
+  const buildFilterQuery = () => {
+    const query: Record<string, string> = {};
+    if (activeFilters.value.selected) query.selected = "true";
+    return query;
+  };
+
+  // Filter management
+  const toggleFilter = async (filter: keyof typeof activeFilters.value) => {
+    activeFilters.value[filter] = !activeFilters.value[filter];
+    // Reload first page with new filters
+    await loadPage(1);
+  };
+
+  const clearAllFilters = async () => {
+    activeFilters.value = {
+      selected: false,
+    };
+    // Reload first page without filters
+    await loadPage(1);
+  };
+
   // Get signed URL for an image
   const getImageSignedUrl = (fileUrl: string) => {
     return imageSignedUrls.value.get(fileUrl) || null;
@@ -306,6 +348,7 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     currentPage: readonly(currentPage),
     totalImages: readonly(totalImages),
     pageSize: readonly(pageSize),
+    activeFilters: readonly(activeFilters),
     imageSignedUrls: readonly(imageSignedUrls),
     selectedImages: readonly(selectedImages),
 
@@ -331,6 +374,8 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     validateSelectionWithImages,
     updateSelectionStatus,
     updateSelectionRevisionComment,
+    toggleFilter,
+    clearAllFilters,
     getImageSignedUrl,
   };
 });

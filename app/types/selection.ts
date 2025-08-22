@@ -61,6 +61,9 @@ export interface SelectionWithDetails extends Selection {
   selectedCount?: number;
   hasMore?: boolean;
   currentPage?: number;
+  activeFilters?: {
+    selected: boolean;
+  };
 }
 
 // Selection with project info for client access
@@ -92,6 +95,9 @@ export interface ClientSelectionAccess {
     imageCount: number;
     hasMore: boolean;
     currentPage: number;
+    activeFilters?: {
+      selected: boolean;
+    };
   };
 }
 
