@@ -16,9 +16,6 @@ export default defineEventHandler(
       selected: query.selected === "true",
     };
 
-    // Check if any filters are active
-    const hasFilters = Object.values(filters).some(Boolean);
-
     if (!selectionId) {
       throw createError({
         statusCode: 400,
@@ -65,32 +62,42 @@ export default defineEventHandler(
         });
       }
 
-      // Get all images for filtering and sorting
-      const { data: allImagesData, error: imagesError } = await supabase
+      // Build base query for images
+      let imagesQuery = supabase
         .from("selection_images")
         .select("*")
-        .eq("selection_id", selection.id)
+        .eq("selection_id", selection.id);
+
+      // Apply filters at database level
+      if (filters.selected) {
+        imagesQuery = imagesQuery.eq("is_selected", true);
+      }
+
+      // Get total count for pagination
+      let countQuery = supabase
+        .from("selection_images")
+        .select("*", { count: "exact", head: true })
+        .eq("selection_id", selection.id);
+
+      if (filters.selected) {
+        countQuery = countQuery.eq("is_selected", true);
+      }
+
+      const { count: totalImages, error: countError } = await countQuery;
+
+      if (countError) {
+        throw new Error(`Failed to get image count: ${countError.message}`);
+      }
+
+      // Apply pagination and ordering
+      const { data: imagesData, error: imagesError } = await imagesQuery
         .order("is_selected", { ascending: false }) // Selected images first
-        .order("created_at", { ascending: true }); // Then by creation date
+        .order("created_at", { ascending: true }) // Then by creation date
+        .range(offset, offset + pageSize - 1);
 
       if (imagesError) {
         throw new Error(`Failed to fetch images: ${imagesError.message}`);
       }
-
-      // Apply filters if any are active
-      let filteredImages = allImagesData || [];
-
-      if (hasFilters) {
-        filteredImages = filteredImages.filter((image) => {
-          // Check if image matches the selected filter
-          return filters.selected && image.is_selected;
-        });
-      }
-
-      // Apply pagination to filtered results
-      const totalImages = filteredImages.length;
-      const paginatedImages = filteredImages.slice(offset, offset + pageSize);
-      const imagesData = paginatedImages;
 
       const projectData = selection.project as {
         id: string;
@@ -99,7 +106,7 @@ export default defineEventHandler(
         password_hash: string;
         status: string;
       };
-      const hasMore = offset + pageSize < totalImages;
+      const hasMore = offset + pageSize < (totalImages || 0);
 
       // Generate signed URLs for all images (only if there are images)
       const filepaths = (imagesData || []).map((img) => img.file_url);
@@ -147,7 +154,7 @@ export default defineEventHandler(
         selection: {
           ...selection,
           images: mappedImages,
-          imageCount: totalImages,
+          imageCount: totalImages || 0,
           hasMore,
           currentPage: page,
           activeFilters: filters,
