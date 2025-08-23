@@ -71,6 +71,51 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          title: string
+          type: Database["public"]["Enums"]["feedback_type_enum"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          title: string
+          type: Database["public"]["Enums"]["feedback_type_enum"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["feedback_type_enum"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_kpi_view"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       galleries: {
         Row: {
           completed_at: string | null
@@ -693,6 +738,7 @@ export type Database = {
           phone: string | null
           plan_id: string | null
           preferred_currency: string | null
+          role: Database["public"]["Enums"]["user_role_enum"] | null
           stripe_account_id: string | null
           stripe_account_status:
             | Database["public"]["Enums"]["stripe_account_status_enum"]
@@ -729,6 +775,7 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           preferred_currency?: string | null
+          role?: Database["public"]["Enums"]["user_role_enum"] | null
           stripe_account_id?: string | null
           stripe_account_status?:
             | Database["public"]["Enums"]["stripe_account_status_enum"]
@@ -765,6 +812,7 @@ export type Database = {
           phone?: string | null
           plan_id?: string | null
           preferred_currency?: string | null
+          role?: Database["public"]["Enums"]["user_role_enum"] | null
           stripe_account_id?: string | null
           stripe_account_status?:
             | Database["public"]["Enums"]["stripe_account_status_enum"]
@@ -845,6 +893,7 @@ export type Database = {
         | "failed"
         | "retrying"
         | "cancelled"
+      feedback_type_enum: "bug" | "feature" | "question" | "other"
       payment_method_enum: "stripe" | "bank_transfer"
       payment_status_enum:
         | "not_initiated"
@@ -866,6 +915,7 @@ export type Database = {
         | "complete"
         | "restricted"
         | "rejected"
+      user_role_enum: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1003,6 +1053,7 @@ export const Constants = {
         "retrying",
         "cancelled",
       ],
+      feedback_type_enum: ["bug", "feature", "question", "other"],
       payment_method_enum: ["stripe", "bank_transfer"],
       payment_status_enum: [
         "not_initiated",
@@ -1027,6 +1078,7 @@ export const Constants = {
         "restricted",
         "rejected",
       ],
+      user_role_enum: ["user", "admin"],
     },
   },
 } as const

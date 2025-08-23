@@ -45,6 +45,9 @@ export const useUserStore = defineStore("user", () => {
   const clientsCount = computed(() => user.value.profile?.clientsCount || 0);
   const projectsCount = computed(() => user.value.profile?.projectsCount || 0);
 
+  // Admin role check
+  const isAdmin = computed(() => user.value.profile?.role === "admin");
+
   // Actions
   const fetchUser = async (opts?: { silent?: boolean }) => {
     try {
@@ -130,6 +133,7 @@ export const useUserStore = defineStore("user", () => {
     hasStripeConnect,
     hasBankingInfo,
     hasPaymentSetup,
+    isAdmin,
 
     // Actions
     fetchUser,

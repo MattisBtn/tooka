@@ -111,6 +111,14 @@ const goToUpgrade = async (_event?: MouseEvent): Promise<void> => {
 
 // Navigation menu items for UNavigationMenu
 const route = useRoute()
+
+// Feedback modal state
+const isFeedbackModalOpen = ref(false)
+
+const handleFeedbackClick = () => {
+    isFeedbackModalOpen.value = true
+}
+
 const navigationItems = computed(() => [
     {
         label: 'Overview',
@@ -226,14 +234,33 @@ const logout = async () => {
                                 @click="isSidebarCollapsed = !isSidebarCollapsed" />
                         </div>
 
-                        <div :class="['flex items-center', isSidebarCollapsed ? 'justify-center' : 'justify-between']">
-                            <div v-if="!isSidebarCollapsed" class="flex items-center gap-4">
+                        <div
+                            :class="['flex items-center mb-4', isSidebarCollapsed ? 'justify-center' : 'justify-between']">
+                            <div v-if="!isSidebarCollapsed" class="flex items-center gap-2">
                                 <UIcon name="i-heroicons-moon" class="text-neutral-500" />
                                 <span class="text-sm text-neutral-600 dark:text-neutral-300">Dark Mode</span>
                             </div>
                             <USwitch v-model="isDarkMode" color="primary" size="md" checked-icon="i-heroicons-moon"
                                 unchecked-icon="i-heroicons-sun" />
                         </div>
+                        <!-- Feedback section -->
+                        <div class="mt-4 space-y-2">
+                            <div v-if="!userStore.isAdmin" class="flex items-center gap-2 cursor-pointer"
+                                @click="handleFeedbackClick">
+                                <UIcon name="i-heroicons-chat-bubble-left-right" class="text-neutral-500" />
+                                <span v-if="!isSidebarCollapsed"
+                                    class="text-sm text-neutral-600 dark:text-neutral-300">Feedback</span>
+                            </div>
+
+                            <NuxtLink v-if="userStore.isAdmin" to="/admin/feedback"
+                                class="flex items-center gap-2 cursor-pointer">
+                                <UIcon name="i-heroicons-cog-6-tooth" class="text-neutral-500" />
+                                <span v-if="!isSidebarCollapsed"
+                                    class="text-sm text-neutral-600 dark:text-neutral-300">Gestion
+                                    feedbacks</span>
+                            </NuxtLink>
+                        </div>
+
                         <div v-if="canUpgrade" class="mt-4">
                             <UButton :disabled="true" color="primary" variant="subtle"
                                 icon="i-heroicons-arrow-up-circle" class="w-full" @click="goToUpgrade">
@@ -255,6 +282,9 @@ const logout = async () => {
         <ClientModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
             :client="store.modalState.type === 'edit' ? (store.modalState.data as Client) : undefined" :portal="true"
             @update:model-value="store.closeModal" />
+
+        <!-- Feedback Modal -->
+        <FeedbackModal v-model="isFeedbackModalOpen" />
 
         <!-- Notification Slideover -->
         <USlideover v-model:open="isNotificationSlideoverOpen" title="Notifications">
