@@ -70,22 +70,6 @@
                                 </span>
                             </div>
                         </div>
-
-                        <!-- Selected Count -->
-                        <div v-if="selectionStore.selectedCount > 0" class="space-y-2">
-                            <span
-                                class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">Sélectionnés
-                                par le client</span>
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-lucide-check-circle" class="w-4 h-4 text-orange-500" />
-                                <span class="text-sm text-orange-600 dark:text-orange-400">
-                                    {{ selectionStore.selectedCount }} image{{ selectionStore.selectedCount > 1 ? 's' :
-                                        ''
-                                    }}
-                                    sélectionnée{{ selectionStore.selectedCount > 1 ? 's' : '' }}
-                                </span>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Images Preview -->
@@ -97,24 +81,59 @@
                                     <UIcon name="i-lucide-images" class="w-4 h-4 text-white dark:text-black" />
                                 </div>
                                 <div>
-                                    <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Aperçu des images
+                                    <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">
+                                        <template v-if="selectionStore.hasSelectedImages">
+                                            Images sélectionnées par le client
+                                        </template>
+                                        <template v-else>
+                                            Aperçu des images
+                                        </template>
                                     </h4>
                                     <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                        {{ selectionStore.imageCount }} image{{ selectionStore.imageCount > 1 ? 's' : ''
-                                        }}
-                                        disponible{{ selectionStore.imageCount > 1 ? 's' : '' }}
+                                        <template v-if="selectionStore.hasSelectedImages">
+                                            {{ selectionStore.selectedCount }} image{{ selectionStore.selectedCount > 1
+                                                ? 's' : '' }}
+                                            sélectionnée{{ selectionStore.selectedCount > 1 ? 's' : '' }} sur {{
+                                                selectionStore.imageCount }} disponibles
+                                        </template>
+                                        <template v-else>
+                                            {{ selectionStore.imageCount }} image{{ selectionStore.imageCount > 1 ? 's'
+                                                : ''
+                                            }}
+                                            disponible{{ selectionStore.imageCount > 1 ? 's' : '' }}
+                                        </template>
                                     </p>
                                 </div>
                             </div>
-                            <UButton v-if="selectionStore.selectedCount > 0" icon="i-lucide-download" size="xs"
-                                variant="ghost" color="neutral" :loading="selectionStore.isDownloadingZip"
-                                :disabled="selectionStore.isDownloadingZip" @click="handleDownloadSelectedAsZip">
-                                Télécharger sélection (ZIP)
-                            </UButton>
+                            <div class="flex items-center gap-2">
+                                <UButton icon="i-lucide-gallery-horizontal-end" size="xs" variant="outline"
+                                    color="neutral" @click="showImagesManager = true">
+                                    Gérer toutes les images
+                                </UButton>
+                                <UButton v-if="selectionStore.selectedCount > 0" icon="i-lucide-download" size="xs"
+                                    variant="ghost" color="neutral" :loading="selectionStore.isDownloadingZip"
+                                    :disabled="selectionStore.isDownloadingZip" @click="handleDownloadSelectedAsZip">
+                                    Télécharger sélection (ZIP)
+                                </UButton>
+                            </div>
                         </div>
-                        <ProjectSelectionImageGrid :images="Array.from(selectionStore.selection?.images || [])"
-                            :can-delete="false" :can-toggle-selection="false" :max-preview="6"
-                            :show-selection-state="true" @delete-image="handleDeleteImage" />
+
+                        <!-- Show selected images only or message if none selected -->
+                        <div v-if="selectionStore.hasSelectedImages">
+                            <ProjectSelectionImageGrid :images="Array.from(selectionStore.selection?.images || [])"
+                                :can-delete="false" :can-toggle-selection="false" :max-preview="6"
+                                :show-selection-state="true" @delete-image="handleDeleteImage" />
+                        </div>
+                        <div v-else
+                            class="text-center py-8 border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-lg">
+                            <UIcon name="i-lucide-image-off" class="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+                            <p class="text-neutral-600 dark:text-neutral-400 mb-2">
+                                Aucune image sélectionnée par le client
+                            </p>
+                            <p class="text-sm text-neutral-500 dark:text-neutral-500">
+                                Les images apparaîtront ici une fois sélectionnées par le client
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Revision Comment -->
@@ -265,6 +284,10 @@
                 @selection-saved="handleSelectionSaved" @cancel="selectionStore.closeForm()" />
         </template>
     </UModal>
+
+    <!-- Images Manager Slideover -->
+    <ProjectSelectionImagesManager v-model:open="showImagesManager" :selection-id="selectionStore.selection?.id"
+        @images-updated="handleImagesUpdated" />
 </template>
 
 <script lang="ts" setup>
@@ -276,6 +299,9 @@ const selectionStore = useSelectionStore()
 
 // Use store-level reactive flag
 const isProjectCompleted = computed(() => projectSetupStore.isProjectCompleted)
+
+// Images manager slideover
+const showImagesManager = ref(false)
 
 // Modal title
 const modalTitle = computed(() =>
@@ -423,6 +449,15 @@ const handleDownloadSelectedAsZip = async () => {
             icon: 'i-lucide-alert-circle',
             color: 'error'
         })
+    }
+}
+
+const handleImagesUpdated = async () => {
+    // Refresh selected images when images are updated in manager
+    try {
+        await selectionStore.refreshSelectedImages()
+    } catch (error) {
+        console.error('Failed to refresh selected images:', error)
     }
 }
 </script>

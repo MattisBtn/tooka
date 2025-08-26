@@ -16,7 +16,7 @@ type CountCallback = (type: "upload" | "converted" | "failed") => void;
 
 export const selectionService = {
   /**
-   * Get selection by project ID with images
+   * Get selection by project ID with only selected images (for performance)
    */
   async getSelectionByProjectId(
     projectId: string
@@ -29,17 +29,60 @@ export const selectionService = {
       return null;
     }
 
-    // Count selected images
-    const selectedCount = images.filter((img) => img.is_selected).length;
+    // Only return selected images for performance
+    const selectedImages = images.filter((img) => img.is_selected);
+    const selectedCount = selectedImages.length;
 
     const result = {
       ...selection,
-      images,
-      imageCount: images.length,
+      images: selectedImages,
+      imageCount: images.length, // Total count
       selectedCount,
     };
 
     return result;
+  },
+
+  /**
+   * Get all images for a selection with pagination
+   */
+  async getSelectionImagesWithPagination(
+    selectionId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    images: SelectionImage[];
+    totalCount: number;
+    hasMore: boolean;
+    currentPage: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    const { images, totalCount } =
+      await selectionImageRepository.findBySelectionIdWithPagination(
+        selectionId,
+        limit,
+        offset
+      );
+
+    const hasMore = offset + images.length < totalCount;
+
+    return {
+      images,
+      totalCount,
+      hasMore,
+      currentPage: page,
+    };
+  },
+
+  /**
+   * Get only selected images for a selection
+   */
+  async getSelectedImages(selectionId: string): Promise<SelectionImage[]> {
+    const { images } = await selectionImageRepository.findSelectedBySelectionId(
+      selectionId
+    );
+    return images;
   },
 
   /**
@@ -595,7 +638,7 @@ export const selectionService = {
    */
   formatSelectionLimit(maxSelection: number): string {
     if (maxSelection === -1) {
-      return "Sélection illimitée";
+      return "Illimitée";
     }
     return `${maxSelection} image${maxSelection > 1 ? "s" : ""} maximum`;
   },

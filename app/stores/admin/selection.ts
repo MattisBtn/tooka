@@ -83,6 +83,7 @@ export const useSelectionStore = defineStore("selection", () => {
   const imageCount = computed(() => selection.value?.imageCount || 0);
   const selectedCount = computed(() => selection.value?.selectedCount || 0);
   const hasImages = computed(() => imageCount.value > 0);
+  const hasSelectedImages = computed(() => selectedCount.value > 0);
   const formattedExtraMediaPrice = computed(() => {
     if (!selection.value?.extra_media_price) return null;
     return new Intl.NumberFormat("fr-FR", {
@@ -240,6 +241,53 @@ export const useSelectionStore = defineStore("selection", () => {
     }
   };
 
+  // New methods for managing all images with pagination
+  const loadImagesWithPagination = async (
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    images: SelectionImage[];
+    totalCount: number;
+    hasMore: boolean;
+    currentPage: number;
+  }> => {
+    if (!selection.value?.id) {
+      throw new Error("Aucune sélection disponible");
+    }
+
+    try {
+      const result = await selectionService.getSelectionImagesWithPagination(
+        selection.value.id,
+        page,
+        limit
+      );
+      return result;
+    } catch (error) {
+      console.error("Failed to load images with pagination:", error);
+      throw error;
+    }
+  };
+
+  const refreshSelectedImages = async () => {
+    if (!selection.value?.id) return;
+
+    try {
+      const selectedImages = await selectionService.getSelectedImages(
+        selection.value.id
+      );
+      if (selection.value) {
+        selection.value = {
+          ...selection.value,
+          images: selectedImages,
+          selectedCount: selectedImages.length,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to refresh selected images:", error);
+      throw error;
+    }
+  };
+
   const loadSelection = async (projectId: string) => {
     if (loading.value) return;
 
@@ -278,6 +326,7 @@ export const useSelectionStore = defineStore("selection", () => {
         extra_media_price: selectionData.extra_media_price || null,
         status: selectionData.status,
         revision_last_comment: null,
+        completed_at: null,
       };
 
       const result = await selectionService.createSelection(data);
@@ -322,6 +371,7 @@ export const useSelectionStore = defineStore("selection", () => {
         extra_media_price: selectionData.extra_media_price || null,
         status: selectionData.status,
         revision_last_comment: null,
+        completed_at: null,
       };
 
       const result = await selectionService.updateSelection(selectionId, data);
@@ -539,6 +589,7 @@ export const useSelectionStore = defineStore("selection", () => {
     imageCount,
     selectedCount,
     hasImages,
+    hasSelectedImages,
     formattedExtraMediaPrice,
     formattedSelectionLimit,
     hasUnlimitedSelection,
@@ -561,5 +612,7 @@ export const useSelectionStore = defineStore("selection", () => {
     uploadProgressSteps,
     currentProgressStep,
     downloadSelectedImagesAsZip,
+    loadImagesWithPagination,
+    refreshSelectedImages,
   };
 });

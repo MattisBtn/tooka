@@ -92,4 +92,68 @@ export const selectionImageRepository: ISelectionImageRepository = {
 
     return data;
   },
+
+  /**
+   * Find images by selection ID with pagination
+   */
+  async findBySelectionIdWithPagination(
+    selectionId: string,
+    limit: number,
+    offset: number
+  ): Promise<{ images: SelectionImage[]; totalCount: number }> {
+    const supabase = useSupabaseClient();
+
+    // Get total count
+    const { count, error: countError } = await supabase
+      .from("selection_images")
+      .select("*", { count: "exact", head: true })
+      .eq("selection_id", selectionId);
+
+    if (countError) {
+      throw new Error(
+        `Failed to count selection images: ${countError.message}`
+      );
+    }
+
+    // Get paginated images
+    const { data, error } = await supabase
+      .from("selection_images")
+      .select("*")
+      .eq("selection_id", selectionId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      throw new Error(`Failed to fetch selection images: ${error.message}`);
+    }
+
+    return {
+      images: data || [],
+      totalCount: count || 0,
+    };
+  },
+
+  /**
+   * Find only selected images by selection ID
+   */
+  async findSelectedBySelectionId(
+    selectionId: string
+  ): Promise<{ images: SelectionImage[] }> {
+    const supabase = useSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("selection_images")
+      .select("*")
+      .eq("selection_id", selectionId)
+      .eq("is_selected", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch selected images: ${error.message}`);
+    }
+
+    return {
+      images: data || [],
+    };
+  },
 };
