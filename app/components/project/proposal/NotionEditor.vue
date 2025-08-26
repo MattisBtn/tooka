@@ -2,16 +2,33 @@
     <div ref="editorRoot" class="notion-editor">
         <!-- Blocs de contenu -->
         <div class="space-y-2">
-            <div v-for="block in sortedBlocks" :key="block.id" class="group relative"
-                :class="{ 'ring-2 ring-primary ring-opacity-50 rounded-lg': isSelected(block.id) }">
+            <div v-for="block in sortedBlocks" :key="block.id"
+                class="group relative rounded-lg transition-all duration-200" :class="{
+                    'bg-primary/5 dark:bg-primary/10': isSelected(block.id),
+                    'hover:bg-neutral-100 dark:hover:bg-neutral-800': !isSelected(block.id) && !readonly && !isDragging,
+                    'opacity-50 scale-95 shadow-2xl': draggedBlockId === block.id && isDragging,
+                    'bg-blue-50 dark:bg-blue-900/20': dragOverBlockId === block.id && isDragging && draggedBlockId !== block.id
+                }">
+                <!-- Indicateur de drop zone -->
+                <div v-if="dragOverBlockId === block.id && isDragging && draggedBlockId !== block.id"
+                    class="absolute inset-0 pointer-events-none">
+                    <!-- Ligne de drop en haut -->
+                    <div v-if="dragPosition === 'before'"
+                        class="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full shadow-sm" />
+                    <!-- Ligne de drop en bas -->
+                    <div v-if="dragPosition === 'after'"
+                        class="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full shadow-sm" />
+                </div>
                 <!-- Contenu du bloc -->
                 <div class="relative min-h-[1.5rem]">
                     <!-- Actions flottantes (affichées seulement quand sélectionné) -->
                     <div v-if="!readonly && isSelected(block.id)"
-                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
+                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-lg"
                         @mousedown.prevent.stop>
                         <UButton icon="i-lucide-grip-vertical" size="xs" variant="ghost" color="neutral"
-                            class="cursor-grab active:cursor-grabbing" @mousedown.stop="startDrag(block.id)" />
+                            class="cursor-grab active:cursor-grabbing hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                            :class="{ 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400': draggedBlockId === block.id && isDragging }"
+                            @mousedown.stop="startDrag(block.id, $event)" />
                         <UButton icon="i-lucide-plus" size="xs" variant="ghost" color="neutral"
                             @click.stop="openSlashMenuFor(block.id, $event)" />
                         <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error"
@@ -107,7 +124,7 @@
                     <div v-else-if="block.type === 'table'" class="relative">
                         <!-- Toolbar table -->
                         <div v-if="!readonly && isSelected(block.id)"
-                            class="absolute -top-3 left-0 z-10 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
+                            class="absolute -top-3 left-0 z-10 flex items-center gap-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-lg"
                             @mousedown.prevent.stop>
                             <UButton icon="i-lucide-plus-square" size="xs" variant="ghost" color="neutral"
                                 @click.stop="addTableRow(block.id)" />
@@ -190,7 +207,7 @@
 
         <!-- Floating Format Menu (selection) -->
         <div v-if="showFormatMenu"
-            class="fixed z-50 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 shadow p-2 flex items-center gap-1"
+            class="fixed z-50 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 shadow-lg p-2 flex items-center gap-1"
             :style="{ left: formatMenuPos.x + 'px', top: formatMenuPos.y + 'px', transform: 'translateX(-50%)' }">
             <UButton icon="i-lucide-bold" size="xs" variant="ghost" @click="applyFormat('bold')" />
             <UButton icon="i-lucide-italic" size="xs" variant="ghost" @click="applyFormat('italic')" />
@@ -200,6 +217,8 @@
             <UButton icon="i-lucide-align-center" size="xs" variant="ghost" @click="applyAlign('center')" />
             <UButton icon="i-lucide-align-right" size="xs" variant="ghost" @click="applyAlign('right')" />
         </div>
+
+
 
         <!-- Placeholder quand aucun bloc -->
         <div v-if="blocks.length === 0" class="text-center py-8 text-neutral-500 dark:text-neutral-400">
@@ -487,9 +506,121 @@ const handleKeydown = (event: KeyboardEvent, block: NotionBlock) => {
     }
 };
 
-// Drag and drop (placeholder impl)
-const startDrag = (blockId: string) => {
-    console.log('Start drag for block:', blockId);
+// Drag and drop
+const draggedBlockId = ref<string | null>(null);
+const dragOverBlockId = ref<string | null>(null);
+const dragPosition = ref<'before' | 'after' | null>(null);
+const isDragging = ref(false);
+const dragOffset = ref({ x: 0, y: 0 });
+
+const startDrag = (blockId: string, event: MouseEvent) => {
+    if (props.readonly) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    isDragging.value = true;
+    draggedBlockId.value = blockId;
+
+    // Calculer l'offset pour maintenir la position relative du curseur
+    const blockElement = blockRefs.value[blockId];
+    if (blockElement) {
+        const rect = blockElement.getBoundingClientRect();
+        dragOffset.value = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+    }
+
+    // Ajouter les event listeners pour le drag
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+
+    // Empêcher la sélection de texte pendant le drag
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'grabbing';
+};
+
+const handleDragMove = (event: MouseEvent) => {
+    if (!isDragging.value || !draggedBlockId.value) return;
+
+    // Trouver le bloc sous le curseur
+    const elementBelow = document.elementFromPoint(event.clientX, event.clientY);
+    if (!elementBelow) return;
+
+    const blockElement = elementBelow.closest('[data-block-id]') as HTMLElement;
+    if (blockElement && blockElement.dataset.blockId) {
+        const newBlockId = blockElement.dataset.blockId;
+        if (newBlockId !== draggedBlockId.value) {
+            // Déterminer si on est au-dessus ou en-dessous du centre du bloc
+            const rect = blockElement.getBoundingClientRect();
+            const centerY = rect.top + rect.height / 2;
+            const position = event.clientY < centerY ? 'before' : 'after';
+
+            dragOverBlockId.value = newBlockId;
+            dragPosition.value = position;
+        }
+    } else {
+        dragOverBlockId.value = null;
+        dragPosition.value = null;
+    }
+};
+
+const handleDragEnd = () => {
+    if (!isDragging.value || !draggedBlockId.value) return;
+
+    // Effectuer le déplacement si on a un bloc de destination
+    if (dragOverBlockId.value && draggedBlockId.value !== dragOverBlockId.value) {
+        moveBlock(draggedBlockId.value, dragOverBlockId.value, dragPosition.value);
+    }
+    // Si on n'a pas de destination, on peut soit annuler soit placer à la fin
+    // Pour l'instant, on annule simplement le drag
+
+    // Nettoyer
+    isDragging.value = false;
+    draggedBlockId.value = null;
+    dragOverBlockId.value = null;
+    dragPosition.value = null;
+    dragOffset.value = { x: 0, y: 0 };
+
+    // Restaurer les styles
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+
+    // Retirer les event listeners
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+};
+
+const moveBlock = (fromBlockId: string, toBlockId: string, position: 'before' | 'after' | null) => {
+    const fromIndex = blocks.value.findIndex(b => b.id === fromBlockId);
+    const toIndex = blocks.value.findIndex(b => b.id === toBlockId);
+
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // Calculer la position finale en tenant compte de la position (before/after)
+    let targetIndex = toIndex;
+    if (position === 'after') {
+        targetIndex = toIndex + 1;
+    }
+
+    // Ajuster si le bloc source est avant la destination
+    if (fromIndex < targetIndex) {
+        targetIndex--;
+    }
+
+    // Utiliser la méthode moveBlock du composable pour déplacer progressivement
+    if (fromIndex < targetIndex) {
+        // Déplacer vers le bas
+        for (let i = 0; i < targetIndex - fromIndex; i++) {
+            editor.moveBlock(fromBlockId, 'down');
+        }
+    } else if (fromIndex > targetIndex) {
+        // Déplacer vers le haut
+        for (let i = 0; i < fromIndex - targetIndex; i++) {
+            editor.moveBlock(fromBlockId, 'up');
+        }
+    }
 };
 
 // Ouvrir le slash menu depuis le bouton +
@@ -625,7 +756,14 @@ const handleSelectionChange = () => {
 };
 
 onMounted(() => { document.addEventListener('selectionchange', handleSelectionChange); });
-onUnmounted(() => { document.removeEventListener('selectionchange', handleSelectionChange); });
+onUnmounted(() => {
+    document.removeEventListener('selectionchange', handleSelectionChange);
+    // Nettoyer les event listeners de drag si le composant est démonté pendant un drag
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+});
 
 // Actions format
 const applyFormat = (cmd: 'bold' | 'italic' | 'underline') => { document.execCommand(cmd); };
