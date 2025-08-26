@@ -147,12 +147,14 @@ const handleImageClick = (image: SelectionImage) => {
     const previewImage: PreviewImage = {
         id: image.id,
         file_url: image.file_url,
-        created_at: image.created_at
+        created_at: image.created_at,
+        source_filename: image.source_filename
     }
     imagePreview.openPreview(previewImage, props.images.map(img => ({
         id: img.id,
         file_url: img.file_url,
-        created_at: img.created_at
+        created_at: img.created_at,
+        source_filename: img.source_filename
     })))
 }
 
@@ -249,8 +251,13 @@ const downloadImage = async (filePath: string, isOriginal: boolean = false, imag
     try {
         const selectionStore = useSelectionStore()
 
-        // Generate appropriate filename with correct extension
-        const timestamp = Date.now()
+        // Find the image to get its original filename
+        const image = props.images.find(img =>
+            isOriginal ? img.source_file_url === filePath : img.file_url === filePath
+        )
+
+        // Generate filename using original name if available
+        let filename: string
         let extension = 'jpg'
 
         if (isOriginal && imageFormat) {
@@ -258,7 +265,15 @@ const downloadImage = async (filePath: string, isOriginal: boolean = false, imag
             extension = imageFormat.toLowerCase()
         }
 
-        const filename = `image_${timestamp}.${extension}`
+        if (image?.source_filename) {
+            // Use original filename with correct extension
+            const nameWithoutExt = image.source_filename.replace(/\.[^/.]+$/, "")
+            filename = `${nameWithoutExt}.${extension}`
+        } else {
+            // Fallback to timestamp if no original name
+            const timestamp = Date.now()
+            filename = `image_${timestamp}.${extension}`
+        }
 
         await selectionStore.downloadImage(filePath, filename, true)
 

@@ -46,10 +46,19 @@
                             <USkeleton class="w-full h-full max-w-4xl max-h-4xl" />
                         </div>
 
-                        <!-- Image counter - Always visible -->
-                        <div v-if="images.length > 1"
-                            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
-                            {{ currentIndex + 1 }} / {{ images.length }}
+                        <!-- Image counter and filename - Always visible -->
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+                            <!-- Image counter -->
+                            <div v-if="images.length > 1"
+                                class="bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+                                {{ currentIndex + 1 }} / {{ images.length }}
+                            </div>
+
+                            <!-- Filename display -->
+                            <div
+                                class="bg-black/70 text-white px-3 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm max-w-xs truncate">
+                                {{ getCurrentImageFilename() }}
+                            </div>
                         </div>
 
                         <!-- Swipe indicator on mobile when no thumbnails -->
@@ -88,6 +97,7 @@ interface ImageWithFileUrl {
     id: string
     file_url: string
     created_at: string
+    source_filename?: string | null // Original filename if available
 }
 
 interface Props {
@@ -116,6 +126,37 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+// Keyboard shortcuts for navigation using VueUse
+const handleKeydown = (event: KeyboardEvent) => {
+    if (!props.isOpen) return
+
+    switch (event.key) {
+        case 'ArrowLeft':
+            if (props.images.length > 1) {
+                event.preventDefault()
+                emit('previous')
+            }
+            break
+        case 'ArrowRight':
+            if (props.images.length > 1) {
+                event.preventDefault()
+                emit('next')
+            }
+            break
+        case 'Escape':
+            event.preventDefault()
+            emit('close')
+            break
+    }
+}
+
+// Add keyboard event listeners when modal opens
+watch(() => props.isOpen, (isOpen) => {
+    if (isOpen) {
+        useEventListener(document, 'keydown', handleKeydown)
+    }
+}, { immediate: true })
 
 // Device detection using nuxt-device
 const { isMobile } = useDevice()
@@ -195,5 +236,24 @@ const handleDownloadCurrentImage = () => {
     if (props.currentImage && props.onDownloadImage) {
         props.onDownloadImage(props.currentImage.id)
     }
+}
+
+// Get current image filename from file_url
+const getCurrentImageFilename = (): string => {
+    if (!props.currentImage) return 'Image'
+
+    // First try to use source_filename if available (original name)
+    if (props.currentImage.source_filename) {
+        return props.currentImage.source_filename
+    }
+
+    // Fallback to extracting from file_url path
+    if (props.currentImage.file_url) {
+        const pathParts = props.currentImage.file_url.split('/')
+        const filename = pathParts[pathParts.length - 1]
+        return filename || 'Image'
+    }
+
+    return 'Image'
 }
 </script>

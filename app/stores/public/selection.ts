@@ -337,6 +337,38 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     return imageSignedUrls.value.get(fileUrl) || null;
   };
 
+  // Download image with original filename
+  const downloadImage = async (imageId: string) => {
+    try {
+      const image = images.value.find((img) => img.id === imageId);
+      if (!image) {
+        throw new Error("Image not found");
+      }
+
+      // Use selectionService for download
+      const { selectionService } = await import("~/services/selectionService");
+
+      // Generate filename using original name if available
+      let filename: string;
+      if (image.source_filename) {
+        // Use original filename with correct extension
+        const nameWithoutExt = image.source_filename.replace(/\.[^/.]+$/, "");
+        const extension = image.source_format?.toLowerCase() || "jpg";
+        filename = `${nameWithoutExt}.${extension}`;
+      } else {
+        // Fallback to timestamp if no original name
+        const timestamp = Date.now();
+        const extension = image.source_format?.toLowerCase() || "jpg";
+        filename = `image_${timestamp}.${extension}`;
+      }
+
+      await selectionService.downloadImage(image.file_url, filename, true);
+    } catch (error) {
+      console.error("Download failed:", error);
+      throw error;
+    }
+  };
+
   return {
     // State
     selectionId: readonly(selectionId),
@@ -377,5 +409,6 @@ export const useClientSelectionStore = defineStore("clientSelection", () => {
     toggleFilter,
     clearAllFilters,
     getImageSignedUrl,
+    downloadImage,
   };
 });
