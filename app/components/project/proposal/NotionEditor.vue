@@ -101,47 +101,7 @@
                         <hr class="my-2 border-neutral-300 dark:border-neutral-600">
                     </div>
 
-                    <!-- Image -->
-                    <div v-else-if="block.type === 'image'" class="relative py-1" tabindex="0"
-                        @click.stop="selectBlock(block.id)">
-                        <!-- Alignment toolbar for image -->
-                        <div v-if="!readonly && isSelected(block.id)"
-                            class="absolute -top-3 left-0 z-30 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
-                            @mousedown.prevent.stop>
-                            <UButton icon="i-lucide-align-left" size="xs" variant="ghost" color="neutral"
-                                @click.stop="alignImage(block.id, 'left')" />
-                            <UButton icon="i-lucide-align-center" size="xs" variant="ghost" color="neutral"
-                                @click.stop="alignImage(block.id, 'center')" />
-                            <UButton icon="i-lucide-align-right" size="xs" variant="ghost" color="neutral"
-                                @click.stop="alignImage(block.id, 'right')" />
-                        </div>
 
-                        <div v-if="block.content" class="relative" :class="{
-                            'ml-0': (getImageAlign(block.id) === 'left'),
-                            'mx-auto': (getImageAlign(block.id) === 'center'),
-                            'ml-auto': (getImageAlign(block.id) === 'right')
-                        }">
-                            <div
-                                class="relative w-[500px] h-[500px] overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-700">
-                                <img :src="block.content" alt="" class="absolute inset-0 w-full h-full object-cover">
-                                <!-- Delete/replace moved inside image card, top-left, to avoid overlapping row actions -->
-                                <div v-if="!readonly" class="absolute top-2 left-2 flex gap-1" @mousedown.prevent.stop>
-                                    <UButton icon="i-lucide-refresh-ccw" size="xs" variant="ghost"
-                                        @click.stop="triggerImageReplace(block.id)" />
-                                    <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error"
-                                        @click.stop="clearImage(block.id)" />
-                                </div>
-                            </div>
-                        </div>
-                        <div v-else
-                            class="relative rounded-md bg-neutral-50 dark:bg-neutral-900 border border-dashed border-neutral-300 dark:border-neutral-700">
-                            <div class="relative w-[500px] max-w-full h-[500px] overflow-hidden">
-                                <UFileUpload class="absolute inset-0 h-full w-full" :max-files="1"
-                                    accept=".jpg,.jpeg,.png,.webp" :max-size="5 * 1024 * 1024"
-                                    @update:model-value="(files) => onImageSelected(block.id, files)" />
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Tableau -->
                     <div v-else-if="block.type === 'table'" class="relative">
@@ -166,6 +126,37 @@
                         </div>
                     </div>
 
+                    <!-- Callout -->
+                    <div v-else-if="block.type === 'callout'" class="relative">
+                        <div
+                            class="flex items-start gap-3 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+                            <!-- Icône cliquable -->
+                            <div class="flex-shrink-0">
+                                <button v-if="!readonly"
+                                    class="flex items-center justify-center w-5 h-5 hover:bg-neutral-200 dark:hover:bg-neutral-600 rounded transition-colors"
+                                    @click="openIconSelector(block.id, $event)">
+                                    <span v-if="getCalloutIconType(block.id) === 'emoji'" class="text-base">
+                                        {{ getCalloutIcon(block.id) }}
+                                    </span>
+                                    <UIcon v-else :name="`i-lucide-${getCalloutIcon(block.id)}`" class="w-4 h-4" />
+                                </button>
+                                <div v-else class="flex items-center justify-center w-5 h-5">
+                                    <span v-if="getCalloutIconType(block.id) === 'emoji'" class="text-base">
+                                        {{ getCalloutIcon(block.id) }}
+                                    </span>
+                                    <UIcon v-else :name="`i-lucide-${getCalloutIcon(block.id)}`" class="w-4 h-4" />
+                                </div>
+                            </div>
+                            <!-- Contenu éditable -->
+                            <div :ref="(el) => _setBlockRef(block.id, el)" :data-block-id="block.id"
+                                :contenteditable="!readonly"
+                                class="flex-1 outline-none focus:outline-none text-sm leading-relaxed min-h-[1.5rem]"
+                                :class="{ 'cursor-text': !readonly }" :placeholder="getPlaceholder(block)"
+                                @input="updateBlockContent(block.id, $event)" @keydown="handleKeydown($event, block)"
+                                @focus="selectBlock(block.id)" @blur="deselectBlock" />
+                        </div>
+                    </div>
+
                     <!-- Bouton -->
                     <div v-else-if="block.type === 'button'" class="relative">
                         <UButton color="primary" variant="solid">
@@ -176,6 +167,14 @@
                                 @blur="deselectBlock" />
                         </UButton>
                     </div>
+
+                    <!-- Image -->
+                    <div v-else-if="block.type === 'image'" class="relative">
+                        <NotionImageBlock :block-id="block.id" :image-url="block.content"
+                            :metadata="block.metadata as ImageBlockMetadata" :readonly="readonly"
+                            :is-selected="isSelected(block.id)" @update="updateImageBlock(block.id, $event)"
+                            @delete="removeBlock(block.id)" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,6 +183,10 @@
         <SlashMenu :is-open="slashMenuOpen" :position="slashMenuPosition" :commands="filteredCommands"
             :selected-index="slashMenuSelectedIndex" @select="handleSlashCommand" @close="closeSlashMenu"
             @update:selected-index="slashMenuSelectedIndex = $event" />
+
+        <!-- Icon Selector Menu -->
+        <IconSelectorMenu :is-open="iconSelectorOpen" :position="iconSelectorPosition" @select="handleIconSelect"
+            @close="closeIconSelector" />
 
         <!-- Floating Format Menu (selection) -->
         <div v-if="showFormatMenu"
@@ -208,7 +211,9 @@
 <script lang="ts" setup>
 import type { ComponentPublicInstance } from 'vue';
 import { useNotionEditor } from '~/composables/useNotionEditor';
-import type { NotionBlock, SlashCommand } from '~/types/notion';
+import type { ImageBlockMetadata, NotionBlock, SlashCommand } from '~/types/notion';
+import IconSelectorMenu from './IconSelectorMenu.vue';
+import NotionImageBlock from './NotionImageBlock.vue';
 import SlashMenu from './SlashMenu.vue';
 
 interface Props {
@@ -241,6 +246,14 @@ const _setBlockRef = (id: string, el: Element | ComponentPublicInstance | null) 
 
 // État du slash menu
 const slashMenuSelectedIndex = ref(0);
+
+// État du icon selector
+const iconSelectorOpen = ref(false);
+const iconSelectorPosition = ref<{ x: number; y: number } | null>(null);
+const iconSelectorBlockId = ref<string | null>(null);
+
+// Pour gérer la double frappe Enter dans les callouts
+const lastEnterTime = ref<Record<string, number>>({});
 
 // Initialiser l'éditeur
 onMounted(() => {
@@ -296,6 +309,10 @@ const updateButtonText = (blockId: string, event: Event) => {
     editor.updateBlock(blockId, { content: target.innerText });
 };
 
+const updateImageBlock = (blockId: string, data: { content: string; metadata: ImageBlockMetadata }) => {
+    editor.updateBlock(blockId, data);
+};
+
 const removeBlock = (blockId: string) => {
     editor.removeBlock(blockId);
 };
@@ -315,6 +332,14 @@ const handleSlashCommand = (command: SlashCommand) => {
             initTable(newBlock.id, 3, 2);
         } else if (newBlock.type === 'button') {
             el.textContent = newBlock.content || '';
+        } else if (newBlock.type === 'callout') {
+            // Initialiser avec une icône par défaut si pas de metadata
+            if (!newBlock.metadata?.icon) {
+                editor.updateBlock(newBlock.id, {
+                    metadata: { icon: '💡', iconType: 'emoji' }
+                });
+            }
+            el.innerHTML = newBlock.content || '';
         } else {
             el.innerHTML = newBlock.content || '';
         }
@@ -323,33 +348,7 @@ const handleSlashCommand = (command: SlashCommand) => {
     });
 };
 
-const onImageSelected = async (blockId: string, files: unknown) => {
-    const fileArray = files as File[];
-    if (!fileArray || fileArray.length === 0) return;
-    const file = fileArray[0];
-    if (!file) return;
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024;
-    if (!validTypes.includes(file.type) || file.size > maxSize) return;
-    const preview = await fileToDataUrl(file);
-    editor.updateBlock(blockId, { content: preview });
-};
 
-const fileToDataUrl = (file: File) => new Promise<string>((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.readAsDataURL(file);
-});
-
-const clearImage = (blockId: string) => {
-    editor.updateBlock(blockId, { content: '' });
-};
-
-const triggerImageReplace = (blockId: string) => {
-    // Open a lightweight hidden input to reuse UFileUpload UX would be complex; keep slash + delete simple for now.
-    // For now, clear image to show uploader again
-    clearImage(blockId);
-};
 
 // Gestion des touches clavier (Enter logique par type)
 const handleKeydown = (event: KeyboardEvent, block: NotionBlock) => {
@@ -383,6 +382,59 @@ const handleKeydown = (event: KeyboardEvent, block: NotionBlock) => {
         }
         // Code: autoriser nouvelle ligne
         if (block.type === 'code') {
+            return;
+        }
+        // Callout: première entrée = nouvelle ligne, seconde entrée consécutive = nouveau paragraphe
+        if (block.type === 'callout') {
+            event.preventDefault();
+            const target = event.target as HTMLElement;
+            const currentTime = Date.now();
+            const lastTime = lastEnterTime.value[block.id] || 0;
+            const timeDiff = currentTime - lastTime;
+
+            // Si deux Enter rapprochés (moins de 500ms) ET qu'on est dans une zone vide, créer un nouveau paragraphe
+            if (timeDiff < 500) {
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    // Vérifier si on est sur une ligne vide (après un <br>)
+                    const beforeCursor = target.innerHTML.substring(0, range.startOffset);
+
+                    if (target.innerHTML.endsWith('<br>') || beforeCursor.endsWith('<br>')) {
+                        const newBlock = editor.addBlock('paragraph', block.id);
+                        nextTick(() => {
+                            const el = blockRefs.value[newBlock.id];
+                            if (el) { el.focus(); setCaretToEnd(el); }
+                        });
+                        // Reset le timer
+                        lastEnterTime.value[block.id] = 0;
+                        return;
+                    }
+                }
+            }
+
+            // Enregistrer le temps de cette frappe
+            lastEnterTime.value[block.id] = currentTime;
+
+            // Ajouter une nouvelle ligne et positionner le curseur
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+
+                // Créer et insérer le <br>
+                const br = document.createElement('br');
+                range.deleteContents();
+                range.insertNode(br);
+
+                // Créer un nouveau range après le <br>
+                const newRange = document.createRange();
+                newRange.setStartAfter(br);
+                newRange.collapse(true);
+
+                // Appliquer la nouvelle sélection
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
             return;
         }
         // Divider: créer un paragraphe sous le séparateur
@@ -474,8 +526,57 @@ const getPlaceholder = (block: NotionBlock) => {
         case 'code': return 'Collez ou tapez du code';
         case 'table': return 'Collez un tableau (CSV) ou éditez les cellules';
         case 'button': return 'Texte du bouton';
+        case 'callout': return 'Tapez votre message...';
+        case 'image': return 'Cliquez pour ajouter une image';
         default: return '';
     }
+};
+
+// Méthodes pour le callout
+const getCalloutIcon = (blockId: string): string => {
+    const block = editor.blocks.value.find(b => b.id === blockId);
+    return (block?.metadata?.icon as string) || '💡';
+};
+
+const getCalloutIconType = (blockId: string): 'emoji' | 'lucide' => {
+    const block = editor.blocks.value.find(b => b.id === blockId);
+    return (block?.metadata?.iconType as 'emoji' | 'lucide') || 'emoji';
+};
+
+const openIconSelector = (blockId: string, event: MouseEvent) => {
+    console.log('openIconSelector called', blockId, event);
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    iconSelectorBlockId.value = blockId;
+    iconSelectorPosition.value = { x: rect.left, y: rect.bottom + 5 };
+    iconSelectorOpen.value = true;
+
+    console.log('iconSelectorOpen set to', iconSelectorOpen.value);
+    console.log('iconSelectorPosition set to', iconSelectorPosition.value);
+};
+
+const closeIconSelector = () => {
+    iconSelectorOpen.value = false;
+    iconSelectorPosition.value = null;
+    iconSelectorBlockId.value = null;
+};
+
+const handleIconSelect = (icon: string, type: 'emoji' | 'lucide') => {
+    if (iconSelectorBlockId.value) {
+        const block = editor.blocks.value.find(b => b.id === iconSelectorBlockId.value);
+        const currentMetadata = block?.metadata || {};
+        editor.updateBlock(iconSelectorBlockId.value, {
+            metadata: {
+                ...currentMetadata,
+                icon,
+                iconType: type
+            }
+        });
+    }
+    closeIconSelector();
 };
 
 // Synchroniser le DOM initial (listes -> <li>, button text)
@@ -491,6 +592,14 @@ onMounted(() => {
                 if (!b.content) initTable(b.id, 3, 2); else el.innerHTML = b.content;
             } else if (b.type === 'button') {
                 el.textContent = b.content || '';
+            } else if (b.type === 'callout') {
+                // Initialiser avec une icône par défaut si pas de metadata
+                if (!b.metadata?.icon) {
+                    editor.updateBlock(b.id, {
+                        metadata: { icon: '💡', iconType: 'emoji' }
+                    });
+                }
+                el.innerHTML = b.content || '';
             } else {
                 el.innerHTML = b.content || '';
             }
@@ -628,18 +737,7 @@ const createParagraphAfter = (blockId: string) => {
     });
 };
 
-// Helpers for image alignment
-type ImageAlign = 'left' | 'center' | 'right';
-const alignImage = (blockId: string, align: ImageAlign) => {
-    const block = editor.blocks.value.find(b => b.id === blockId);
-    const meta = (block?.metadata ?? {}) as Record<string, unknown>;
-    editor.updateBlock(blockId, { metadata: { ...meta, align } });
-};
-const getImageAlign = (blockId: string): ImageAlign => {
-    const block = editor.blocks.value.find(b => b.id === blockId);
-    const align = (block?.metadata as Record<string, unknown> | undefined)?.align as ImageAlign | undefined;
-    return align ?? 'center';
-};
+
 </script>
 
 <style scoped>

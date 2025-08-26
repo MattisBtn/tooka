@@ -113,6 +113,14 @@ export const useNotionEditor = () => {
       type: "button",
       keywords: ["bouton", "button", "action"],
     },
+    {
+      id: "callout",
+      title: "Callout",
+      description: "Encadré avec icône",
+      icon: "i-lucide-info",
+      type: "callout",
+      keywords: ["callout", "encadre", "info", "alerte", "note"],
+    },
   ];
 
   // Commandes filtrées selon la recherche
@@ -170,7 +178,10 @@ export const useNotionEditor = () => {
         state.blocks.splice(afterIndex + 1, 0, newBlock);
         // Réordonner les blocs suivants
         for (let i = afterIndex + 2; i < state.blocks.length; i++) {
-          state.blocks[i].order = i + 1;
+          const block = state.blocks[i];
+          if (block) {
+            block.order = i + 1;
+          }
         }
       }
     }
@@ -179,13 +190,25 @@ export const useNotionEditor = () => {
   };
 
   // Supprimer un bloc
-  const removeBlock = (blockId: string) => {
+  const removeBlock = async (blockId: string) => {
+    const block = state.blocks.find((b) => b.id === blockId);
+
+    // Si c'est un bloc image, supprimer l'image du storage
+    if (block?.type === "image" && block.metadata?.filePath) {
+      const { notionImageService } = await import(
+        "~/services/notionImageService"
+      );
+      await notionImageService.deleteImage(block.metadata.filePath as string);
+    }
+
     const index = state.blocks.findIndex((b) => b.id === blockId);
     if (index !== -1) {
       state.blocks.splice(index, 1);
       // Réordonner les blocs restants
       state.blocks.forEach((block, i) => {
-        block.order = i + 1;
+        if (block) {
+          block.order = i + 1;
+        }
       });
     }
   };
@@ -205,20 +228,28 @@ export const useNotionEditor = () => {
 
     if (direction === "up" && index > 0) {
       // Échanger avec le bloc précédent
-      [state.blocks[index], state.blocks[index - 1]] = [
-        state.blocks[index - 1],
-        state.blocks[index],
-      ];
-      state.blocks[index].order = index + 1;
-      state.blocks[index - 1].order = index;
+      const currentBlock = state.blocks[index];
+      const previousBlock = state.blocks[index - 1];
+      if (currentBlock && previousBlock) {
+        [state.blocks[index], state.blocks[index - 1]] = [
+          previousBlock,
+          currentBlock,
+        ];
+        currentBlock.order = index;
+        previousBlock.order = index + 1;
+      }
     } else if (direction === "down" && index < state.blocks.length - 1) {
       // Échanger avec le bloc suivant
-      [state.blocks[index], state.blocks[index + 1]] = [
-        state.blocks[index + 1],
-        state.blocks[index],
-      ];
-      state.blocks[index].order = index + 1;
-      state.blocks[index + 1].order = index + 2;
+      const currentBlock = state.blocks[index];
+      const nextBlock = state.blocks[index + 1];
+      if (currentBlock && nextBlock) {
+        [state.blocks[index], state.blocks[index + 1]] = [
+          nextBlock,
+          currentBlock,
+        ];
+        currentBlock.order = index + 2;
+        nextBlock.order = index + 1;
+      }
     }
   };
 
@@ -286,12 +317,34 @@ export const useNotionEditor = () => {
             return `<pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg mb-4 overflow-x-auto"><code>${block.content}</code></pre>`;
           case "divider":
             return `<hr class="my-6 border-neutral-300 dark:border-neutral-600">`;
-          case "image":
-            return `<img src="${block.content}" alt="" class="max-w-full h-auto mb-4 rounded-lg">`;
+          case "image": {
+            const imageWidth = block.metadata?.width
+              ? `width="${block.metadata.width}"`
+              : "";
+            const imageHeight = block.metadata?.height
+              ? `height="${block.metadata.height}"`
+              : "";
+            return `<div class="mb-4"><img src="${
+              block.content
+            }" alt="Image" ${imageWidth} ${imageHeight} class="max-w-full h-auto rounded-lg shadow-sm" /></div>`;
+          }
           case "table":
             return `<div class="overflow-x-auto mb-4"><table class="w-full border-collapse border border-neutral-300 dark:border-neutral-600">${block.content}</table></div>`;
           case "button":
             return `<button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors mb-4">${block.content}</button>`;
+          case "callout": {
+            const calloutIcon = (block.metadata?.icon as string) || "💡";
+            const calloutIconType =
+              (block.metadata?.iconType as string) || "emoji";
+            const iconHtml =
+              calloutIconType === "emoji"
+                ? calloutIcon
+                : `<svg class="w-4 h-4 lucide lucide-${calloutIcon}"><use href="#lucide-${calloutIcon}"></use></svg>`;
+            return `<div class="flex gap-3 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg mb-4">
+              <div class="flex-shrink-0 text-lg">${iconHtml}</div>
+              <div class="flex-1">${block.content}</div>
+            </div>`;
+          }
           default:
             return `<p class="mb-4">${block.content}</p>`;
         }

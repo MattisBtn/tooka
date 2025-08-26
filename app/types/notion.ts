@@ -7,6 +7,13 @@ export interface NotionBlock {
   order: number;
 }
 
+// Metadata spécifique pour le bloc image
+export interface ImageBlockMetadata extends Record<string, unknown> {
+  filePath?: string;
+  width?: number;
+  height?: number;
+}
+
 export type NotionBlockType =
   | "heading1"
   | "heading2"
@@ -19,7 +26,8 @@ export type NotionBlockType =
   | "divider"
   | "image"
   | "table"
-  | "button";
+  | "button"
+  | "callout";
 
 // Commandes du slash menu
 export interface SlashCommand {
