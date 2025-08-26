@@ -44,8 +44,7 @@ interface Props {
 
 interface Emits {
     (e: 'replace', file: File): void;
-    (e: 'delete'): void;
-    (e: 'close'): void;
+    (e: 'delete' | 'close'): void;
 }
 
 const props = defineProps<Props>();
