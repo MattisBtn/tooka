@@ -3,7 +3,7 @@ export interface NotionBlock {
   id: string;
   type: NotionBlockType;
   content: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   order: number;
 }
 

@@ -8,7 +8,7 @@
                 <div class="relative min-h-[1.5rem]">
                     <!-- Actions flottantes (affichées seulement quand sélectionné) -->
                     <div v-if="!readonly && isSelected(block.id)"
-                        class="absolute -top-3 right-0 z-10 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
+                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
                         @mousedown.prevent.stop>
                         <UButton icon="i-lucide-grip-vertical" size="xs" variant="ghost" color="neutral"
                             class="cursor-grab active:cursor-grabbing" @mousedown.stop="startDrag(block.id)" />
@@ -102,21 +102,44 @@
                     </div>
 
                     <!-- Image -->
-                    <div v-else-if="block.type === 'image'" class="relative">
-                        <div v-if="block.content" class="inline-block relative">
-                            <img :src="block.content" alt=""
-                                class="max-w-xs h-auto rounded-lg border border-neutral-200 dark:border-neutral-700">
-                            <div v-if="!readonly" class="absolute top-2 right-2 flex gap-1" @mousedown.prevent.stop>
-                                <UButton icon="i-lucide-refresh-ccw" size="xs" variant="ghost"
-                                    @click.stop="triggerImageReplace(block.id)" />
-                                <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error"
-                                    @click.stop="clearImage(block.id)" />
+                    <div v-else-if="block.type === 'image'" class="relative py-1" tabindex="0"
+                        @click.stop="selectBlock(block.id)">
+                        <!-- Alignment toolbar for image -->
+                        <div v-if="!readonly && isSelected(block.id)"
+                            class="absolute -top-3 left-0 z-30 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-sm"
+                            @mousedown.prevent.stop>
+                            <UButton icon="i-lucide-align-left" size="xs" variant="ghost" color="neutral"
+                                @click.stop="alignImage(block.id, 'left')" />
+                            <UButton icon="i-lucide-align-center" size="xs" variant="ghost" color="neutral"
+                                @click.stop="alignImage(block.id, 'center')" />
+                            <UButton icon="i-lucide-align-right" size="xs" variant="ghost" color="neutral"
+                                @click.stop="alignImage(block.id, 'right')" />
+                        </div>
+
+                        <div v-if="block.content" class="relative" :class="{
+                            'ml-0': (getImageAlign(block.id) === 'left'),
+                            'mx-auto': (getImageAlign(block.id) === 'center'),
+                            'ml-auto': (getImageAlign(block.id) === 'right')
+                        }">
+                            <div
+                                class="relative w-[500px] h-[500px] overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-700">
+                                <img :src="block.content" alt="" class="absolute inset-0 w-full h-full object-cover">
+                                <!-- Delete/replace moved inside image card, top-left, to avoid overlapping row actions -->
+                                <div v-if="!readonly" class="absolute top-2 left-2 flex gap-1" @mousedown.prevent.stop>
+                                    <UButton icon="i-lucide-refresh-ccw" size="xs" variant="ghost"
+                                        @click.stop="triggerImageReplace(block.id)" />
+                                    <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error"
+                                        @click.stop="clearImage(block.id)" />
+                                </div>
                             </div>
                         </div>
                         <div v-else
-                            class="p-2 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-900">
-                            <UFileUpload :max-files="1" accept=".jpg,.jpeg,.png,.webp" :max-size="5 * 1024 * 1024"
-                                @update:model-value="(files) => onImageSelected(block.id, files)" />
+                            class="relative rounded-md bg-neutral-50 dark:bg-neutral-900 border border-dashed border-neutral-300 dark:border-neutral-700">
+                            <div class="relative w-[500px] max-w-full h-[500px] overflow-hidden">
+                                <UFileUpload class="absolute inset-0 h-full w-full" :max-files="1"
+                                    accept=".jpg,.jpeg,.png,.webp" :max-size="5 * 1024 * 1024"
+                                    @update:model-value="(files) => onImageSelected(block.id, files)" />
+                            </div>
                         </div>
                     </div>
 
@@ -210,12 +233,11 @@ const editor = useNotionEditor();
 // Références aux blocs
 const blockRefs = ref<Record<string, HTMLElement>>({});
 const _setBlockRef = (id: string, el: Element | ComponentPublicInstance | null) => {
-    const dom: Element | null = (el && (el as any).$el) ? (el as any).$el as Element : (el as Element | null);
-    if (dom instanceof HTMLElement) blockRefs.value[id] = dom;
+    const domCandidate: Element | null = (el && (el as ComponentPublicInstance).$el)
+        ? ((el as ComponentPublicInstance).$el as Element)
+        : (el as Element | null);
+    if (domCandidate instanceof HTMLElement) blockRefs.value[id] = domCandidate;
 };
-
-// Image replace trigger state
-const hiddenFileInputs = ref<Record<string, HTMLInputElement | null>>({});
 
 // État du slash menu
 const slashMenuSelectedIndex = ref(0);
@@ -301,14 +323,11 @@ const handleSlashCommand = (command: SlashCommand) => {
     });
 };
 
-const handleImageError = (blockId: string) => {
-    editor.updateBlock(blockId, { content: '' });
-};
-
 const onImageSelected = async (blockId: string, files: unknown) => {
     const fileArray = files as File[];
     if (!fileArray || fileArray.length === 0) return;
     const file = fileArray[0];
+    if (!file) return;
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const maxSize = 5 * 1024 * 1024;
     if (!validTypes.includes(file.type) || file.size > maxSize) return;
@@ -590,7 +609,7 @@ const handleListEnter = (block: NotionBlock) => {
     const remaining = Array.from(el.querySelectorAll('li')).map(n => (n.textContent || '').trim()).filter(Boolean);
 
     if (remaining.length === 0) {
-        editor.updateBlock(block.id, { type: 'paragraph', content: '' } as any);
+        editor.updateBlock(block.id, { type: 'paragraph', content: '' } as Partial<NotionBlock>);
     } else {
         editor.updateBlock(block.id, { content: remaining.join('\n') });
     }
@@ -607,6 +626,19 @@ const createParagraphAfter = (blockId: string) => {
         const el = blockRefs.value[newBlock.id];
         if (el) { el.focus(); setCaretToEnd(el); }
     });
+};
+
+// Helpers for image alignment
+type ImageAlign = 'left' | 'center' | 'right';
+const alignImage = (blockId: string, align: ImageAlign) => {
+    const block = editor.blocks.value.find(b => b.id === blockId);
+    const meta = (block?.metadata ?? {}) as Record<string, unknown>;
+    editor.updateBlock(blockId, { metadata: { ...meta, align } });
+};
+const getImageAlign = (blockId: string): ImageAlign => {
+    const block = editor.blocks.value.find(b => b.id === blockId);
+    const align = (block?.metadata as Record<string, unknown> | undefined)?.align as ImageAlign | undefined;
+    return align ?? 'center';
 };
 </script>
 
