@@ -28,7 +28,8 @@
                     <!-- Images count -->
                     <div class="text-sm text-neutral-500 dark:text-neutral-400">
                         {{ filteredImages.length }} image{{ filteredImages.length > 1 ? 's' : '' }}
-                        <span v-if="currentFilter === 'selected'">sélectionnée{{ filteredImages.length > 1 ? 's' : '' }}</span>
+                        <span v-if="currentFilter === 'selected'">sélectionnée{{ filteredImages.length > 1 ? 's' : ''
+                            }}</span>
                     </div>
                 </div>
 
@@ -44,14 +45,9 @@
 
                         <!-- Images Grid using existing component -->
                         <div v-else-if="filteredImages.length > 0">
-                            <ProjectSelectionImageGrid 
-                                :key="`grid-${currentFilter}-${displayedImages.length}`"
-                                :images="filteredImages" 
-                                :can-delete="canDeleteImages"
-                                :show-selection-state="true" 
-                                :max-preview="999999" 
-                                @delete-image="deleteImage" 
-                            />
+                            <ProjectSelectionImageGrid :key="`grid-${currentFilter}-${displayedImages.length}`"
+                                :images="filteredImages" :can-delete="canDeleteImages" :show-selection-state="true"
+                                :max-preview="999999" @delete-image="deleteImage" />
                         </div>
 
                         <!-- Load more button -->
@@ -185,7 +181,7 @@ const loadImages = async (page: number = 1, reset: boolean = false) => {
 
         // Use nextTick to batch DOM updates
         await nextTick();
-        
+
         if (reset) {
             displayedImages.value = result.images;
         } else {
@@ -273,7 +269,7 @@ watch(isOpen, (newValue, oldValue) => {
         displayedImages.value = [];
         hasMore.value = true;
         totalCount.value = 0;
-        
+
         // Load images after state reset
         nextTick(() => {
             loadImages(1, true);
