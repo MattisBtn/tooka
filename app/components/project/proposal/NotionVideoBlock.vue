@@ -47,12 +47,7 @@
                 </video>
             </div>
 
-            <!-- Bouton d'actions (visible au survol/sélection) -->
-            <div v-if="!readonly && (isHovered || isSelected)"
-                class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <UButton icon="i-lucide-more-horizontal" size="sm" color="neutral" variant="solid"
-                    @click="openActionMenu" />
-            </div>
+
         </div>
 
         <!-- Erreur -->
@@ -106,6 +101,8 @@ const isHovered = ref(false);
 const actionMenuOpen = ref(false);
 const actionMenuPosition = ref<{ x: number; y: number } | null>(null);
 
+
+
 // Computed
 const videoType = computed(() => props.metadata?.videoType);
 const hasVideo = computed(() => {
@@ -155,6 +152,8 @@ const closeActionMenu = () => {
     actionMenuOpen.value = false;
     actionMenuPosition.value = null;
 };
+
+
 
 // Gestion de la sélection de fichier
 const handleFileSelect = (event: Event) => {
@@ -230,6 +229,8 @@ const deleteVideo = async () => {
     }
     emit('delete');
 };
+
+
 
 // Fonction utilitaire pour convertir URL en embed
 const getEmbedUrl = (url: string, provider?: string): string => {

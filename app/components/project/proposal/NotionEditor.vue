@@ -21,9 +21,9 @@
                 </div>
                 <!-- Contenu du bloc -->
                 <div class="relative min-h-[1.5rem]">
-                    <!-- Actions flottantes (affichées seulement quand sélectionné) -->
-                    <div v-if="!readonly && isSelected(block.id)"
-                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-lg"
+                    <!-- Actions flottantes (affichées quand sélectionné ou au hover pour les blocs non-texte avec contenu) -->
+                    <div v-if="!readonly && (isSelected(block.id) || (block.type !== 'paragraph' && block.type !== 'heading1' && block.type !== 'heading2' && block.type !== 'heading3' && block.type !== 'bulletList' && block.type !== 'numberedList' && block.type !== 'quote' && block.type !== 'code' && block.type !== 'button' && block.type !== 'table' && block.content))"
+                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                         @mousedown.prevent.stop>
                         <UButton icon="i-lucide-grip-vertical" size="xs" variant="ghost" color="neutral"
                             class="cursor-grab active:cursor-grabbing hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
