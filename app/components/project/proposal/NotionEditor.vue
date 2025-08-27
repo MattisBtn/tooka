@@ -21,19 +21,11 @@
                 </div>
                 <!-- Contenu du bloc -->
                 <div class="relative min-h-[1.5rem]">
-                    <!-- Actions flottantes (affichées quand sélectionné ou au hover pour les blocs non-texte avec contenu) -->
-                    <div v-if="!readonly && (isSelected(block.id) || (block.type !== 'paragraph' && block.type !== 'heading1' && block.type !== 'heading2' && block.type !== 'heading3' && block.type !== 'bulletList' && block.type !== 'numberedList' && block.type !== 'quote' && block.type !== 'code' && block.type !== 'button' && block.type !== 'table' && block.content))"
-                        class="absolute -top-3 right-0 z-30 flex items-center gap-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md px-1 py-0.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        @mousedown.prevent.stop>
-                        <UButton icon="i-lucide-grip-vertical" size="xs" variant="ghost" color="neutral"
-                            class="cursor-grab active:cursor-grabbing hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                            :class="{ 'bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400': draggedBlockId === block.id && isDragging }"
-                            @mousedown.stop="startDrag(block.id, $event)" />
-                        <UButton icon="i-lucide-plus" size="xs" variant="ghost" color="neutral"
-                            @click.stop="openSlashMenuFor(block.id, $event)" />
-                        <UButton icon="i-lucide-trash-2" size="xs" variant="ghost" color="error"
-                            @click.stop="removeBlock(block.id)" />
-                    </div>
+                    <!-- Actions flottantes -->
+                    <BlockActionMenu :readonly="readonly" :is-selected="isSelected(block.id)" :block-type="block.type"
+                        :has-content="!!block.content" :is-dragging="draggedBlockId === block.id && isDragging"
+                        @drag="startDrag(block.id, $event)" @add="openSlashMenuFor(block.id, $event)"
+                        @remove="removeBlock(block.id)" />
 
                     <!-- Titre 1 -->
                     <div v-if="block.type === 'heading1'" class="relative">
@@ -239,6 +231,7 @@
 import type { ComponentPublicInstance } from 'vue';
 import { useNotionEditor } from '~/composables/useNotionEditor';
 import type { ImageBlockMetadata, NotionBlock, SlashCommand, VideoBlockMetadata } from '~/types/notion';
+import BlockActionMenu from './BlockActionMenu.vue';
 import IconSelectorMenu from './IconSelectorMenu.vue';
 import NotionImageBlock from './NotionImageBlock.vue';
 import NotionVideoBlock from './NotionVideoBlock.vue';

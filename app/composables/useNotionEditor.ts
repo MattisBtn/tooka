@@ -223,10 +223,16 @@ export const useNotionEditor = () => {
 
   // Ajouter un nouveau bloc
   const addBlock = (type: NotionBlockType, afterBlockId?: string) => {
+    // Contenu par défaut selon le type de bloc
+    let defaultContent = "";
+    if (type === "button") {
+      defaultContent = "Button";
+    }
+
     const newBlock: NotionBlock = {
       id: generateId(),
       type,
-      content: "",
+      content: defaultContent,
       order: 0,
     };
 

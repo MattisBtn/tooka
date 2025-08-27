@@ -55,7 +55,7 @@ export const videoService = {
   /**
    * Supprimer une vidéo
    */
-  async deleteVideo(filePath: string): Promise<void> {
+  async deleteVideo(_filePath: string): Promise<void> {
     try {
       // Ici vous intégreriez votre logique de suppression
       // Par exemple avec Supabase Storage, AWS S3, etc.

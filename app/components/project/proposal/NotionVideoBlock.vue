@@ -7,7 +7,7 @@
             <input ref="fileInput" type="file" accept="video/*" class="hidden" @change="handleFileSelect">
             <div class="flex flex-col items-center gap-3">
                 <div class="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-                    <UIcon name="i-lucide-video-plus" class="w-6 h-6 text-neutral-500" />
+                    <UIcon name="i-lucide-video" class="w-6 h-6 text-neutral-500" />
                 </div>
                 <div class="text-neutral-600 dark:text-neutral-400">
                     <p class="font-medium">Cliquez pour ajouter une vidéo</p>
