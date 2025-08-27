@@ -14,6 +14,18 @@ export interface ImageBlockMetadata extends Record<string, unknown> {
   height?: number;
 }
 
+// Metadata spécifique pour le bloc vidéo
+export interface VideoBlockMetadata extends Record<string, unknown> {
+  videoType?: "embed" | "upload";
+  url?: string;
+  filePath?: string;
+  width?: number;
+  height?: number;
+  provider?: string;
+  fileName?: string;
+  fileSize?: number;
+}
+
 export type NotionBlockType =
   | "heading1"
   | "heading2"
@@ -25,6 +37,7 @@ export type NotionBlockType =
   | "code"
   | "divider"
   | "image"
+  | "video"
   | "table"
   | "button"
   | "callout";

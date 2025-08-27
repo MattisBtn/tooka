@@ -3,6 +3,7 @@ import type {
   NotionBlockType,
   NotionEditorState,
   SlashCommand,
+  VideoBlockMetadata,
 } from "~/types/notion";
 
 export const useNotionEditor = () => {
@@ -98,6 +99,14 @@ export const useNotionEditor = () => {
       keywords: ["image", "photo", "visuel"],
     },
     {
+      id: "video",
+      title: "Vidéo",
+      description: "Insérer une vidéo",
+      icon: "i-lucide-video",
+      type: "video",
+      keywords: ["vidéo", "video", "youtube", "vimeo", "upload"],
+    },
+    {
       id: "table",
       title: "Tableau",
       description: "Tableau de données",
@@ -157,6 +166,61 @@ export const useNotionEditor = () => {
   const generateId = () =>
     `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+  // Convertir une URL de vidéo en URL d'embed
+  const getEmbedUrl = (url: string, provider?: string): string => {
+    if (provider === "youtube") {
+      const videoId = extractYouTubeId(url);
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+    }
+    if (provider === "vimeo") {
+      const videoId = extractVimeoId(url);
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+    }
+    if (provider === "dailymotion") {
+      const videoId = extractDailymotionId(url);
+      return videoId
+        ? `https://www.dailymotion.com/embed/video/${videoId}`
+        : url;
+    }
+    return url;
+  };
+
+  // Extraire l'ID YouTube d'une URL
+  const extractYouTubeId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  // Extraire l'ID Vimeo d'une URL
+  const extractVimeoId = (url: string): string | null => {
+    const patterns = [/vimeo\.com\/(\d+)/, /player\.vimeo\.com\/video\/(\d+)/];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  // Extraire l'ID Dailymotion d'une URL
+  const extractDailymotionId = (url: string): string | null => {
+    const patterns = [
+      /dailymotion\.com\/video\/([^&\n?#]+)/,
+      /dailymotion\.com\/embed\/video\/([^&\n?#]+)/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
   // Ajouter un nouveau bloc
   const addBlock = (type: NotionBlockType, afterBlockId?: string) => {
     const newBlock: NotionBlock = {
@@ -199,6 +263,16 @@ export const useNotionEditor = () => {
         "~/services/notionImageService"
       );
       await notionImageService.deleteImage(block.metadata.filePath as string);
+    }
+
+    // Si c'est un bloc vidéo upload, supprimer le fichier du storage
+    if (
+      block?.type === "video" &&
+      block.metadata?.videoType === "upload" &&
+      block.metadata?.filePath
+    ) {
+      const { videoService } = await import("~/services/videoService");
+      await videoService.deleteVideo(block.metadata.filePath as string);
     }
 
     const index = state.blocks.findIndex((b) => b.id === blockId);
@@ -324,9 +398,17 @@ export const useNotionEditor = () => {
             const imageHeight = block.metadata?.height
               ? `height="${block.metadata.height}"`
               : "";
-            return `<div class="mb-4"><img src="${
-              block.content
-            }" alt="Image" ${imageWidth} ${imageHeight} class="max-w-full h-auto rounded-lg shadow-sm" /></div>`;
+            return `<div class="mb-4"><img src="${block.content}" alt="Image" ${imageWidth} ${imageHeight} class="max-w-full h-auto rounded-lg shadow-sm" /></div>`;
+          }
+          case "video": {
+            const metadata = block.metadata as VideoBlockMetadata;
+            if (metadata?.videoType === "embed" && metadata?.url) {
+              const embedUrl = getEmbedUrl(metadata.url, metadata.provider);
+              return `<div class="mb-4"><iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full aspect-video rounded-lg shadow-sm"></iframe></div>`;
+            } else if (metadata?.videoType === "upload" && metadata?.filePath) {
+              return `<div class="mb-4"><video controls class="w-full rounded-lg shadow-sm"><source src="${metadata.filePath}" type="video/mp4">Votre navigateur ne supporte pas la lecture de vidéos.</video></div>`;
+            }
+            return `<div class="mb-4 p-4 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg text-center text-neutral-500">Vidéo non configurée</div>`;
           }
           case "table":
             return `<div class="overflow-x-auto mb-4"><table class="w-full border-collapse border border-neutral-300 dark:border-neutral-600">${block.content}</table></div>`;

@@ -192,6 +192,14 @@
                             :is-selected="isSelected(block.id)" @update="updateImageBlock(block.id, $event)"
                             @delete="removeBlock(block.id)" />
                     </div>
+
+                    <!-- Video -->
+                    <div v-else-if="block.type === 'video'" class="relative">
+                        <NotionVideoBlock :block-id="block.id" :video-url="block.content"
+                            :metadata="block.metadata as VideoBlockMetadata" :readonly="readonly"
+                            :is-selected="isSelected(block.id)" @update="updateVideoBlock(block.id, $event)"
+                            @delete="removeBlock(block.id)" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -230,9 +238,10 @@
 <script lang="ts" setup>
 import type { ComponentPublicInstance } from 'vue';
 import { useNotionEditor } from '~/composables/useNotionEditor';
-import type { ImageBlockMetadata, NotionBlock, SlashCommand } from '~/types/notion';
+import type { ImageBlockMetadata, NotionBlock, SlashCommand, VideoBlockMetadata } from '~/types/notion';
 import IconSelectorMenu from './IconSelectorMenu.vue';
 import NotionImageBlock from './NotionImageBlock.vue';
+import NotionVideoBlock from './NotionVideoBlock.vue';
 import SlashMenu from './SlashMenu.vue';
 
 interface Props {
@@ -332,6 +341,10 @@ const updateImageBlock = (blockId: string, data: { content: string; metadata: Im
     editor.updateBlock(blockId, data);
 };
 
+const updateVideoBlock = (blockId: string, data: { content: string; metadata: VideoBlockMetadata }) => {
+    editor.updateBlock(blockId, data);
+};
+
 const removeBlock = (blockId: string) => {
     editor.removeBlock(blockId);
 };
@@ -359,6 +372,9 @@ const handleSlashCommand = (command: SlashCommand) => {
                 });
             }
             el.innerHTML = newBlock.content || '';
+        } else if (newBlock.type === 'video') {
+            // Pas besoin d'initialiser le DOM pour les vidéos, le composant s'en charge
+            return;
         } else {
             el.innerHTML = newBlock.content || '';
         }
@@ -659,6 +675,7 @@ const getPlaceholder = (block: NotionBlock) => {
         case 'button': return 'Texte du bouton';
         case 'callout': return 'Tapez votre message...';
         case 'image': return 'Cliquez pour ajouter une image';
+        case 'video': return 'Cliquez pour ajouter une vidéo';
         default: return '';
     }
 };
