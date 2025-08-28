@@ -29,6 +29,14 @@ export interface ISelectionImageRepository {
     filePath: string,
     options?: ImageDownloadOptions
   ): Promise<Blob>;
+  findBySelectionIdWithPagination(
+    selectionId: string,
+    limit: number,
+    offset: number
+  ): Promise<{ images: SelectionImage[]; totalCount: number }>;
+  findSelectedBySelectionId(
+    selectionId: string
+  ): Promise<{ images: SelectionImage[] }>;
 }
 
 // Validation schema for selection form

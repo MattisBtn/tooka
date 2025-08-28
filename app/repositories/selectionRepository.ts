@@ -39,10 +39,11 @@ export const selectionRepository: ISelectionRepository = {
         `
         *,
         project:projects(*),
-        selection_images(*)
+        selection_images!inner(*)
       `
       )
       .eq("project_id", projectId)
+      .eq("selection_images.is_selected", true)
       .maybeSingle();
 
     if (error) {

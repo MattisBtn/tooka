@@ -497,7 +497,9 @@ export const useGalleryStore = defineStore("gallery", () => {
       const { galleryService } = await import("~/services/galleryService");
       const result = await galleryService.updateGallery(
         galleryId,
-        {},
+        {
+          requires_client_validation: gallery.value?.requires_client_validation,
+        },
         true // shouldValidate = true to trigger "send to client" logic
       );
 

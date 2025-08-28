@@ -172,8 +172,9 @@
         <!-- Image Preview Modal -->
         <SharedImagePreviewModal :is-open="imagePreview.isOpen.value" :current-image="currentPreviewImage"
             :images="modalImages" :current-index="imagePreview.currentIndex.value"
-            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" @close="imagePreview.closePreview"
-            @next="imagePreview.nextImage" @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
+            :image-signed-urls="store.imageSignedUrls" :show-thumbnails="false" :show-download-button="true"
+            :on-download-image="store.downloadImage" @close="imagePreview.closePreview" @next="imagePreview.nextImage"
+            @previous="imagePreview.previousImage" @go-to="imagePreview.goToImage"
             @update:is-open="imagePreview.isOpen.value = $event" />
     </div>
 </template>
@@ -301,13 +302,15 @@ const openImagePreview = (image: SelectionImageWithSelection) => {
     const previewImages = props.images.map(img => ({
         id: img.id,
         file_url: img.file_url,
-        created_at: img.created_at
+        created_at: img.created_at,
+        source_filename: img.source_filename
     }));
 
     const previewImage = {
         id: image.id,
         file_url: image.file_url,
-        created_at: image.created_at
+        created_at: image.created_at,
+        source_filename: image.source_filename
     };
 
     imagePreview.openPreview(previewImage, previewImages);

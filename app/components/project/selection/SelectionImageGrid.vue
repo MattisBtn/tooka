@@ -3,14 +3,13 @@
         <!-- Images Grid -->
         <div class="space-y-3">
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div v-for="(image, index) in displayImages" :key="image.id"
+                <div v-for="(image, index) in displayImages" :key="`${image.id}-${image.is_selected}`"
                     class="relative group aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer"
                     :class="getImageClasses(image)">
 
                     <!-- Image Display -->
                     <NuxtImg :src="getImageUrl(image)" :alt="image.source_filename || 'Selection image'"
-                        class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
-                        @error="handleImageError" />
+                        class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110" />
 
                     <!-- RAW Badge -->
                     <div v-if="image.requires_conversion && image.source_file_url"
@@ -108,11 +107,13 @@ const imagePreview = useImagePreview()
 // Local state for show more/less
 const showAll = ref(false)
 
-// Create a Map of signed URLs for the preview modal
+// Create a Map of signed URLs for the preview modal - OPTIMIZED
 const imageSignedUrls = ref<Map<string, string>>(new Map())
 
+// Debounced watchEffect to prevent excessive API calls
+let signedUrlTimeout: NodeJS.Timeout | null = null
+
 watchEffect(async () => {
-    const supabase = useSupabaseClient()
     const filepaths = props.images.map(image => image.file_url)
 
     if (filepaths.length === 0) {
@@ -120,24 +121,37 @@ watchEffect(async () => {
         return
     }
 
-    const { data: urls, error } = await supabase.storage
-        .from('selection-images')
-        .createSignedUrls(filepaths, 3600)
-
-    if (error) {
-        console.error('Error creating signed URLs:', error)
-        imageSignedUrls.value = new Map<string, string>()
-        return
+    // Clear previous timeout
+    if (signedUrlTimeout) {
+        clearTimeout(signedUrlTimeout)
     }
 
-    const urlMap = new Map<string, string>()
-    urls?.forEach(urlData => {
-        if (urlData.path && urlData.signedUrl) {
-            urlMap.set(urlData.path, urlData.signedUrl)
-        }
-    })
+    // Debounce the API call
+    signedUrlTimeout = setTimeout(async () => {
+        const supabase = useSupabaseClient()
 
-    imageSignedUrls.value = urlMap
+        try {
+            const { data: urls, error } = await supabase.storage
+                .from('selection-images')
+                .createSignedUrls(filepaths, 3600)
+
+            if (error) {
+                console.error('Error creating signed URLs:', error)
+                return
+            }
+
+            const urlMap = new Map<string, string>()
+            urls?.forEach(urlData => {
+                if (urlData.path && urlData.signedUrl) {
+                    urlMap.set(urlData.path, urlData.signedUrl)
+                }
+            })
+
+            imageSignedUrls.value = urlMap
+        } catch (error) {
+            console.error('Error creating signed URLs:', error)
+        }
+    }, 300) // 300ms debounce
 })
 
 
@@ -147,17 +161,20 @@ const handleImageClick = (image: SelectionImage) => {
     const previewImage: PreviewImage = {
         id: image.id,
         file_url: image.file_url,
-        created_at: image.created_at
+        created_at: image.created_at,
+        source_filename: image.source_filename
     }
     imagePreview.openPreview(previewImage, props.images.map(img => ({
         id: img.id,
         file_url: img.file_url,
-        created_at: img.created_at
+        created_at: img.created_at,
+        source_filename: img.source_filename
     })))
 }
 
-// Computed for display images
+// Computed for display images - OPTIMIZED
 const displayImages = computed(() => {
+    // Memoize the result to prevent unnecessary recalculations
     if (showAll.value || props.images.length <= props.maxPreview) {
         return props.images
     }
@@ -179,18 +196,14 @@ const getSignedUrl = (filePath: string): string => {
     return data.publicUrl
 }
 
+// Optimized image classes - use computed for better performance
 const getImageClasses = (image: SelectionImage): string => {
-    const classes = []
-
-    if (image.is_selected) {
-        classes.push('border-green-500 ring-2 ring-green-200')
-    } else {
-        classes.push('border-transparent hover:border-neutral-300')
-    }
-
-    return classes.join(' ')
+    return image.is_selected
+        ? 'border-green-500 ring-2 ring-green-200'
+        : 'border-transparent hover:border-neutral-300'
 }
 
+// Optimized image actions - simplified to prevent performance issues
 const getImageActions = (image: SelectionImage) => {
     const actions = []
 
@@ -240,17 +253,19 @@ const handleToggleSelection = (imageId: string, selected: boolean) => {
     }
 }
 
-const handleImageError = (event: Event) => {
-    console.error('Failed to load image:', event)
-    // Could implement fallback image here
-}
+
 
 const downloadImage = async (filePath: string, isOriginal: boolean = false, imageFormat?: string) => {
     try {
         const selectionStore = useSelectionStore()
 
-        // Generate appropriate filename with correct extension
-        const timestamp = Date.now()
+        // Find the image to get its original filename
+        const image = props.images.find(img =>
+            isOriginal ? img.source_file_url === filePath : img.file_url === filePath
+        )
+
+        // Generate filename using original name if available
+        let filename: string
         let extension = 'jpg'
 
         if (isOriginal && imageFormat) {
@@ -258,7 +273,15 @@ const downloadImage = async (filePath: string, isOriginal: boolean = false, imag
             extension = imageFormat.toLowerCase()
         }
 
-        const filename = `image_${timestamp}.${extension}`
+        if (image?.source_filename) {
+            // Use original filename with correct extension
+            const nameWithoutExt = image.source_filename.replace(/\.[^/.]+$/, "")
+            filename = `${nameWithoutExt}.${extension}`
+        } else {
+            // Fallback to timestamp if no original name
+            const timestamp = Date.now()
+            filename = `image_${timestamp}.${extension}`
+        }
 
         await selectionStore.downloadImage(filePath, filename, true)
 

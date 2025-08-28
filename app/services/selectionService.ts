@@ -16,7 +16,7 @@ type CountCallback = (type: "upload" | "converted" | "failed") => void;
 
 export const selectionService = {
   /**
-   * Get selection by project ID with images
+   * Get selection by project ID with only selected images (for performance)
    */
   async getSelectionByProjectId(
     projectId: string
@@ -29,17 +29,60 @@ export const selectionService = {
       return null;
     }
 
-    // Count selected images
-    const selectedCount = images.filter((img) => img.is_selected).length;
+    // Only return selected images for performance
+    const selectedImages = images.filter((img) => img.is_selected);
+    const selectedCount = selectedImages.length;
 
     const result = {
       ...selection,
-      images,
-      imageCount: images.length,
+      images: selectedImages,
+      imageCount: images.length, // Total count
       selectedCount,
     };
 
     return result;
+  },
+
+  /**
+   * Get all images for a selection with pagination
+   */
+  async getSelectionImagesWithPagination(
+    selectionId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    images: SelectionImage[];
+    totalCount: number;
+    hasMore: boolean;
+    currentPage: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    const { images, totalCount } =
+      await selectionImageRepository.findBySelectionIdWithPagination(
+        selectionId,
+        limit,
+        offset
+      );
+
+    const hasMore = offset + images.length < totalCount;
+
+    return {
+      images,
+      totalCount,
+      hasMore,
+      currentPage: page,
+    };
+  },
+
+  /**
+   * Get only selected images for a selection
+   */
+  async getSelectedImages(selectionId: string): Promise<SelectionImage[]> {
+    const { images } = await selectionImageRepository.findSelectedBySelectionId(
+      selectionId
+    );
+    return images;
   },
 
   /**
@@ -160,14 +203,14 @@ export const selectionService = {
           continue;
         }
 
-        // Generate unique filename
+        // Generate unique filename preserving original name
+        const { fileName: _fileName, filePath } =
+          await this.generateUniqueFilename(
+            file.name,
+            user.value!.id,
+            selectionId
+          );
         const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
-        const fileName = `${Date.now()}_${Math.random()
-          .toString(36)
-          .substring(7)}.${fileExt}`;
-        const filePath = `${
-          user.value!.id
-        }/selections/${selectionId}/${fileName}`;
 
         // Upload to Supabase Storage
         const { error: uploadError } = await supabase.storage
@@ -199,7 +242,7 @@ export const selectionService = {
           conversion_status: null,
           requires_conversion: false,
           source_file_url: null,
-          source_filename: null,
+          source_filename: file.name, // Store original filename for all files
           source_format: null,
           target_format: null,
         };
@@ -520,11 +563,82 @@ export const selectionService = {
   },
 
   /**
+   * Clean filename by removing special characters and spaces
+   */
+  cleanFilename(filename: string): string {
+    // Remove extension first
+    const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+
+    // Clean special characters, keep only alphanumeric, hyphens, and underscores
+    const cleanName = nameWithoutExt
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .replace(/_+/g, "_") // Replace multiple underscores with single
+      .replace(/^_|_$/g, ""); // Remove leading/trailing underscores
+
+    return cleanName || "image"; // Fallback if name becomes empty
+  },
+
+  /**
+   * Check if file exists in storage
+   */
+  async checkFileExists(filePath: string): Promise<boolean> {
+    const supabase = useSupabaseClient();
+
+    try {
+      const { data, error } = await supabase.storage
+        .from("selection-images")
+        .list(filePath.split("/").slice(0, -1).join("/"), {
+          search: filePath.split("/").pop() || "",
+        });
+
+      if (error) {
+        console.warn("Error checking file existence:", error);
+        return false; // Assume file doesn't exist on error
+      }
+
+      return data && data.length > 0;
+    } catch (error) {
+      console.warn("Error checking file existence:", error);
+      return false;
+    }
+  },
+
+  /**
+   * Generate unique filename preserving original name
+   */
+  async generateUniqueFilename(
+    originalFilename: string,
+    userId: string,
+    selectionId: string
+  ): Promise<{ fileName: string; filePath: string }> {
+    const fileExt = originalFilename.split(".").pop()?.toLowerCase() || "";
+    const cleanName = this.cleanFilename(originalFilename);
+
+    let fileName = `${cleanName}.${fileExt}`;
+    let filePath = `${userId}/selections/${selectionId}/${fileName}`;
+    let counter = 1;
+
+    // Check for conflicts and generate unique name
+    while (await this.checkFileExists(filePath)) {
+      fileName = `${cleanName}_${counter}.${fileExt}`;
+      filePath = `${userId}/selections/${selectionId}/${fileName}`;
+      counter++;
+
+      // Safety check to prevent infinite loop
+      if (counter > 50) {
+        throw new Error("Too many files with similar names");
+      }
+    }
+
+    return { fileName, filePath };
+  },
+
+  /**
    * Format selection limit for display
    */
   formatSelectionLimit(maxSelection: number): string {
     if (maxSelection === -1) {
-      return "Sélection illimitée";
+      return "Illimitée";
     }
     return `${maxSelection} image${maxSelection > 1 ? "s" : ""} maximum`;
   },
