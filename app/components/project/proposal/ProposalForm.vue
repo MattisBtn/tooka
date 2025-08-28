@@ -19,7 +19,8 @@
             <UFormField label="Contenu de la proposition" name="content" required>
                 <ProjectProposalContentBuilder :key="`form-builder-${proposalState.content_json?.length || 0}`"
                     :content-json="proposalState.content_json" :content-html="proposalState.content_html"
-                    :status="'draft'" :readonly="false" @update:content_json="proposalState.content_json = $event"
+                    :project-id="props.projectId" :readonly="false"
+                    @update:content_json="proposalState.content_json = $event"
                     @update:content_html="proposalState.content_html = $event" />
             </UFormField>
         </div>
@@ -55,7 +56,7 @@
 
 <script setup lang="ts">
 import type { FormSubmitEvent } from "@nuxt/ui";
-import type { ProposalComponent } from "~/composables/proposals/useProposalComponentTypes";
+import type { NotionBlock } from "~/types/notion";
 import { proposalFormSchema, type ProjectPaymentData, type Proposal, type ProposalFormData } from "~/types/proposal";
 
 interface Props {
@@ -90,7 +91,7 @@ const isFree = computed(() => projectSetupStore.isFree)
 
 // Simple form state - no complex composable needed
 const proposalState = reactive<ProposalFormData>({
-    content_json: (props.proposal?.content_json as unknown as ProposalComponent[]) || [],
+    content_json: (props.proposal?.content_json as unknown as NotionBlock[]) || [],
     content_html: props.proposal?.content_html || "",
     price: props.proposal?.price || props.project?.price || props.projectInitialPrice || 0,
     deposit_required: isFree.value ? false : (props.proposal?.deposit_required || false),
@@ -141,8 +142,8 @@ const setDepositFromPercentage = (percentage: number) => {
 };
 
 // File upload function using store
-const uploadFiles = async (projectId: string) => {
-    const urls = await proposalStore.uploadFiles(projectId, contractFile.value || undefined, quoteFile.value || undefined);
+const uploadFiles = async () => {
+    const urls = await proposalStore.uploadFiles(contractFile.value || undefined, quoteFile.value || undefined);
     if (urls.contract_url) {
         proposalState.contract_url = urls.contract_url;
     }
@@ -157,7 +158,7 @@ const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
     try {
         // First upload any pending files
         if (contractFile.value || quoteFile.value) {
-            await uploadFiles(props.projectId);
+            await uploadFiles();
         }
 
         // Emit both proposal and project data to parent component

@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     if (proposal.contract_url) {
       filePromises.push(
         supabase.storage
-          .from("documents")
+          .from("proposals")
           .createSignedUrl(proposal.contract_url, 3600)
           .then(({ data, error }) => {
             if (!error && data?.signedUrl) {
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
     if (proposal.quote_url) {
       filePromises.push(
         supabase.storage
-          .from("documents")
+          .from("proposals")
           .createSignedUrl(proposal.quote_url, 3600)
           .then(({ data, error }) => {
             if (!error && data?.signedUrl) {

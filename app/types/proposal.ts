@@ -23,13 +23,13 @@ export type ProposalStatus =
 
 // Schema de validation pour la création/modification de proposition
 export const proposalFormSchema = z.object({
-  content_html: z.string().min(1, "Le contenu HTML est requis"),
-  content_json: z.any(),
+  content_html: z.string().optional().nullable(),
+  content_json: z.any().optional().nullable(),
   price: z.number().min(0, "Le prix doit être positif"),
   deposit_required: z.boolean(),
   deposit_amount: z.number().nullable(),
-  contract_url: z.string().nullable(),
-  quote_url: z.string().nullable(),
+  contract_url: z.string().optional().nullable(),
+  quote_url: z.string().optional().nullable(),
 });
 
 // Schema de validation pour le projet avec paiement

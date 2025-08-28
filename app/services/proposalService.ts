@@ -1,4 +1,3 @@
-import type { ProposalComponent } from "~/composables/proposals/useProposalComponentTypes";
 import { proposalRepository } from "~/repositories/proposalRepository";
 import type { Proposal, ProposalWithProject } from "~/types/proposal";
 
@@ -96,7 +95,7 @@ export const proposalService = {
    */
   async uploadFile(
     file: File,
-    projectId: string,
+    proposalId: string,
     type: "contract" | "quote"
   ): Promise<string> {
     const supabase = useSupabaseClient();
@@ -109,10 +108,10 @@ export const proposalService = {
     // Generate unique filename with user organization
     const fileExt = file.name.split(".").pop();
     const fileName = `${type}_${Date.now()}.${fileExt}`;
-    const filePath = `${user.value.id}/proposals/${projectId}/${fileName}`;
+    const filePath = `${user.value.id}/${proposalId}/documents/${fileName}`;
 
     const { error } = await supabase.storage
-      .from("documents")
+      .from("proposals")
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
@@ -142,7 +141,7 @@ export const proposalService = {
     }
 
     const { data, error } = await supabase.storage
-      .from("documents")
+      .from("proposals")
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {
@@ -150,69 +149,6 @@ export const proposalService = {
     }
 
     return data.signedUrl;
-  },
-
-  /**
-   * Upload portfolio images from previews to storage
-   */
-  async uploadPortfolioImages(
-    components: ProposalComponent[],
-    proposalId: string
-  ): Promise<void> {
-    const supabase = useSupabaseClient();
-    const user = useSupabaseUser();
-    if (!user.value) {
-      throw new Error("Vous devez être connecté pour uploader les images");
-    }
-
-    const basePath = `${user.value.id}/proposals/${proposalId}/portfolio`;
-
-    for (const comp of components) {
-      if (comp.type !== "portfolio") continue;
-
-      const items = comp.items || [];
-      const updated: typeof items = [];
-
-      for (const it of items) {
-        if (it.previewUrl && !it.url) {
-          // Convert dataURL to Blob
-          const blob = this.dataURLToBlob(it.previewUrl);
-          const ext = "jpg";
-          const name = `${Date.now()}_${Math.random()
-            .toString(36)
-            .slice(2)}.${ext}`;
-          const filePath = `${basePath}/${name}`;
-
-          const { error } = await supabase.storage
-            .from("proposals")
-            .upload(filePath, blob, {
-              cacheControl: "3600",
-              upsert: false,
-              contentType: blob.type || "image/jpeg",
-            });
-
-          if (error) {
-            console.warn(`Failed to upload ${name}:`, error.message);
-            updated.push(it);
-            continue;
-          }
-
-          const { data } = supabase.storage
-            .from("proposals")
-            .getPublicUrl(filePath);
-          updated.push({
-            url: data.publicUrl,
-            path: filePath,
-            title: it.title,
-            category: it.category,
-          });
-        } else {
-          updated.push(it);
-        }
-      }
-
-      comp.items = updated;
-    }
   },
 
   /**
