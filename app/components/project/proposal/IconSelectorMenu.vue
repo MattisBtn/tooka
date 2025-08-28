@@ -190,8 +190,6 @@ onUnmounted(() => {
 
 // Réinitialiser la recherche quand le menu s'ouvre
 watch(() => props.isOpen, (isOpen) => {
-    console.log('IconSelectorMenu isOpen changed to:', isOpen);
-    console.log('Position:', props.position);
     if (isOpen) {
         searchQuery.value = '';
         activeTab.value = 'emoji';

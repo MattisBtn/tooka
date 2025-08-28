@@ -369,23 +369,26 @@ export const useProposalStore = defineStore("proposal", () => {
   };
 
   const uploadFiles = async (
-    projectId: string,
     contractFile?: File,
     quoteFile?: File
   ): Promise<{ contract_url?: string; quote_url?: string }> => {
     const urls: { contract_url?: string; quote_url?: string } = {};
 
+    if (!proposal.value?.id) {
+      throw new Error("Proposal ID is required");
+    }
+
     if (contractFile) {
       urls.contract_url = await proposalService.uploadFile(
         contractFile,
-        projectId,
+        proposal.value?.id,
         "contract"
       );
     }
     if (quoteFile) {
       urls.quote_url = await proposalService.uploadFile(
         quoteFile,
-        projectId,
+        proposal.value?.id,
         "quote"
       );
     }

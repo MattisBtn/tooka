@@ -102,13 +102,6 @@ export default defineEventHandler(async (event) => {
       extraCost = excessImages * selection.extra_media_price;
     }
 
-    // remaining_amount is now automatically calculated by Supabase triggers
-    if (extraCost > 0) {
-      console.log(
-        `Project ${selection.project_id} remaining_amount automatically updated after selection validation (extra cost: ${extraCost})`
-      );
-    }
-
     // Update selection status to completed
     const { error: statusUpdateError } = await supabase
       .from("selections")

@@ -142,8 +142,8 @@ const setDepositFromPercentage = (percentage: number) => {
 };
 
 // File upload function using store
-const uploadFiles = async (projectId: string) => {
-    const urls = await proposalStore.uploadFiles(projectId, contractFile.value || undefined, quoteFile.value || undefined);
+const uploadFiles = async () => {
+    const urls = await proposalStore.uploadFiles(contractFile.value || undefined, quoteFile.value || undefined);
     if (urls.contract_url) {
         proposalState.contract_url = urls.contract_url;
     }
@@ -158,7 +158,7 @@ const handleSubmit = async (_event: FormSubmitEvent<ProposalFormData>) => {
     try {
         // First upload any pending files
         if (contractFile.value || quoteFile.value) {
-            await uploadFiles(props.projectId);
+            await uploadFiles();
         }
 
         // Emit both proposal and project data to parent component

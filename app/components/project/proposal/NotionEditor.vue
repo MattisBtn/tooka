@@ -687,7 +687,6 @@ const getCalloutIconType = (blockId: string): 'emoji' | 'lucide' => {
 };
 
 const openIconSelector = (blockId: string, event: MouseEvent) => {
-    console.log('openIconSelector called', blockId, event);
     event.preventDefault();
     event.stopPropagation();
 
@@ -696,9 +695,6 @@ const openIconSelector = (blockId: string, event: MouseEvent) => {
     iconSelectorBlockId.value = blockId;
     iconSelectorPosition.value = { x: rect.left, y: rect.bottom + 5 };
     iconSelectorOpen.value = true;
-
-    console.log('iconSelectorOpen set to', iconSelectorOpen.value);
-    console.log('iconSelectorPosition set to', iconSelectorPosition.value);
 };
 
 const closeIconSelector = () => {

@@ -95,7 +95,7 @@ export const proposalService = {
    */
   async uploadFile(
     file: File,
-    projectId: string,
+    proposalId: string,
     type: "contract" | "quote"
   ): Promise<string> {
     const supabase = useSupabaseClient();
@@ -108,10 +108,10 @@ export const proposalService = {
     // Generate unique filename with user organization
     const fileExt = file.name.split(".").pop();
     const fileName = `${type}_${Date.now()}.${fileExt}`;
-    const filePath = `${user.value.id}/proposals/${projectId}/${fileName}`;
+    const filePath = `${user.value.id}/${proposalId}/documents/${fileName}`;
 
     const { error } = await supabase.storage
-      .from("documents")
+      .from("proposals")
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
@@ -141,7 +141,7 @@ export const proposalService = {
     }
 
     const { data, error } = await supabase.storage
-      .from("documents")
+      .from("proposals")
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {
