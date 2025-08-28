@@ -412,7 +412,7 @@ export const useNotionEditor = () => {
               const embedUrl = getEmbedUrl(metadata.url, metadata.provider);
               return `<div class="mb-4"><iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full aspect-video rounded-lg shadow-sm"></iframe></div>`;
             } else if (metadata?.videoType === "upload" && metadata?.filePath) {
-              return `<div class="mb-4"><video controls class="w-full rounded-lg shadow-sm"><source src="${metadata.filePath}" type="video/mp4">Votre navigateur ne supporte pas la lecture de vidéos.</video></div>`;
+              return `<div class="mb-4"><video controls class="w-full rounded-lg shadow-sm"><source src="${block.content}" type="video/mp4">Votre navigateur ne supporte pas la lecture de vidéos.</video></div>`;
             }
             return `<div class="mb-4 p-4 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg text-center text-neutral-500">Vidéo non configurée</div>`;
           }

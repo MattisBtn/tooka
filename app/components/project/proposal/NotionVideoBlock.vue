@@ -1,7 +1,7 @@
 <template>
     <div ref="videoContainer" class="relative group">
         <!-- Zone d'upload quand pas de vidéo -->
-        <div v-if="!hasVideo && !isUploading"
+        <div v-if="!hasVideo && !isUploading && !readonly"
             class="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
             @click="openActionMenu" @dragover.prevent @drop.prevent="handleDrop">
             <input ref="fileInput" type="file" accept="video/*" class="hidden" @change="handleFileSelect">
@@ -45,9 +45,14 @@
                     <source :src="uploadedVideoUrl" type="video/mp4">
                     Votre navigateur ne supporte pas la lecture de vidéos.
                 </video>
+
+                <!-- Actions sur la vidéo uploadée -->
+                <div v-if="!readonly"
+                    class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <UButton icon="i-lucide-more-horizontal" size="xs" variant="solid" color="neutral"
+                        @click="openActionMenu" />
+                </div>
             </div>
-
-
         </div>
 
         <!-- Erreur -->
@@ -74,6 +79,7 @@ interface Props {
     metadata?: VideoBlockMetadata;
     readonly?: boolean;
     isSelected?: boolean;
+    proposalId?: string;
 }
 
 interface Emits {
@@ -106,8 +112,8 @@ const actionMenuPosition = ref<{ x: number; y: number } | null>(null);
 // Computed
 const videoType = computed(() => props.metadata?.videoType);
 const hasVideo = computed(() => {
-    if (videoType.value === 'embed') return props.metadata?.url;
-    if (videoType.value === 'upload') return props.metadata?.filePath;
+    if (videoType.value === 'embed') return !!props.metadata?.url;
+    if (videoType.value === 'upload') return !!props.metadata?.filePath;
     return false;
 });
 
@@ -139,6 +145,8 @@ onMounted(() => {
 
 // Ouvrir le menu d'actions
 const openActionMenu = (event: MouseEvent) => {
+    if (props.readonly) return;
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -178,21 +186,25 @@ const uploadVideo = async (file: File) => {
     isUploading.value = true;
 
     try {
-        const result = await videoService.uploadVideo(file);
+        const result = await videoService.uploadVideo(file, props.proposalId);
 
-        const metadata: VideoBlockMetadata = {
-            videoType: 'upload',
-            filePath: result.filePath,
-            fileName: result.fileName,
-            fileSize: result.fileSize
-        };
+        if (result.success && result.url && result.filePath) {
+            const metadata: VideoBlockMetadata = {
+                videoType: 'upload',
+                filePath: result.filePath,
+                fileName: file.name,
+                fileSize: file.size
+            };
 
-        emit('update', {
-            content: result.fileName,
-            metadata
-        });
+            emit('update', {
+                content: result.url,
+                metadata
+            });
+        } else {
+            errorMessage.value = result.error || 'Erreur lors de l\'upload';
+        }
     } catch (error) {
-        errorMessage.value = error instanceof Error ? error.message : 'Erreur lors de l\'upload';
+        errorMessage.value = 'Erreur inattendue lors de l\'upload';
         console.error('Upload error:', error);
     } finally {
         isUploading.value = false;

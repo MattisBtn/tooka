@@ -181,16 +181,16 @@
                     <div v-else-if="block.type === 'image'" class="relative">
                         <NotionImageBlock :block-id="block.id" :image-url="block.content"
                             :metadata="block.metadata as ImageBlockMetadata" :readonly="readonly"
-                            :is-selected="isSelected(block.id)" @update="updateImageBlock(block.id, $event)"
-                            @delete="removeBlock(block.id)" />
+                            :is-selected="isSelected(block.id)" :proposal-id="props.proposalId"
+                            @update="updateImageBlock(block.id, $event)" @delete="removeBlock(block.id)" />
                     </div>
 
                     <!-- Video -->
                     <div v-else-if="block.type === 'video'" class="relative">
                         <NotionVideoBlock :block-id="block.id" :video-url="block.content"
                             :metadata="block.metadata as VideoBlockMetadata" :readonly="readonly"
-                            :is-selected="isSelected(block.id)" @update="updateVideoBlock(block.id, $event)"
-                            @delete="removeBlock(block.id)" />
+                            :is-selected="isSelected(block.id)" :proposal-id="props.proposalId"
+                            @update="updateVideoBlock(block.id, $event)" @delete="removeBlock(block.id)" />
                     </div>
                 </div>
             </div>
@@ -240,6 +240,7 @@ import SlashMenu from './SlashMenu.vue';
 interface Props {
     modelValue?: NotionBlock[];
     readonly?: boolean;
+    proposalId?: string;
 }
 
 interface Emits {
@@ -248,7 +249,8 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     modelValue: () => [],
-    readonly: false
+    readonly: false,
+    proposalId: undefined
 });
 
 const emit = defineEmits<Emits>();

@@ -1,60 +1,64 @@
 <template>
-    <Teleport to="body">
-        <div v-if="isOpen" data-icon-selector-menu
-            class="fixed z-[9999] bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-xl w-80"
-            :style="menuStyle">
-            <!-- Header avec onglets -->
-            <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
-                <div class="flex items-center gap-2 mb-2">
-                    <UIcon name="i-lucide-smile" class="w-4 h-4" />
-                    <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Choisir une icône</span>
+    <ClientOnly>
+        <Teleport to=".notion-editor">
+            <div v-if="isOpen" data-icon-selector-menu
+                class="fixed z-[9999] bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-xl w-80"
+                :style="menuStyle">
+                <!-- Header avec onglets -->
+                <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
+                    <div class="flex items-center gap-2 mb-2">
+                        <UIcon name="i-lucide-smile" class="w-4 h-4" />
+                        <span class="text-sm font-medium text-neutral-900 dark:text-neutral-100">Choisir une
+                            icône</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <UButton size="xs" variant="ghost" :color="activeTab === 'emoji' ? 'primary' : 'neutral'"
+                            @click="activeTab = 'emoji'">
+                            Émojis
+                        </UButton>
+                        <UButton size="xs" variant="ghost" :color="activeTab === 'lucide' ? 'primary' : 'neutral'"
+                            @click="activeTab = 'lucide'">
+                            Icônes
+                        </UButton>
+                    </div>
                 </div>
-                <div class="flex gap-1">
-                    <UButton size="xs" variant="ghost" :color="activeTab === 'emoji' ? 'primary' : 'neutral'"
-                        @click="activeTab = 'emoji'">
-                        Émojis
-                    </UButton>
-                    <UButton size="xs" variant="ghost" :color="activeTab === 'lucide' ? 'primary' : 'neutral'"
-                        @click="activeTab = 'lucide'">
-                        Icônes
-                    </UButton>
+
+                <!-- Search -->
+                <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
+                    <UInput v-model="searchQuery" :placeholder="searchPlaceholder" size="sm" icon="i-lucide-search"
+                        class="w-full" />
+                </div>
+
+                <!-- Content -->
+                <div class="max-h-64 overflow-y-auto p-3">
+                    <!-- Émojis -->
+                    <div v-if="activeTab === 'emoji'" class="grid grid-cols-8 gap-2">
+                        <button v-for="emoji in filteredEmojis" :key="emoji"
+                            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-lg"
+                            @click="selectIcon(emoji, 'emoji')">
+                            {{ emoji }}
+                        </button>
+                    </div>
+
+                    <!-- Icônes Lucide -->
+                    <div v-else class="grid grid-cols-6 gap-2">
+                        <button v-for="icon in filteredIcons" :key="icon"
+                            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                            @click="selectIcon(icon, 'lucide')">
+                            <UIcon :name="`i-lucide-${icon}`" class="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <!-- Aucun résultat -->
+                    <div v-if="(activeTab === 'emoji' && filteredEmojis.length === 0) || (activeTab === 'lucide' && filteredIcons.length === 0)"
+                        class="text-center text-neutral-500 dark:text-neutral-400 text-sm py-8">
+                        Aucun résultat trouvé
+                    </div>
                 </div>
             </div>
+        </Teleport>
+    </ClientOnly>
 
-            <!-- Search -->
-            <div class="p-3 border-b border-neutral-200 dark:border-neutral-700">
-                <UInput v-model="searchQuery" :placeholder="searchPlaceholder" size="sm" icon="i-lucide-search"
-                    class="w-full" />
-            </div>
-
-            <!-- Content -->
-            <div class="max-h-64 overflow-y-auto p-3">
-                <!-- Émojis -->
-                <div v-if="activeTab === 'emoji'" class="grid grid-cols-8 gap-2">
-                    <button v-for="emoji in filteredEmojis" :key="emoji"
-                        class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-lg"
-                        @click="selectIcon(emoji, 'emoji')">
-                        {{ emoji }}
-                    </button>
-                </div>
-
-                <!-- Icônes Lucide -->
-                <div v-else class="grid grid-cols-6 gap-2">
-                    <button v-for="icon in filteredIcons" :key="icon"
-                        class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-                        @click="selectIcon(icon, 'lucide')">
-                        <UIcon :name="`i-lucide-${icon}`" class="w-4 h-4" />
-                    </button>
-                </div>
-
-                <!-- Aucun résultat -->
-                <div v-if="(activeTab === 'emoji' && filteredEmojis.length === 0) || (activeTab === 'lucide' && filteredIcons.length === 0)"
-                    class="text-center text-neutral-500 dark:text-neutral-400 text-sm py-8">
-                    Aucun résultat trouvé
-                </div>
-            </div>
-        </div>
-    </Teleport>
 </template>
 
 <script lang="ts" setup>

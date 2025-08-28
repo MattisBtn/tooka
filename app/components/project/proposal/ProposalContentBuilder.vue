@@ -1,91 +1,45 @@
 <template>
     <div>
-        <!-- Readonly Mode - preview HTML -->
-        <div v-if="props.readonly" class="space-y-4">
-            <div v-if="previewHtml" class="relative">
-                <div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-600 scrollbar-track-transparent"
-                    v-html="previewHtml" />
-                <div
-                    class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-neutral-800 to-transparent pointer-events-none rounded-b-lg" />
-                <div class="absolute bottom-2 right-2">
-                    <UButton icon="i-lucide-maximize-2" size="xs" variant="outline" color="neutral"
-                        class="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm" @click="openPreviewModal" />
-                </div>
-            </div>
-            <div v-else
-                class="text-center py-8 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700">
-                <UIcon name="i-lucide-file-text" class="w-12 h-12 text-neutral-400 mx-auto mb-3" />
-                <p class="text-neutral-600 dark:text-neutral-400">Aucun contenu défini</p>
-            </div>
+        <!-- Readonly Mode -->
+        <div v-if="props.readonly" class="bg-white dark:bg-neutral-800 rounded-lg border p-6">
+            <div v-if="blocks.length > 0" v-html="htmlContent" />
+            <p v-else class="text-neutral-500">Aucun contenu</p>
         </div>
 
         <!-- Editable trigger -->
-        <UButton v-else icon="i-lucide-file-text" size="lg" variant="outline" color="primary" :label="contentPreview"
-            class="w-full justify-start text-left" @click="openModal" />
+        <UButton v-else icon="i-lucide-file-text" :label="buttonLabel" variant="outline" class="w-full justify-start"
+            @click="openEditor" />
 
-        <!-- Fullscreen Modal -->
-        <UModal v-model:open="isOpen" :fullscreen="true" :transition="true">
-            <template #content>
-                <div class="flex h-full bg-neutral-50 dark:bg-neutral-900">
-                    <!-- Canvas -->
-                    <div class="flex-1 flex flex-col">
-                        <div
-                            class="p-4 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <UIcon :name="props.readonly ? 'i-lucide-eye' : 'i-lucide-edit-3'"
-                                        class="w-5 h-5 text-neutral-500" />
-                                    <div>
-                                        <h2 class="font-semibold text-neutral-900 dark:text-neutral-100">
-                                            {{ props.readonly ? 'Aperçu du contenu' : 'Éditeur de proposition' }}
-                                        </h2>
-                                        <p class="text-sm text-neutral-600 dark:text-neutral-400">
-                                            {{ props.readonly ?
-                                                'Visualisation complète de la proposition' :
-                                            'Tapez "/" pour ajouter du contenu' }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="text-sm text-neutral-500">
-                                        {{ blocks.length }} bloc{{ blocks.length > 1 ? 's' : '' }}
-                                    </div>
-                                    <UButton v-if="!props.readonly" icon="i-lucide-save" size="sm" color="primary"
-                                        label="Sauvegarder" @click="saveAndClose" />
-                                    <UButton icon="i-lucide-x" size="sm" variant="outline" color="neutral"
-                                        label="Fermer" @click="closeModal" />
-                                </div>
-                            </div>
+        <!-- Modal -->
+        <UModal v-model:open="isOpen" fullscreen :close="{ color: 'neutral', variant: 'ghost' }">
+            <template #header>
+                <!-- Header -->
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                            <UIcon name="i-heroicons-chat-bubble-left-right" class="w-5 h-5 text-primary" />
                         </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-highlighted">Éditeur de proposition</h3>
+                            <p class="text-sm text-muted">Décrivez votre proposition...</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <UButton v-if="!props.readonly" :loading="proposalStore.formLoading" @click="save">Sauvegarder
+                        </UButton>
+                    </div>
+                </div>
 
-                        <div class="flex-1 p-8 overflow-y-auto">
-                            <div class="max-w-4xl mx-auto">
-                                <!-- Empty State -->
-                                <div v-if="blocks.length === 0 && !props.readonly" class="text-center py-16">
-                                    <div
-                                        class="w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                                        <UIcon name="i-lucide-edit-3" class="w-12 h-12 text-neutral-400" />
-                                    </div>
-                                    <h3 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
-                                        Commencez votre proposition
-                                    </h3>
-                                    <p class="text-neutral-600 dark:text-neutral-400 mb-6 max-w-md mx-auto">
-                                        Tapez "/" dans l'éditeur pour ajouter des titres, paragraphes, listes et plus
-                                        encore
-                                    </p>
-                                </div>
+            </template>
+            <template #body>
+                <div class="h-full flex flex-col">
 
-                                <!-- Editor -->
-                                <div v-else>
-                                    <div v-if="isPreviewMode || props.readonly"
-                                        class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-8">
-                                        <div v-html="previewHtml" />
-                                    </div>
 
-                                    <NotionEditor v-else v-model="blocks" :readonly="false"
-                                        class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-8" />
-                                </div>
-                            </div>
+                    <!-- Editor -->
+                    <div class="flex-1 p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <NotionEditor v-model="blocks" :readonly="props.readonly"
+                                :proposal-id="currentProposalId" />
                         </div>
                     </div>
                 </div>
@@ -100,9 +54,8 @@ import NotionEditor from './NotionEditor.vue';
 
 interface Props {
     contentJson?: NotionBlock[] | null;
-    contentHtml?: string;
-    status?: 'draft' | 'awaiting_client' | 'revision_requested' | 'completed';
     readonly?: boolean;
+    projectId?: string;
 }
 
 interface Emits {
@@ -112,105 +65,145 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     contentJson: null,
-    contentHtml: '',
-    status: 'draft',
     readonly: false,
+    projectId: undefined,
 });
 
 const emit = defineEmits<Emits>();
 
-// Local state
 const isOpen = ref(false);
-const isPreviewMode = ref(false);
+const editor = useNotionEditor();
+const proposalStore = useProposalStore();
+
+// Blocks state
 const blocks = ref<NotionBlock[]>([]);
 
-// Initialiser les blocs
-watch(() => props.contentJson, (newContent) => {
-    if (newContent && Array.isArray(newContent)) {
-        blocks.value = [...newContent];
+// Initialize blocks
+watchEffect(() => {
+    if (props.contentJson?.length) {
+        blocks.value = [...props.contentJson];
     } else {
-        blocks.value = [];
-    }
-}, { immediate: true });
-
-// Computed
-const contentPreview = computed(() => {
-    if (blocks.value.length === 0) return 'Créer le contenu de la proposition';
-    const firstHeading = blocks.value.find((b) => b.type.startsWith('heading'))?.content;
-    if (firstHeading) return firstHeading.length > 50 ? firstHeading.substring(0, 50) + '...' : firstHeading;
-    const firstText = blocks.value.find((b) => b.type === 'paragraph')?.content;
-    return firstText ? (firstText.length > 80 ? firstText.substring(0, 80) + '...' : firstText) : 'Contenu de la proposition';
-});
-
-const previewHtml = computed(() => {
-    return blocks.value
-        .sort((a, b) => a.order - b.order)
-        .map(block => {
-            switch (block.type) {
-                case 'heading1':
-                    return `<h1 class="text-4xl font-bold mb-4">${block.content}</h1>`;
-                case 'heading2':
-                    return `<h2 class="text-3xl font-semibold mb-3">${block.content}</h2>`;
-                case 'heading3':
-                    return `<h3 class="text-2xl font-medium mb-2">${block.content}</h3>`;
-                case 'paragraph':
-                    return `<p class="mb-4 leading-relaxed">${block.content}</p>`;
-                case 'bulletList':
-                    return `<ul class="list-disc list-inside mb-4 space-y-1">${block.content.split('\n').filter(line => line.trim()).map(item => `<li>${item.trim()}</li>`).join('')}</ul>`;
-                case 'numberedList':
-                    return `<ol class="list-decimal list-inside mb-4 space-y-1">${block.content.split('\n').filter(line => line.trim()).map(item => `<li>${item.trim()}</li>`).join('')}</ol>`;
-                case 'quote':
-                    return `<blockquote class="border-l-4 border-primary pl-4 italic mb-4">${block.content}</blockquote>`;
-                case 'code':
-                    return `<pre class="bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg mb-4 overflow-x-auto"><code>${block.content}</code></pre>`;
-                case 'divider':
-                    return `<hr class="my-6 border-neutral-300 dark:border-neutral-600">`;
-                case 'image':
-                    return `<img src="${block.content}" alt="" class="max-w-full h-auto mb-4 rounded-lg">`;
-                case 'table':
-                    return `<div class="overflow-x-auto mb-4"><table class="w-full border-collapse border border-neutral-300 dark:border-neutral-600">${block.content}</table></div>`;
-                case 'button':
-                    return `<button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors mb-4">${block.content}</button>`;
-                default:
-                    return `<p class="mb-4">${block.content}</p>`;
+        // Default blocks for new proposals
+        blocks.value = [
+            {
+                id: `block_${Date.now()}`,
+                type: 'heading1',
+                content: 'Proposition Commerciale',
+                order: 1
+            },
+            {
+                id: `block_${Date.now() + 1}`,
+                type: 'paragraph',
+                content: 'Décrivez votre proposition...',
+                order: 2
             }
-        })
-        .join('');
+        ];
+    }
 });
 
-// Methods
-const openModal = () => {
+// Button label
+const buttonLabel = computed(() => {
+    const heading = blocks.value.find(b => b.type.startsWith('heading'))?.content;
+    return heading && heading !== 'Proposition Commerciale'
+        ? heading.slice(0, 50) + (heading.length > 50 ? '...' : '')
+        : 'Créer le contenu de la proposition';
+});
+
+// Current proposal ID for image uploads
+const currentProposalId = computed(() => {
+    const proposalId = unref(proposalStore.proposal)?.id;
+    return proposalId || props.projectId;
+});
+
+// HTML content for readonly
+const htmlContent = computed(() => {
+    editor.initialize(blocks.value);
+    return editor.getHtml();
+});
+
+// Open editor and create draft proposal if needed
+const openEditor = async () => {
+    // If no existing content and projectId provided, create draft proposal
+    if (!props.contentJson?.length && props.projectId && !proposalStore.exists) {
+        try {
+            const defaultBlocks = [
+                {
+                    id: `block_${Date.now()}`,
+                    type: 'heading1' as const,
+                    content: 'Proposition Commerciale',
+                    order: 1
+                },
+                {
+                    id: `block_${Date.now() + 1}`,
+                    type: 'paragraph' as const,
+                    content: 'Décrivez votre proposition...',
+                    order: 2
+                }
+            ];
+
+            // Create draft proposal
+            await proposalStore.createProposal(
+                props.projectId,
+                {
+                    content_json: defaultBlocks,
+                    content_html: '',
+                    price: 0,
+                    deposit_required: false,
+                    deposit_amount: null,
+                    contract_url: null,
+                    quote_url: null,
+                },
+                { payment_method: null },
+                true // isProjectFree for now
+            );
+
+            // Update local blocks
+            blocks.value = [...defaultBlocks];
+        } catch (error) {
+            console.error('Erreur création proposition:', error);
+            useToast().add({
+                title: 'Erreur',
+                description: 'Impossible de créer la proposition',
+                color: 'error'
+            });
+            return;
+        }
+    }
+
     isOpen.value = true;
 };
 
-const closeModal = () => {
-    isOpen.value = false;
-};
+// Save
+const save = async () => {
+    try {
+        const proposalId = unref(proposalStore.proposal)?.id;
 
-const saveAndClose = () => {
-    const html = previewHtml.value;
-    emit('update:content_json', [...blocks.value]);
-    emit('update:content_html', html);
-    closeModal();
-    const toast = useToast();
-    toast.add({
-        title: 'Contenu sauvegardé',
-        description: 'Le contenu de la proposition a été mis à jour.',
-        icon: 'i-lucide-check-circle',
-        color: 'success'
-    });
-};
+        if (proposalId) {
+            // Update proposal content in database with optimistic update
+            await proposalStore.updateProposalContent(
+                proposalId,
+                [...blocks.value],
+                htmlContent.value
+            );
+        }
 
-const openPreviewModal = () => {
-    if (props.readonly) {
-        openModal();
-        nextTick(() => {
-            if (!isPreviewMode.value) togglePreviewMode();
+        // Emit for local state sync
+        emit('update:content_json', [...blocks.value]);
+        emit('update:content_html', htmlContent.value);
+
+        isOpen.value = false;
+
+        useToast().add({
+            title: 'Contenu sauvegardé',
+            color: 'success'
+        });
+    } catch (error) {
+        console.error('Erreur sauvegarde:', error);
+        useToast().add({
+            title: 'Erreur de sauvegarde',
+            description: 'Impossible de sauvegarder le contenu',
+            color: 'error'
         });
     }
-};
-
-const togglePreviewMode = () => {
-    isPreviewMode.value = !isPreviewMode.value;
 };
 </script>

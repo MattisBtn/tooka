@@ -83,6 +83,7 @@ interface Props {
     metadata?: ImageBlockMetadata;
     readonly?: boolean;
     isSelected?: boolean;
+    proposalId?: string;
 }
 
 interface Emits {
@@ -92,7 +93,8 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
     readonly: false,
-    isSelected: false
+    isSelected: false,
+    proposalId: undefined
 });
 
 const emit = defineEmits<Emits>();
@@ -177,7 +179,7 @@ const uploadImage = async (file: File) => {
     isUploading.value = true;
 
     try {
-        const result = await notionImageService.uploadImage(file);
+        const result = await notionImageService.uploadImage(file, props.proposalId);
 
         if (result.success && result.url && result.filePath) {
             // Créer une image temporaire pour obtenir les dimensions naturelles
@@ -222,7 +224,7 @@ const handleReplaceFromMenu = async (file: File) => {
     isUploading.value = true;
 
     try {
-        const result = await notionImageService.replaceImage(props.metadata.filePath, file);
+        const result = await notionImageService.replaceImage(props.metadata.filePath, file, props.proposalId);
 
         if (result.success && result.url && result.filePath) {
             // Créer une image temporaire pour obtenir les nouvelles dimensions

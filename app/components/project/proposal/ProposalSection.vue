@@ -271,7 +271,6 @@ import { formatPrice } from "~/utils/formatters";
 // Use stores
 const projectSetupStore = useProjectSetupStore()
 const proposalStore = useProposalStore()
-
 // Hybrid computed properties
 const isProjectCompleted = computed(() => {
     if (proposalStore.proposal?.project) {
@@ -332,8 +331,11 @@ const handleProposalSaved = async (data: {
                 data.project,
                 projectSetupStore.isFree
             );
+
+
         }
 
+        proposalStore.closeForm();
         const toast = useToast();
         toast.add({
             title: isUpdate ? 'Proposition mise à jour' : 'Proposition créée',

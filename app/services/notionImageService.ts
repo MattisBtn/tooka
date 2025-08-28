@@ -7,9 +7,12 @@ export interface NotionImageUploadResult {
 
 export const notionImageService = {
   /**
-   * Upload an image to the notion-images bucket
+   * Upload an image to the proposals bucket
    */
-  async uploadImage(file: File): Promise<NotionImageUploadResult> {
+  async uploadImage(
+    file: File,
+    proposalId?: string
+  ): Promise<NotionImageUploadResult> {
     try {
       const supabase = useSupabaseClient();
       const user = useSupabaseUser();
@@ -18,6 +21,13 @@ export const notionImageService = {
         return {
           success: false,
           error: "Vous devez être connecté pour uploader une image",
+        };
+      }
+
+      if (!proposalId) {
+        return {
+          success: false,
+          error: "ID de proposition requis pour l'upload",
         };
       }
 
@@ -43,11 +53,11 @@ export const notionImageService = {
       const fileName = `${Date.now()}_${Math.random()
         .toString(36)
         .substring(7)}.${fileExt}`;
-      const filePath = `${user.value.id}/notion-images/${fileName}`;
+      const filePath = `${user.value.id}/${proposalId}/images/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("notion-images")
+        .from("proposals")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
@@ -62,7 +72,7 @@ export const notionImageService = {
 
       // Get public URL
       const { data } = supabase.storage
-        .from("notion-images")
+        .from("proposals")
         .getPublicUrl(filePath);
 
       return {
@@ -80,14 +90,14 @@ export const notionImageService = {
   },
 
   /**
-   * Delete an image from the notion-images bucket
+   * Delete an image from the proposals bucket
    */
   async deleteImage(filePath: string): Promise<boolean> {
     try {
       const supabase = useSupabaseClient();
 
       const { error } = await supabase.storage
-        .from("notion-images")
+        .from("proposals")
         .remove([filePath]);
 
       if (error) {
@@ -107,11 +117,12 @@ export const notionImageService = {
    */
   async replaceImage(
     oldFilePath: string,
-    newFile: File
+    newFile: File,
+    proposalId?: string
   ): Promise<NotionImageUploadResult> {
     try {
       // Upload new image first
-      const uploadResult = await this.uploadImage(newFile);
+      const uploadResult = await this.uploadImage(newFile, proposalId);
 
       if (!uploadResult.success) {
         return uploadResult;

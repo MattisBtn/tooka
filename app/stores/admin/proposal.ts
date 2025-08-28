@@ -1,5 +1,7 @@
 import { defineStore } from "pinia";
 import { proposalService } from "~/services/proposalService";
+import type { Json } from "~/types/database.types";
+import type { NotionBlock } from "~/types/notion";
 import type {
   ProjectPaymentData,
   ProposalFormData,
@@ -65,14 +67,6 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
-      // Upload portfolio images before creating proposal
-      if (proposalData.content_json) {
-        await proposalService.uploadPortfolioImages(
-          proposalData.content_json,
-          projectId
-        );
-      }
-
       const data = {
         project_id: projectId,
         content_json: proposalData.content_json,
@@ -111,8 +105,6 @@ export const useProposalStore = defineStore("proposal", () => {
           proposal.value.project.payment_method = projectData.payment_method;
         }
       }
-
-      showForm.value = false;
 
       // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
@@ -154,14 +146,6 @@ export const useProposalStore = defineStore("proposal", () => {
     error.value = null;
 
     try {
-      // Upload portfolio images before updating proposal
-      if (proposalData.content_json) {
-        await proposalService.uploadPortfolioImages(
-          proposalData.content_json,
-          proposal.value!.project_id
-        );
-      }
-
       const data = {
         project_id: proposal.value!.project_id,
         content_json: proposalData.content_json,
@@ -198,8 +182,6 @@ export const useProposalStore = defineStore("proposal", () => {
           proposal.value.project.payment_method = projectData.payment_method;
         }
       }
-
-      showForm.value = false;
 
       // Update project data optimistically in projectSetup store
       const { useProjectSetupStore } = await import(
@@ -334,6 +316,58 @@ export const useProposalStore = defineStore("proposal", () => {
     }
   };
 
+  const updateProposalContent = async (
+    proposalId: string,
+    content_json: NotionBlock[],
+    content_html: string
+  ) => {
+    formLoading.value = true;
+    error.value = null;
+
+    try {
+      // Optimistic update
+      if (proposal.value) {
+        proposal.value.content_json = content_json;
+        proposal.value.content_html = content_html;
+      }
+
+      // Update in database
+      const result = await proposalService.updateProposal(proposalId, {
+        content_json: content_json as unknown as Json[],
+        content_html,
+      });
+
+      // Update with server response to ensure consistency
+      proposal.value = result;
+
+      // Update project data optimistically in projectSetup store
+      const { useProjectSetupStore } = await import(
+        "~/stores/admin/projectSetup"
+      );
+      const projectSetupStore = useProjectSetupStore();
+      projectSetupStore.updateProjectModule("proposal", result);
+
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error
+          ? err
+          : new Error("Failed to update proposal content");
+
+      // Revert optimistic update on error
+      if (proposal.value) {
+        // We could reload the proposal here, but for now just throw
+        console.error(
+          "Failed to update proposal content, optimistic update reverted"
+        );
+      }
+
+      throw err;
+    } finally {
+      formLoading.value = false;
+    }
+  };
+
   const uploadFiles = async (
     projectId: string,
     contractFile?: File,
@@ -383,6 +417,7 @@ export const useProposalStore = defineStore("proposal", () => {
     loadProposal,
     createProposal,
     updateProposal,
+    updateProposalContent,
     deleteProposal,
     confirmPayment,
     sendToClient,

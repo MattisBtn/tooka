@@ -1,51 +1,56 @@
 <template>
-    <Teleport to="body">
-        <div v-if="isOpen" data-video-action-menu
-            class="fixed z-[9999] bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-xl w-48"
-            :style="menuStyle">
-            <!-- Actions -->
-            <div class="py-1">
-                <button
-                    class="w-full px-3 py-2 text-left text-neutral-400 dark:text-neutral-500 cursor-not-allowed flex items-center gap-3"
-                    disabled>
-                    <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-upload" class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-medium text-neutral-400 dark:text-neutral-500 text-sm">Fichier</div>
-                        <div class="text-xs text-neutral-400 dark:text-neutral-500">Bientôt disponible</div>
-                    </div>
-                </button>
+    <ClientOnly>
+        <Teleport to=".notion-editor">
+            <div v-if="isOpen" data-video-action-menu
+                class="fixed z-[9999] bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-xl w-48"
+                :style="menuStyle">
+                <!-- Actions -->
+                <div class="py-1">
+                    <button
+                        class="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-3"
+                        @click="handleUpload">
+                        <div
+                            class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-upload" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">Fichier</div>
+                            <div class="text-xs text-neutral-500 dark:text-neutral-400">MP4, WebM, MOV, etc.</div>
+                        </div>
+                    </button>
 
-                <button
-                    class="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-3"
-                    @click="handleEmbed">
-                    <div class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-link" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">Lien</div>
-                        <div class="text-xs text-neutral-500 dark:text-neutral-400">YouTube, Vimeo, etc.</div>
-                    </div>
-                </button>
+                    <button
+                        class="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-3"
+                        @click="handleEmbed">
+                        <div
+                            class="w-8 h-8 bg-neutral-100 dark:bg-neutral-700 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-link" class="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">Lien</div>
+                            <div class="text-xs text-neutral-500 dark:text-neutral-400">YouTube, Vimeo, etc.</div>
+                        </div>
+                    </button>
 
-                <button v-if="hasVideo"
-                    class="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-3"
-                    @click="handleDelete">
-                    <div class="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-                        <UIcon name="i-lucide-trash-2" class="w-4 h-4 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">Supprimer</div>
-                        <div class="text-xs text-neutral-500 dark:text-neutral-400">Supprimer la vidéo</div>
-                    </div>
-                </button>
+                    <button v-if="hasVideo"
+                        class="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-3"
+                        @click="handleDelete">
+                        <div class="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                            <UIcon name="i-lucide-trash-2" class="w-4 h-4 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-neutral-900 dark:text-neutral-100 text-sm">Supprimer</div>
+                            <div class="text-xs text-neutral-500 dark:text-neutral-400">Supprimer la vidéo</div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Input caché pour upload -->
+                <input ref="fileInput" type="file" accept="video/*" class="hidden" @change="onFileSelect">
             </div>
+        </Teleport>
+    </ClientOnly>
 
-            <!-- Input caché pour upload -->
-            <input ref="fileInput" type="file" accept="video/*" class="hidden" @change="onFileSelect">
-        </div>
-    </Teleport>
 </template>
 
 <script lang="ts" setup>

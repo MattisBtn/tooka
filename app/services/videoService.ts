@@ -1,17 +1,34 @@
+export interface VideoUploadResult {
+  success: boolean;
+  url?: string;
+  filePath?: string;
+  error?: string;
+}
+
 export const videoService = {
   /**
-   * Télécharger une vidéo
+   * Upload une vidéo vers le bucket proposals
    */
   async uploadVideo(
-    file: File
-  ): Promise<{ filePath: string; fileName: string; fileSize: number }> {
+    file: File,
+    proposalId?: string
+  ): Promise<VideoUploadResult> {
     try {
-      // Vérifier la taille du fichier (max 100MB)
-      const maxSize = 100 * 1024 * 1024; // 100MB
-      if (file.size > maxSize) {
-        throw new Error(
-          "Le fichier est trop volumineux. Taille maximum: 100MB"
-        );
+      const supabase = useSupabaseClient();
+      const user = useSupabaseUser();
+
+      if (!user.value) {
+        return {
+          success: false,
+          error: "Vous devez être connecté pour uploader une vidéo",
+        };
+      }
+
+      if (!proposalId) {
+        return {
+          success: false,
+          error: "ID de proposition requis pour l'upload",
+        };
       }
 
       // Vérifier le type de fichier
@@ -23,48 +40,106 @@ export const videoService = {
         "video/mkv",
       ];
       if (!allowedTypes.includes(file.type)) {
-        throw new Error(
-          "Type de fichier non supporté. Formats acceptés: MP4, WebM, MOV, AVI, MKV"
-        );
+        return {
+          success: false,
+          error:
+            "Type de fichier non supporté. Formats acceptés: MP4, WebM, MOV, AVI, MKV",
+        };
       }
 
-      // Créer un nom de fichier unique
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 15);
-      const extension = file.name.split(".").pop();
-      const fileName = `video_${timestamp}_${randomId}.${extension}`;
-      const filePath = `/notion-videos/${fileName}`;
+      // Vérifier la taille du fichier (100MB max)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (file.size > maxSize) {
+        return {
+          success: false,
+          error: "La vidéo ne peut pas dépasser 100MB",
+        };
+      }
 
-      // Ici vous intégreriez votre logique d'upload vers votre storage
-      // Par exemple avec Supabase Storage, AWS S3, etc.
+      // Générer un nom de fichier unique
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "mp4";
+      const fileName = `${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}.${fileExt}`;
+      const filePath = `${user.value.id}/${proposalId}/videos/${fileName}`;
 
-      // Pour l'instant, on simule l'upload
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Upload vers Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("proposals")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        return {
+          success: false,
+          error: `Erreur lors de l'upload: ${uploadError.message}`,
+        };
+      }
+
+      // Obtenir l'URL publique
+      const { data } = supabase.storage
+        .from("proposals")
+        .getPublicUrl(filePath);
 
       return {
+        success: true,
+        url: data.publicUrl,
         filePath,
-        fileName: file.name,
-        fileSize: file.size,
       };
     } catch (error) {
       console.error("Erreur upload vidéo:", error);
-      throw error;
+      return {
+        success: false,
+        error: "Erreur inattendue lors de l'upload",
+      };
     }
   },
 
   /**
-   * Supprimer une vidéo
+   * Supprimer une vidéo du bucket proposals
    */
-  async deleteVideo(_filePath: string): Promise<void> {
+  async deleteVideo(filePath: string): Promise<boolean> {
     try {
-      // Ici vous intégreriez votre logique de suppression
-      // Par exemple avec Supabase Storage, AWS S3, etc.
+      const supabase = useSupabaseClient();
 
-      // Pour l'instant, on simule la suppression
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const { error } = await supabase.storage
+        .from("proposals")
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Erreur suppression vidéo:", error);
+        return false;
+      }
+
+      return true;
     } catch (error) {
       console.error("Erreur suppression vidéo:", error);
-      throw error;
+      return false;
+    }
+  },
+
+  /**
+   * Remplacer une vidéo existante (supprimer l'ancienne, uploader la nouvelle)
+   */
+  async replaceVideo(
+    oldFilePath: string,
+    newFile: File,
+    proposalId?: string
+  ): Promise<VideoUploadResult> {
+    try {
+      // Supprimer l'ancienne vidéo
+      await this.deleteVideo(oldFilePath);
+
+      // Uploader la nouvelle vidéo
+      return await this.uploadVideo(newFile, proposalId);
+    } catch (error) {
+      console.error("Erreur remplacement vidéo:", error);
+      return {
+        success: false,
+        error: "Erreur lors du remplacement de la vidéo",
+      };
     }
   },
 
@@ -72,9 +147,9 @@ export const videoService = {
    * Obtenir l'URL d'une vidéo
    */
   getVideoUrl(filePath: string): string {
-    // Ici vous retourneriez l'URL complète de votre vidéo
-    // Par exemple avec Supabase Storage, AWS S3, etc.
-    return filePath.startsWith("http") ? filePath : `/api/uploads${filePath}`;
+    const supabase = useSupabaseClient();
+    const { data } = supabase.storage.from("proposals").getPublicUrl(filePath);
+    return data.publicUrl;
   },
 
   /**
