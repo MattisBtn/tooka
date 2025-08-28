@@ -36,25 +36,6 @@
                 </template>
 
                 <div class="space-y-8">
-                    <!-- Gallery Information -->
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                                <UIcon name="i-lucide-info" class="w-4 h-4 text-white dark:text-black" />
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-neutral-900 dark:text-neutral-100">Informations générales
-                                </h4>
-                                <p class="text-sm text-neutral-600 dark:text-neutral-400">Détails de la galerie</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Add other general info here if needed -->
-                        </div>
-                    </div>
-
                     <!-- Pricing Section -->
                     <div v-if="!isFree" class="space-y-4">
                         <div class="flex items-center gap-3">
