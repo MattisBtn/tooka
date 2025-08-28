@@ -1,6 +1,6 @@
 <template>
     <ClientOnly>
-        <div class="min-h-screen bg-white dark:bg-neutral-900">
+        <div class="min-h-screen bg-white dark:bg-neutral-900 screenshot-protection" @contextmenu.prevent>
             <!-- Headers avec conditions mutuellement exclusives -->
             <!-- Selection Header - affiché seulement quand tout est chargé et authentifié -->
             <SelectionHeader v-if="store.selection && store.isAuthenticated && store.project" :project="store.project"
@@ -75,6 +75,7 @@ import { useClientSelectionActions } from '~/composables/selections/client/useCl
 import { useClientConfig } from '~/composables/shared/useClientConfig'
 import { useErrorHandler } from '~/composables/shared/useErrorHandler'
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig'
+import { useScreenshotProtection } from '~/composables/shared/useScreenshotProtection'
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig'
 import { useClientSelectionStore } from '~/stores/public/selection'
 
@@ -105,8 +106,18 @@ const { createNuxtError } = useErrorHandler();
 const store = useClientSelectionStore()
 const actions = useClientSelectionActions()
 
+// Screenshot protection
+const { enableProtection } = useScreenshotProtection();
+
 // Load selection data
 await store.loadSelection(selectionId)
+
+// Enable screenshot protection when selection is loaded and authenticated
+watchEffect(() => {
+    if (store.selection && store.isAuthenticated && store.project) {
+        enableProtection();
+    }
+});
 
 // Handle password authentication
 const handleAuthentication = async (password: string) => {
@@ -161,6 +172,10 @@ watchEffect(() => {
         throw createNuxtError(store.error.message);
     }
 });
+
+
 </script>
 
-<style></style>
+<style>
+@import '~/assets/css/screenshot-protection.css';
+</style>

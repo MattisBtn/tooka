@@ -1,0 +1,62 @@
+/* Protection contre les captures d'écran */
+@media print {
+  * {
+    display: none !important;
+  }
+}
+
+/* Protection contre la sélection de texte */
+.screenshot-protection * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Protection contre le glisser-déposer d'images */
+.screenshot-protection img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+
+/* Protection contre les outils de développement */
+@media screen and (max-width: 0px) {
+  .screenshot-protection * {
+    display: none !important;
+  }
+}
+
+/* Protection mobile spécifique */
+@media (max-width: 768px) {
+  .screenshot-protection {
+    /* Empêcher le zoom sur mobile */
+    touch-action: manipulation;
+  }
+
+  .screenshot-protection * {
+    touch-action: manipulation;
+  }
+
+  /* Masquer les éléments lors des changements d'orientation */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .screenshot-protection {
+      opacity: 0.1;
+    }
+  }
+
+  /* Protection contre les gestes de capture */
+  .screenshot-protection img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}

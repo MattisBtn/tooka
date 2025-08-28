@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900">
+    <div class="min-h-screen bg-neutral-50 dark:bg-neutral-900 screenshot-protection" @contextmenu.prevent>
       <!-- Gallery Header -->
       <GalleryHeader :project="store.project" :gallery="store.gallery" :is-authenticated="store.isAuthenticated"
         :downloading-gallery="actions.downloadingGallery.value" :validating-gallery="actions.validatingGallery.value"
@@ -75,6 +75,7 @@ import { useClientGalleryActions } from '~/composables/galleries/client/useClien
 import { useClientConfig } from '~/composables/shared/useClientConfig';
 import { useErrorHandler } from '~/composables/shared/useErrorHandler';
 import { usePasswordFormConfig } from '~/composables/shared/usePasswordFormConfig';
+import { useScreenshotProtection } from '~/composables/shared/useScreenshotProtection';
 import { useSimpleHeaderConfig } from '~/composables/shared/useSimpleHeaderConfig';
 import { useClientGalleryStore } from '~/stores/public/gallery';
 
@@ -105,8 +106,18 @@ const { createNuxtError } = useErrorHandler();
 const store = useClientGalleryStore();
 const actions = useClientGalleryActions();
 
+// Screenshot protection
+const { enableProtection } = useScreenshotProtection();
+
 // Load gallery data
 await store.loadGallery(galleryId);
+
+// Enable screenshot protection when gallery is loaded and authenticated
+watchEffect(() => {
+  if (store.gallery && store.isAuthenticated && store.project) {
+    enableProtection();
+  }
+});
 
 // Store methods
 const verifyPassword = store.verifyPassword;
@@ -155,6 +166,10 @@ watchEffect(() => {
     throw createNuxtError(store.error.message);
   }
 });
+
+
 </script>
 
-<style></style>
+<style>
+@import '~/assets/css/screenshot-protection.css';
+</style>
