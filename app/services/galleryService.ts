@@ -1,7 +1,5 @@
 import { galleryImageRepository } from "~/repositories/galleryImageRepository";
 import { galleryRepository } from "~/repositories/galleryRepository";
-import { projectService } from "~/services/projectService";
-import { proposalService } from "~/services/proposalService";
 import type { Tables } from "~/types/database.types";
 import type {
   Gallery,
@@ -93,80 +91,6 @@ export const galleryService = {
       proposal: data.proposal,
       images: data.images,
     };
-  },
-
-  /**
-   * Get project data for gallery creation (when no gallery exists yet)
-   */
-  async getProjectDataForGalleryCreation(projectId: string): Promise<{
-    gallery: null;
-    project: Partial<Tables<"projects">> | null;
-    proposal: Partial<Tables<"proposals">> | null;
-  }> {
-    if (!projectId?.trim()) {
-      throw new Error("Project ID is required");
-    }
-
-    const { projectService } = await import("~/services/projectService");
-    const data = await projectService.getProjectWithProposal(projectId);
-    if (!data || !data.project) {
-      throw new Error("Project not found");
-    }
-
-    return {
-      gallery: null,
-      project: data.project,
-      proposal: data.proposal,
-    };
-  },
-
-  /**
-   * Calculate gallery pricing based on proposal or project data
-   */
-  async calculateGalleryPricing(projectId: string): Promise<{
-    basePrice: number;
-    depositPaid: number;
-    remainingAmount: number;
-  }> {
-    const proposal = await proposalService.getProposalByProjectId(projectId);
-
-    if (proposal) {
-      // Use proposal data if available
-      const basePrice = proposal.price;
-      const depositPaid =
-        proposal.deposit_required && proposal.deposit_amount
-          ? proposal.deposit_amount
-          : 0;
-      const remainingAmount = basePrice - depositPaid;
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    } else {
-      // Use project data when no proposal exists
-      const project = await projectService.getProjectById(projectId);
-
-      if (!project) {
-        return {
-          basePrice: 0,
-          depositPaid: 0,
-          remainingAmount: 0,
-        };
-      }
-
-      const basePrice = project.initial_price ?? 0;
-      const remainingAmountRaw = project.remaining_amount ?? basePrice;
-      const remainingAmount = Math.max(0, remainingAmountRaw);
-      const depositPaid = Math.max(0, basePrice - remainingAmount);
-
-      return {
-        basePrice,
-        depositPaid,
-        remainingAmount,
-      };
-    }
   },
 
   /**

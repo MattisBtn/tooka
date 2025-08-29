@@ -51,17 +51,14 @@
                     <ProjectSetupStepper :current-step="currentStep" @step-changed="handleStepChange" />
                 </div>
 
-                <!-- Proposal Section -->
-                <ProjectProposalSection v-if="currentStep === 1" />
-
                 <!-- Moodboard Section -->
-                <ProjectMoodboardSection v-if="currentStep === 2" />
+                <ProjectMoodboardSection v-if="currentStep === 1" />
 
                 <!-- Selection Section -->
-                <ProjectSelectionSection v-if="currentStep === 3" />
+                <ProjectSelectionSection v-if="currentStep === 2" />
 
                 <!-- Gallery Section -->
-                <ProjectGallerySection v-if="currentStep === 4" />
+                <ProjectGallerySection v-if="currentStep === 3" />
             </template>
         </div>
     </div>

@@ -203,11 +203,10 @@ export const useGalleryStore = defineStore("gallery", () => {
         proposal.value = data.proposal;
       } else {
         // No gallery exists yet, load project data for creation
-        const projectData =
-          await galleryService.getProjectDataForGalleryCreation(projectId);
+        const projectData = useProjectSetupStore();
         gallery.value = null;
         project.value = projectData.project;
-        proposal.value = projectData.proposal;
+        proposal.value = projectData.project?.proposal;
       }
 
       isInitialized.value = true;
@@ -387,25 +386,8 @@ export const useGalleryStore = defineStore("gallery", () => {
 
     try {
       const { galleryService } = await import("~/services/galleryService");
-      const { projectService } = await import("~/services/projectService");
-
-      // Get project ID before deleting gallery
-      const projectId = gallery.value?.project_id;
 
       await galleryService.deleteGallery(galleryId);
-
-      // Clean up project payment_method if no proposal exists
-      if (projectId) {
-        const projectData = await projectService.getProjectWithProposal(
-          projectId
-        );
-        if (projectData && !projectData.proposal) {
-          // No proposal exists, clean up payment_method from project
-          await projectService.updateProject(projectId, {
-            payment_method: null,
-          });
-        }
-      }
 
       // Clear local state
       gallery.value = null;

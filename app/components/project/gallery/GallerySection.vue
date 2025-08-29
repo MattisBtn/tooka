@@ -306,13 +306,6 @@ const isFree = computed(() => {
     return basePrice === 0;
 })
 
-// Check if pricing should be displayed
-const shouldShowPricing = computed(() => {
-    return !isFree.value &&
-        galleryStore.pricing &&
-        galleryStore.gallery?.status !== 'completed';
-})
-
 // Helper functions for pricing display
 const getDepositPercentage = () => {
     if (!galleryStore.pricing?.depositPaid || !galleryStore.pricing?.basePrice) return 0;
