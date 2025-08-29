@@ -51,7 +51,7 @@
     <!-- Project Modal -->
     <ProjectModal :model-value="store.modalState.type === 'create' || store.modalState.type === 'edit'"
       :project="store.modalState.type === 'edit' ? (store.modalState.data as ProjectWithClient) : undefined"
-      @update:model-value="store.closeModal" />
+      @update:model-value="store.closeModal" @create-client="handleCreateClient" />
 
     <!-- Delete Confirmation Modal -->
     <UModal :open="store.modalState.type === 'delete'" :title="deleteModalTitle" :description="deleteModalDescription">
@@ -77,6 +77,8 @@
         </div>
       </template>
     </UModal>
+
+
   </div>
 </template>
 
@@ -84,6 +86,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import { h, resolveComponent } from 'vue'
 import { projectService } from '~/services/projectService'
+
 import type { ProjectWithClient } from '~/types/project'
 
 const UButton = resolveComponent('UButton')
@@ -93,8 +96,9 @@ const UCheckbox = resolveComponent('UCheckbox')
 const UIcon = resolveComponent('UIcon')
 const UTooltip = resolveComponent('UTooltip')
 
-// Store
+// Stores
 const store = useProjectsStore()
+const clientStore = useClientsStore()
 
 // Row selection
 const rowSelection = ref({})
@@ -383,6 +387,13 @@ const confirmMultipleDelete = async () => {
     rowSelection.value = {}
   }
 }
+
+const handleCreateClient = () => {
+  // Ouvrir la modal client (la modal projet reste ouverte)
+  clientStore.openCreateModal()
+}
+
+
 </script>
 
 <style></style>

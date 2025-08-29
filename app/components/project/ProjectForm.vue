@@ -27,7 +27,7 @@
                         icon="i-heroicons-user-group" />
 
                     <UButton type="button" size="sm" icon="i-lucide-plus" label="Créer un nouveau client" block
-                        @click="clientStore.openCreateModal" />
+                        @click="handleCreateClient" />
                 </div>
             </UFormField>
 
@@ -84,7 +84,7 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'cancel'): void;
+    (e: 'cancel' | 'create-client'): void;
     (e: 'success', project: ProjectWithClient): void;
 }
 
@@ -159,5 +159,10 @@ const handleSubmit = async (event: FormSubmitEvent<ProjectFormData>) => {
 
 const handleCancel = () => {
     emit('cancel')
+}
+
+const handleCreateClient = () => {
+    // Émettre un événement pour fermer temporairement la modal projet
+    emit('create-client')
 }
 </script>

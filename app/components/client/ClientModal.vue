@@ -16,7 +16,7 @@
         </template>
 
         <template #body>
-            <ClientForm :client="client" @cancel="store.closeModal" />
+            <ClientForm :client="client" @cancel="handleCancel" />
         </template>
     </UModal>
 </template>
@@ -31,6 +31,7 @@ interface Props {
 
 interface Emits {
     (e: "update:modelValue", value: boolean): void;
+    (e: "cancel"): void;
 }
 
 const props = defineProps<Props>();
@@ -48,6 +49,12 @@ const isOpen = computed({
 const modalTitle = computed(() =>
     props.client ? "Modifier le client" : "Nouveau client"
 );
+
+// Handle form events
+const handleCancel = () => {
+    store.closeModal();
+    emit("cancel");
+};
 
 // Handle escape key
 onKeyStroke("Escape", (e) => {

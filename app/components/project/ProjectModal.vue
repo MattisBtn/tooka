@@ -17,12 +17,21 @@
         </template>
 
         <template #body>
-            <ProjectForm :project="project" @cancel="handleCancel" @success="handleSuccess" />
+            <ProjectForm :project="project" @cancel="handleCancel" @success="handleSuccess"
+                @create-client="handleCreateClient" />
+
+            <!-- Nested Client Modal -->
+            <ClientModal
+                :model-value="clientStore.modalState.type === 'create' || clientStore.modalState.type === 'edit'"
+                :client="clientStore.modalState.type === 'edit' ? (clientStore.modalState.data as Client) : undefined"
+                @update:model-value="clientStore.closeModal" @success="handleClientSuccess"
+                @cancel="handleClientCancel" />
         </template>
     </UModal>
 </template>
 
 <script lang="ts" setup>
+import type { Client } from '~/types/client';
 import type { ProjectWithClient } from '~/types/project';
 
 interface Props {
@@ -33,10 +42,14 @@ interface Props {
 interface Emits {
     (e: 'update:modelValue', value: boolean): void
     (e: 'success', project: ProjectWithClient): void
+    (e: 'create-client'): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Store
+const clientStore = useClientsStore()
 
 
 
@@ -58,6 +71,20 @@ const handleCancel = () => {
 const handleSuccess = (project: ProjectWithClient) => {
     isOpen.value = false
     emit('success', project)
+}
+
+const handleCreateClient = () => {
+    // Ouvrir la modal client sans fermer la modal projet
+    emit('create-client')
+}
+
+const handleClientSuccess = (_client: Client) => {
+    // Le client a été créé, la modal projet reste ouverte avec le state préservé
+}
+
+const handleClientCancel = () => {
+    // L'utilisateur a annulé la création du client
+    // La modal projet reste ouverte avec le state préservé
 }
 
 // Handle escape key
