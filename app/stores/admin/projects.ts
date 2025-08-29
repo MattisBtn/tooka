@@ -169,7 +169,6 @@ export const useProjectsStore = defineStore("projects", () => {
         description: projectData.description || null,
         client_id: projectData.client_id,
         status: projectData.status,
-        initial_price: projectData.initial_price || null,
         require_password: projectData.require_password,
         completed_at: null,
         remaining_amount: null,

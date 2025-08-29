@@ -36,11 +36,6 @@ export const projectFormSchema = z.object({
   description: z.string().nullable().optional(),
   client_id: z.string().min(1, "Client requis"),
   status: z.enum(["draft", "in_progress", "completed"]).default("draft"),
-  initial_price: z
-    .number()
-    .min(0, "Le prix doit être positif")
-    .optional()
-    .nullable(),
   require_password: z.boolean().default(false),
   // password_hash est généré seulement si require_password est true
 });
@@ -52,11 +47,6 @@ export const projectEditSchema = z.object({
   title: z.string().min(1, "Titre requis").max(255, "Titre trop long"),
   description: z.string().nullable().optional(),
   client_id: z.string().min(1, "Client requis"),
-  initial_price: z
-    .number()
-    .min(0, "Le prix doit être positif")
-    .optional()
-    .nullable(),
   require_password: z.boolean().default(false),
 });
 

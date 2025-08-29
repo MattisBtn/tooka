@@ -23,8 +23,8 @@
 
             <!-- Project Summary -->
             <ProjectSummary :project="store.project" :client-display-name="store.clientDisplayName"
-                :status-info="store.statusInfo || null" :formatted-price="store.formattedPrice"
-                :formatted-created-at="store.formattedCreatedAt" :can-edit-project="store.canEditProject" />
+                :status-info="store.statusInfo || null" :formatted-created-at="store.formattedCreatedAt"
+                :can-edit-project="store.canEditProject" />
 
             <!-- Payment setup gate -->
             <div v-if="!userStore.hasPaymentSetup" class="space-y-6">

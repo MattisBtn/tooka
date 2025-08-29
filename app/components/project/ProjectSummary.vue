@@ -52,7 +52,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <UFormField label="Titre du projet" name="title">
                         <UInput :model-value="project.title" readonly class="w-full" icon="i-heroicons-document-text" />
                     </UFormField>
@@ -61,6 +61,10 @@
                         <UInput :model-value="clientDisplayName" readonly class="w-full"
                             icon="i-heroicons-user-group" />
                     </UFormField>
+
+                    <UFormField label="Créé le" name="created_at">
+                        <UInput :model-value="formattedCreatedAt" readonly class="w-full" icon="i-heroicons-calendar" />
+                    </UFormField>
                 </div>
 
                 <UFormField v-if="project.description" label="Description" name="description" class="w-full">
@@ -68,40 +72,8 @@
                 </UFormField>
             </div>
 
-            <USeparator />
-
-            <!-- Project Settings -->
-            <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                        <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white dark:text-black" />
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h3>
-                        <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions financières</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <UFormField label="Prix" name="price">
-                        <UInput :model-value="formattedPrice" readonly class="w-full" icon="i-heroicons-currency-euro">
-                            <template #trailing>
-                                <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
-                            </template>
-                        </UInput>
-                    </UFormField>
-
-                    <UFormField label="Créé le" name="created_at">
-                        <UInput :model-value="formattedCreatedAt" readonly class="w-full" icon="i-heroicons-calendar" />
-                    </UFormField>
-                </div>
-            </div>
-
             <!-- Security Settings -->
             <div v-if="project.password_hash" class="space-y-3">
-                <USeparator />
-
                 <div class="flex items-center gap-3">
                     <div
                         class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
@@ -146,7 +118,6 @@ interface Props {
     project: ProjectWithClient
     clientDisplayName: string
     statusInfo: ProjectStatusItem | null
-    formattedPrice: string
     formattedCreatedAt: string
     canEditProject: boolean
 }

@@ -268,6 +268,7 @@ export const projectService = {
   async createProject(
     projectData: Omit<
       Project,
+      | "initial_price"
       | "id"
       | "created_at"
       | "updated_at"

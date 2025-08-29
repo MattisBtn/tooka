@@ -40,31 +40,6 @@
 
         <USeparator />
 
-        <!-- Project Settings -->
-        <div class="space-y-4">
-            <div class="flex items-center gap-3 mb-6">
-                <div
-                    class="w-8 h-8 bg-gradient-to-br bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                    <UIcon name="i-heroicons-currency-euro" class="w-4 h-4 text-white dark:text-black" />
-                </div>
-                <div>
-                    <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tarification</h2>
-                    <p class="text-sm text-neutral-600 dark:text-neutral-400">Prix et conditions financières</p>
-                </div>
-            </div>
-
-            <UFormField label="Prix" name="initial_price" help="Montant de base avant options et suppléments">
-                <UInput v-model="state.initial_price" class="w-full" type="number" placeholder="1500.00" step="0.01"
-                    min="0" icon="i-heroicons-currency-euro">
-                    <template #trailing>
-                        <span class="text-neutral-500 dark:text-neutral-400 text-xs font-medium">€</span>
-                    </template>
-                </UInput>
-            </UFormField>
-        </div>
-
-        <USeparator />
-
         <!-- Security Settings -->
         <div class="space-y-4">
             <div class="flex items-center gap-3 mb-6">
@@ -150,7 +125,6 @@ const state = reactive<ProjectFormData>({
     description: props.project?.description || '',
     client_id: props.project?.client_id || '',
     status: props.project?.status || 'draft',
-    initial_price: props.project?.initial_price || null,
     require_password: props.project?.password_hash ? true : false
 })
 
