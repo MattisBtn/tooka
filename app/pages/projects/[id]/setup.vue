@@ -17,9 +17,9 @@
         <!-- Main Content -->
         <div v-else-if="store.project" class="space-y-8">
             <!-- Page Header -->
-            <PageHeader badge="Configuration" badge-color="primary" badge-variant="soft" badge-icon="i-lucide-settings"
-                :title="store.project.title" subtitle="Configurez les modules et fonctionnalités de votre projet"
-                separator />
+            <SharedPageHeader badge="Configuration" badge-color="primary" badge-variant="soft"
+                badge-icon="i-lucide-settings" :title="store.project.title"
+                subtitle="Configurez les modules et fonctionnalités de votre projet" separator />
 
             <!-- Project Summary -->
             <ProjectSummary :project="store.project" :client-display-name="store.clientDisplayName"

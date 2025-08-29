@@ -108,7 +108,7 @@ onMounted(() => {
 <template>
   <div>
     <!-- Page Header -->
-    <PageHeader title="Tableau de bord" subtitle="Vue d'ensemble de vos performances" :separator="false">
+    <SharedPageHeader title="Tableau de bord" subtitle="Vue d'ensemble de vos performances" :separator="false">
       <template #actions>
         <!-- Time range buttons -->
         <div class="flex items-center gap-2">
@@ -142,7 +142,7 @@ onMounted(() => {
           </template>
         </UPopover>
       </template>
-    </PageHeader>
+    </SharedPageHeader>
 
     <!-- Contenu principal -->
     <div>
@@ -160,9 +160,10 @@ onMounted(() => {
             </div>
             <h3 class="text-sm text-gray-500 dark:text-gray-400 mb-2">Revenus totaux</h3>
             <div class="flex items-center gap-2">
-              <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatCurrency(currentKPIs?.total_billed ||
+              <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatCurrency(currentKPIs?.total_billed
+                ||
                 0)
-              }}
+                }}
               </p>
               <UBadge v-if="!loading && revenueGrowth !== null" :color="revenueGrowth > 0 ? 'success' : 'error'"
                 variant="subtle" size="sm" :label="`${revenueGrowth > 0 ? '+' : ''}${revenueGrowth.toFixed(1)}%`" />
@@ -294,7 +295,8 @@ onMounted(() => {
                       <UButton icon="i-lucide-help-circle" size="xs" color="neutral" variant="ghost" />
                     </UTooltip>
                   </div>
-                  <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conversionRate.toFixed(1) }}%</span>
+                  <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conversionRate.toFixed(1)
+                    }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div class="bg-black dark:bg-white h-2 rounded-full transition-all duration-500"

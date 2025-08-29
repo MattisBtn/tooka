@@ -1,11 +1,11 @@
 <template>
   <div class="container mx-auto p-4">
-    <PageHeader badge="Projets" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-folder"
+    <SharedPageHeader badge="Projets" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-folder"
       title="Gestion des projets" subtitle="Créez, gérez et suivez vos projets clients" separator>
       <template #actions>
         <UButton icon="i-lucide-plus" size="lg" label="Nouveau projet" @click="store.openCreateModal" />
       </template>
-    </PageHeader>
+    </SharedPageHeader>
 
     <!-- Filters and Search Bar -->
     <div class="mt-6 p-1 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">

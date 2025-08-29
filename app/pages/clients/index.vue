@@ -1,11 +1,11 @@
 <template>
   <div class="container mx-auto p-4">
-    <PageHeader badge="Clients" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-users"
+    <SharedPageHeader badge="Clients" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-users"
       title="Gestion des clients" subtitle="Ajoutez, modifiez ou supprimez des clients de votre entreprise" separator>
       <template #actions>
         <UButton icon="i-lucide-plus" color="primary" size="lg" label="Nouveau client" @click="store.openCreateModal" />
       </template>
-    </PageHeader>
+    </SharedPageHeader>
 
     <!-- Filters and Search Bar -->
     <div class="mt-6 p-1 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">

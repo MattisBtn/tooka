@@ -17,7 +17,7 @@ if (!userStore.isAdmin) {
 
 <template>
     <div class="container mx-auto p-4">
-        <PageHeader badge="Admin" badge-color="warning" badge-variant="soft"
+        <SharedPageHeader badge="Admin" badge-color="warning" badge-variant="soft"
             badge-icon="i-heroicons-chat-bubble-left-right" title="Gestion des feedbacks"
             subtitle="Consultez, analysez et gérez les retours et suggestions des utilisateurs" separator />
 

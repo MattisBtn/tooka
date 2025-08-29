@@ -63,7 +63,7 @@
                                         'Expire le' : 'Prochaine facturation' }}:
                                 </span>
                                 <span>{{ formatDate(subscriptionStore.currentSubscription.subscription_end_date)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
 
@@ -184,7 +184,7 @@
                         </div>
                     </div>
 
-                    <UserBankingForm v-model:form-state="localFormState" :profile="profile"
+                    <ProfileUserBankingForm v-model:form-state="localFormState" :profile="profile"
                         :is-submitting="isSubmitting" :error="error" :has-changes="hasChanges" :schema="schema"
                         @submit="handleSubmit" @reset="resetForm" @reset-error="resetError" />
                 </div>

@@ -248,7 +248,7 @@ const handlePortalAccess = async () => {
 <template>
     <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <PageHeader badge="Profil" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-user-circle"
+        <SharedPageHeader badge="Profil" badge-color="info" badge-variant="soft" badge-icon="i-heroicons-user-circle"
             title="Mon Profil" subtitle="Gérez vos informations personnelles et paramètres de compte" separator />
 
         <!-- Profile Overview Card -->
@@ -297,15 +297,15 @@ const handlePortalAccess = async () => {
         </UCard>
 
         <!-- Avatar Upload Modal -->
-        <UserAvatarModal v-model="isAvatarModalOpen" />
+        <ProfileUserAvatarModal v-model="isAvatarModalOpen" />
 
         <!-- Tabs Navigation -->
         <UTabs v-model="activeTab" :items="tabs" class="w-full">
             <template #content="{ item }">
                 <!-- Profile Tab -->
                 <div v-if="item.value === 'profile'">
-                    <UserProfileTab v-model:form-state="formState" :profile="profile" :is-submitting="isSubmitting"
-                        :error="error" :is-profile-complete="isProfileComplete"
+                    <ProfileUserProfileTab v-model:form-state="formState" :profile="profile"
+                        :is-submitting="isSubmitting" :error="error" :is-profile-complete="isProfileComplete"
                         :completion-percentage="completionPercentage" :has-changes="hasChanges" :schema="schema"
                         :show-banking-section="false" @submit="handleSubmit" @reset="resetForm"
                         @reset-error="resetError" />
