@@ -51,14 +51,17 @@
                     <ProjectSetupStepper :current-step="currentStep" @step-changed="handleStepChange" />
                 </div>
 
+                <!-- Proposal Section -->
+                <ProjectProposalSection v-if="currentStep === 1" />
+
                 <!-- Moodboard Section -->
-                <ProjectMoodboardSection v-if="currentStep === 1" />
+                <ProjectMoodboardSection v-if="currentStep === 2" />
 
                 <!-- Selection Section -->
-                <ProjectSelectionSection v-if="currentStep === 2" />
+                <ProjectSelectionSection v-if="currentStep === 3" />
 
                 <!-- Gallery Section -->
-                <ProjectGallerySection v-if="currentStep === 3" />
+                <ProjectGallerySection v-if="currentStep === 4" />
             </template>
         </div>
     </div>
@@ -79,8 +82,6 @@ const userStore = useUserStore()
 
 // Current step state
 const currentStep = ref<WorkflowStep>(1)
-
-
 
 // Breadcrumb items
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => [

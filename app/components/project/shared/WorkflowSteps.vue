@@ -36,7 +36,7 @@ interface WorkflowStep {
 
 interface Props {
     currentStatus: string;
-    type: 'moodboard' | 'selection' | 'gallery';
+    type: 'proposal' | 'moodboard' | 'selection' | 'gallery';
 }
 
 const props = defineProps<Props>();
@@ -50,6 +50,12 @@ const steps = computed<WorkflowStep[]>(() => {
     ];
 
     switch (props.type) {
+        case 'proposal':
+            return [
+                ...baseSteps,
+                { key: 'sent_to_client', label: 'Envoyé' },
+                { key: 'completed', label: 'Terminé' }
+            ];
         case 'gallery':
             return [
                 ...baseSteps,

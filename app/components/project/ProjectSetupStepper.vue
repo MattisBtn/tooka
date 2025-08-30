@@ -48,6 +48,7 @@ const emit = defineEmits<{
 const projectSetupStore = useProjectSetupStore()
 
 const steps = [
+    { key: 'proposal', title: 'Proposition', description: 'Devis et options' },
     { key: 'moodboard', title: 'Moodboard', description: 'Inspiration visuelle' },
     { key: 'selection', title: 'Sélection', description: 'Choix client' },
     { key: 'gallery', title: 'Galerie', description: 'Livrable final' }
@@ -61,7 +62,7 @@ const getStepDisplayStatus = (stepNumber: WorkflowStep): StepInfo | null => {
 
 // Helper function to determine the default step to show
 const getDefaultStep = (): WorkflowStep => {
-    if (!projectSetupStore.project) return 2;
+    if (!projectSetupStore.project) return 1;
 
     const project = projectSetupStore.project;
 
@@ -69,8 +70,9 @@ const getDefaultStep = (): WorkflowStep => {
     if (project.gallery) return 4;
     if (project.selection) return 3;
     if (project.moodboard) return 2;
+    if (project.proposal) return 1;
 
-    return 2;
+    return 1;
 }
 
 // Auto-select the default step when project changes
@@ -193,7 +195,7 @@ const getStepTooltip = (stepNumber: WorkflowStep) => {
         const hasInProgressNextStep = (() => {
             if (!projectSetupStore.project) return false
 
-            for (let i = stepNumber + 1; i <= 3; i++) {
+            for (let i = stepNumber + 1; i <= 4; i++) {
                 const nextStepStatus = getStepDisplayStatus(i as WorkflowStep)
                 if (nextStepStatus?.moduleExists && nextStepStatus?.moduleStatus !== 'completed') {
                     return true

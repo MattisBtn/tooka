@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Json, Tables } from "~/types/database.types";
+import type { Tables } from "~/types/database.types";
 
 export type Project = Tables<"projects">;
 
@@ -62,42 +62,27 @@ export interface ProjectWithClient extends Project {
   };
   proposal?: {
     id: string;
-    content_json: Json;
-    content_html: string;
     status:
       | "draft"
-      | "awaiting_client"
+      | "sent_to_client"
       | "revision_requested"
-      | "completed"
-      | "payment_pending";
-    price: number;
-    deposit_required: boolean;
-    deposit_amount: number | null;
-    contract_url: string | null;
-    quote_url: string | null;
+      | "option_selected"
+      | "billing_info_collected"
+      | "documents_sent"
+      | "payment_pending"
+      | "completed";
   } | null;
   moodboard?: {
     id: string;
-    title: string;
-    description: string | null;
     status: "draft" | "awaiting_client" | "revision_requested" | "completed";
-    created_at: string;
-    updated_at: string;
   } | null;
   selection?: {
     id: string;
-    max_media_selection: number;
-    extra_media_price: number | null;
     status: "draft" | "awaiting_client" | "revision_requested" | "completed";
-    created_at: string;
-    updated_at: string;
   } | null;
   gallery?: {
     id: string;
     status: "draft" | "awaiting_client" | "revision_requested" | "completed";
-    selection_id: string | null;
-    created_at: string;
-    updated_at: string;
   } | null;
 }
 

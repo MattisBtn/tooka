@@ -49,6 +49,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     loading.value = false;
     error.value = null;
 
+    useProposalStore().reset();
     useMoodboardStore().reset();
     useSelectionStore().reset();
     useGalleryStore().reset();
@@ -79,6 +80,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
 
     // Normalize all modules and check if any is non-draft
     const modules = [
+      normalizeModule(project.value.proposal),
       normalizeModule(project.value.moodboard),
       normalizeModule(project.value.selection),
       normalizeModule(project.value.gallery),
@@ -111,9 +113,9 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
     };
   };
 
-  // Optimistic update for project modules (moodboard, selection, gallery)
+  // Optimistic update for project modules (proposal, moodboard, selection, gallery)
   const updateProjectModule = async (
-    moduleKey: "moodboard" | "selection" | "gallery",
+    moduleKey: "proposal" | "moodboard" | "selection" | "gallery",
     moduleData: unknown
   ) => {
     if (!project.value) return;
@@ -129,6 +131,7 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
 
     // Determine new project status
     const newStatus = projectService.determineProjectStatus({
+      proposal: updatedProject.proposal,
       moodboard: updatedProject.moodboard,
       selection: updatedProject.selection,
       gallery: updatedProject.gallery,
@@ -149,9 +152,9 @@ export const useProjectSetupStore = defineStore("projectSetup", () => {
   };
 
   return {
-    project: readonly(project),
-    loading: readonly(loading),
-    error: readonly(error),
+    project: project,
+    loading: loading,
+    error: error,
     isLoading,
     hasError,
     isProjectCompleted,

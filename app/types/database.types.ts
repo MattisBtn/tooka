@@ -104,13 +104,6 @@ export type Database = {
             foreignKeyName: "feedback_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "user_kpi_view"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "feedback_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
@@ -395,38 +388,6 @@ export type Database = {
         }
         Relationships: []
       }
-      project_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          project_id: string
-          reference_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          id?: string
-          project_id: string
-          reference_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          project_id?: string
-          reference_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_payments_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       projects: {
         Row: {
           client_id: string
@@ -489,52 +450,93 @@ export type Database = {
           },
         ]
       }
+      proposal_options: {
+        Row: {
+          content_html: string | null
+          content_json: Json | null
+          created_at: string | null
+          deposit_amount: number | null
+          deposit_required: boolean | null
+          id: string
+          is_selected: boolean | null
+          order_index: number
+          price: number
+          proposal_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_html?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          deposit_required?: boolean | null
+          id?: string
+          is_selected?: boolean | null
+          order_index: number
+          price: number
+          proposal_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_html?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          deposit_amount?: number | null
+          deposit_required?: boolean | null
+          id?: string
+          is_selected?: boolean | null
+          order_index?: number
+          price?: number
+          proposal_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_options_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           completed_at: string | null
-          content_html: string
-          content_json: Json
           contract_url: string | null
           created_at: string
-          deposit_amount: number | null
-          deposit_required: boolean
           id: string
-          price: number
           project_id: string
           quote_url: string | null
           revision_last_comment: string | null
+          selected_option_id: string | null
           status: Database["public"]["Enums"]["status_enum"]
           updated_at: string
         }
         Insert: {
           completed_at?: string | null
-          content_html: string
-          content_json: Json
           contract_url?: string | null
           created_at?: string
-          deposit_amount?: number | null
-          deposit_required?: boolean
           id?: string
-          price: number
           project_id: string
           quote_url?: string | null
           revision_last_comment?: string | null
+          selected_option_id?: string | null
           status?: Database["public"]["Enums"]["status_enum"]
           updated_at?: string
         }
         Update: {
           completed_at?: string | null
-          content_html?: string
-          content_json?: Json
           contract_url?: string | null
           created_at?: string
-          deposit_amount?: number | null
-          deposit_required?: boolean
           id?: string
-          price?: number
           project_id?: string
           quote_url?: string | null
           revision_last_comment?: string | null
+          selected_option_id?: string | null
           status?: Database["public"]["Enums"]["status_enum"]
           updated_at?: string
         }
@@ -544,6 +546,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: true
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_selected_option_id_fkey"
+            columns: ["selected_option_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_options"
             referencedColumns: ["id"]
           },
         ]
@@ -840,34 +849,9 @@ export type Database = {
       }
     }
     Views: {
-      user_kpi_view: {
-        Row: {
-          active_projects: number | null
-          avg_days_to_complete: number | null
-          avg_project_value: number | null
-          completed_galleries: number | null
-          completed_moodboards: number | null
-          completed_projects: number | null
-          completed_proposals: number | null
-          completed_selections: number | null
-          period: string | null
-          total_billed: number | null
-          total_projects: number | null
-          unique_clients: number | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      calculate_project_remaining_amount: {
-        Args: { p_project_id: string }
-        Returns: number
-      }
-      calculate_project_total_price: {
-        Args: { p_project_id: string }
-        Returns: number
-      }
       create_notification: {
         Args: {
           p_data?: Json
@@ -909,6 +893,10 @@ export type Database = {
         | "revision_requested"
         | "completed"
         | "payment_pending"
+        | "sent_to_client"
+        | "option_selected"
+        | "billing_info_collected"
+        | "documents_sent"
       stripe_account_status_enum:
         | "not_connected"
         | "pending"
@@ -1070,6 +1058,10 @@ export const Constants = {
         "revision_requested",
         "completed",
         "payment_pending",
+        "sent_to_client",
+        "option_selected",
+        "billing_info_collected",
+        "documents_sent",
       ],
       stripe_account_status_enum: [
         "not_connected",

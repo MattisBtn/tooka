@@ -36,12 +36,18 @@ export const normalizeModule = (
 const isStepAccessible = (
   stepNumber: WorkflowStep,
   project: {
+    proposal?: { status: string } | null;
     moodboard?: { status: string } | null;
     selection?: { status: string } | null;
     gallery?: { status: string } | null;
   }
 ): boolean => {
-  const modules = [project.moodboard, project.selection, project.gallery];
+  const modules = [
+    project.proposal,
+    project.moodboard,
+    project.selection,
+    project.gallery,
+  ];
 
   const moduleExists = (i: number) => modules[i - 1] != null;
   const moduleCompleted = (i: number) => modules[i - 1]?.status === "completed";
@@ -81,17 +87,19 @@ const isStepAccessible = (
 
 // Determine step status based on project modules
 export const getStepStatus = (
-  stepNumber: 1 | 2 | 3,
+  stepNumber: 1 | 2 | 3 | 4,
   project: {
+    proposal?: { status: string } | null;
     moodboard?: { status: string } | null;
     selection?: { status: string } | null;
     gallery?: { status: string } | null;
   }
 ): StepInfo => {
   const moduleMap = {
-    1: "moodboard",
-    2: "selection",
-    3: "gallery",
+    1: "proposal",
+    2: "moodboard",
+    3: "selection",
+    4: "gallery",
   } as const;
 
   const moduleKey = moduleMap[stepNumber];
